@@ -76,6 +76,14 @@ def main():
     if not (startup.index("WHYRED_UART_WORD 0x30554e58") < startup.index("OSLAR_EL1") <
             startup.index("Lsweet_mark_pixel:")):
         raise SystemExit("UART entry marker must precede OSLAR and framebuffer writes")
+    vector_base = startup.rindex("EXT(LowExceptionVectorBase)@page")
+    mmu_marker = startup.index("WHYRED_UART_WORD 0x34554e58")
+    mmu_enable = startup.index("MSR_SCTLR_EL1_X0")
+    first_stage_enable = startup.index("WHYRED_UART_WORD 0x35554e58")
+    stage6 = startup.index("WHYRED_UART_WORD 0x36554e58")
+    restore_vbar = startup.rindex("EXT(ExceptionVectorsBase)@page")
+    if not (vector_base < mmu_marker < mmu_enable < first_stage_enable < stage6 < restore_vbar):
+        raise SystemExit("Diagnostic VBAR must span MMU enable and restore before arm_init")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
@@ -90,6 +98,7 @@ def main():
         "bootstrap_uart": {"stages": ["XNU" + str(i) for i in range(7)],
                            "device_block_base": "0x0c000000", "memory_type": "Device-nGnRnE",
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
+                           "vbar_spans_mmu": True,
                            "c_stages": True},
         "result": "whyred framebuffer and UARTDM requirements passed",
     }

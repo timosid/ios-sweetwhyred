@@ -11,7 +11,7 @@ index e305f0d..ec609f0 100644
  options		ALTERNATE_DEBUGGER	# <alternate_debugger>
  
 diff --git a/osfmk/arm64/start.s b/osfmk/arm64/start.s
-index 2a21aa1..e5d3b02 100644
+index 2a21aa1..900820e 100644
 --- a/osfmk/arm64/start.s
 +++ b/osfmk/arm64/start.s
 @@ -42,6 +42,68 @@
@@ -256,16 +256,22 @@ index 2a21aa1..e5d3b02 100644
  	/* Ensure TTEs are visible */
  	dsb		ish
  
-@@ -811,6 +975,8 @@ common_start:
- 	MSR_TTBR1_EL1_X0
- 1:
+@@ -832,11 +996,23 @@ common_start:
+ 	PAC_INIT_KEY_STATE tmp=x0, tmp2=x1
+ #endif /* HAS_APPLE_PAC */
  
-+	WHYRED_UART_WORD 0x34554e58 /* XNU4: TCR/TTBR/MAIR configured, MMU still off. */
++#if defined(WHYRED_UARTDM)
++	/* Keep stackless UART vectors active across SCTLR_EL1.M. */
++	adrp	x0, EXT(LowExceptionVectorBase)@page
++	add	x0, x0, EXT(LowExceptionVectorBase)@pageoff
++	add	x0, x0, x23
++	sub	x0, x0, x22
++	MSR_VBAR_EL1_X0
++	WHYRED_UART_WORD 0x34554e58 /* XNU4: diagnostic V=P vectors active, MMU off. */
++#endif
 +
- 	// Set up the exception vectors
- #if __ARM_KERNEL_PROTECT__
- 	/* If this is not the first reset of the boot CPU, the alternate mapping
-@@ -837,6 +1003,8 @@ common_start:
+ 	// Enable caches, MMU, ROP and JOP
+ 	MOV64   x0, SCTLR_EL1_DEFAULT
  	MSR_SCTLR_EL1_X0
  	isb		sy
  
@@ -274,11 +280,19 @@ index 2a21aa1..e5d3b02 100644
  #if !VMAPPLE && !defined(SWEET)
  	MOV64   x1, SCTLR_EL1_DEFAULT
  	cmp		x0, x1
-@@ -899,6 +1067,8 @@ common_start:
+@@ -899,6 +1075,16 @@ common_start:
  	mov	lr, x21
  #endif
  
 +	WHYRED_UART_WORD 0x36554e58 /* XNU6: about to enter arm_init in KVA. */
++
++#if defined(WHYRED_UARTDM)
++	adrp	x0, EXT(ExceptionVectorsBase)@page
++	add	x0, x0, EXT(ExceptionVectorsBase)@pageoff
++	add	x0, x0, x22
++	sub	x0, x0, x23
++	MSR_VBAR_EL1_X0
++#endif
 +
  	// Return to arm_init()
  	ret
