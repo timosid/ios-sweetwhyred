@@ -3,6 +3,13 @@ name: whyred-xnu
 on:
   workflow_dispatch:
     inputs:
+      runner_image:
+        description: Build host pool (kernel target remains ARM64)
+        type: choice
+        options:
+          - macos-15-intel
+          - macos-15
+        default: macos-15-intel
       macos_version:
         description: macOS release whose xnu to build (13.5 = xnu-8796, iOS 16 era)
         default: "13.5"
@@ -35,8 +42,9 @@ env:
 jobs:
   build:
     # macos-14 is in scheduled brownouts and retires on 2026-11-02.
-    # Pin the replacement image and Xcode so toolchain changes are explicit.
-    runs-on: macos-15
+    # The ARM64 hosted pool has capacity constraints; use the standard Intel pool.
+    # ARCH_CONFIG remains ARM64 for the target kernel.
+    runs-on: ${{ inputs.runner_image || 'macos-15-intel' }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
