@@ -1,4 +1,3 @@
-# Start the whyred diagnostic build after Actions was enabled for this fork.
 name: whyred-xnu
 
 on:
@@ -86,9 +85,13 @@ jobs:
       - name: Build
         working-directory: dxb
         env:
+          # Replay verified Xcode 15 output while preserving xnu-8796's IORPC ABI.
+          IIG: ${{ github.workspace }}/tools/iig-8796.py
           # keep going after errors so one run reports every compile failure
           MAKEFLAGS: ${{ inputs.keep_going == 'false' && '' || '-k' }}
-        run: bash build.sh
+        run: |
+          set -o pipefail
+          bash build.sh 2>&1 | tee build.log
 
       - name: Package build tree for local compiles
         if: always()
@@ -128,6 +131,7 @@ jobs:
         if: always()
         run: |
           mkdir -p out
+          if [ -f dxb/build.log ]; then cp dxb/build.log out/; fi
           cp -R dxb/fakeroot/System/Library/Kernels/. out/ 2>/dev/null || true
           if [ -f dxb/whyred-source-report.json ]; then cp dxb/whyred-source-report.json out/; fi
           ls -la out
@@ -136,6 +140,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: xnu-whyred-uartdm-debug-early-fb
+          name: xnu-whyred-early-fb
           path: out/
           if-no-files-found: warn
