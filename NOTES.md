@@ -1,5 +1,12 @@
 # iOS 16 on sweet (Redmi Note 10 Pro, SM7150) - working notes
 
+## Whyred CI migration (2026-10-26)
+
+- The whyred v4 UART bootstrap source is commit a98ee796fd4d1fc93a395636399a32449c84738d. Run 40337076879 repeatedly waited for macos-14 without executing build steps. GitHub's announced macOS 14 brownout includes 2026-10-26 14:00 UTC through 2026-10-27 00:00 UTC; the image retires on November 2.
+- Move the whyred workflow to macos-15 and pin Xcode 16.4. Record iig help in the dependency log because this xnu-8796 source previously used Xcode 15's IORPC generator; compatibility with the new toolchain still requires the full CI build.
+- Kernel/whyred hardware patches remain at the v4 source revision. A successful migration build and phone UART test are pending. The last whyred hardware evidence is v3 reaching XNU0-XNU4; a completed XNU boot is unproven.
+
+
 ## Agent handoff / active work (2026-10-15, latest)
 
 ### >>> UPDATE 2026-10-18 (read first, then the 10-17 handoff below) <<<
