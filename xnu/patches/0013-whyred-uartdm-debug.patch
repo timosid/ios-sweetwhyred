@@ -10,6 +10,56 @@ index e305f0d..ec609f0 100644
  options     TRASH_VFP_ON_SAVE   # <debug,trash_vfp>
  options		ALTERNATE_DEBUGGER	# <alternate_debugger>
  
+diff --git a/osfmk/arm64/start.s b/osfmk/arm64/start.s
+index 2a21aa1..138a370 100644
+--- a/osfmk/arm64/start.s
++++ b/osfmk/arm64/start.s
+@@ -530,6 +530,45 @@ Lsweet_mark_pixel:
+ 	subs	x2, x2, #1
+ 	b.ne	Lsweet_mark_row
+ 	dsb		sy
++
++	/* XNU0: prove entry into start_first_cpu over the shim's UARTDM. */
++	MOV64	x9, 0x0c170000
++	// UARTDM PIO word "XNU0" (firmware leaves 115200 8-N-1 configured).
++	mov		w10, #0x300
++	str		w10, [x9, #0x10]
++	mov		w10, #4
++	str		w10, [x9, #0x40]
++	ldr		w11, [x9, #0x40]
++	mov		x12, #0x10000
++Lsweet_uart_xnu0_wait:
++	ldr		w11, [x9, #0x08]
++	tbnz	w11, #2, Lsweet_uart_xnu0_ready
++	subs		x12, x12, #1
++	b.ne	Lsweet_uart_xnu0_wait
++	b		Lsweet_uart_xnu0_done
++Lsweet_uart_xnu0_ready:
++	mov		w10, #0x5558
++	movk	w10, #0x304e, lsl #16
++	str		w10, [x9, #0x70]
++
++	// Emit CRLF after the marker without depending on a stack or C runtime.
++	mov		w10, #0x300
++	str		w10, [x9, #0x10]
++	mov		w10, #2
++	str		w10, [x9, #0x40]
++	ldr		w11, [x9, #0x40]
++	mov		x12, #0x10000
++Lsweet_uart_crlf_wait:
++	ldr		w11, [x9, #0x08]
++	tbnz	w11, #2, Lsweet_uart_crlf_ready
++	subs		x12, x12, #1
++	b.ne	Lsweet_uart_crlf_wait
++	b		Lsweet_uart_xnu0_done
++Lsweet_uart_crlf_ready:
++	mov		w10, #0x0a0d
++	str		w10, [x9, #0x70]
++Lsweet_uart_xnu0_done:
++	dsb		sy
+ #endif
+ 
+ 	// Set low reset vector before attempting any loads
 diff --git a/pexpert/arm/pe_identify_machine.c b/pexpert/arm/pe_identify_machine.c
 index aa75c0a..749a450 100644
 --- a/pexpert/arm/pe_identify_machine.c

@@ -20,6 +20,9 @@ def main():
         "osfmk/arm64/start.s": [
             r"MOV64\s+x0,\s*\(0x9d400000\s*\+\s*2128\s*\*\s*4320\)",
             r"MOV64\s+x10,\s*0x9c000000",
+            r"MOV64\s+x9,\s*0x0c170000",
+            r"Lsweet_uart_xnu0_wait:",
+            r"movk\s+w10,\s*#0x304e,\s*lsl\s*#16",
         ],
         "osfmk/arm64/sweet_early.c": [
             r"early_fb\s*=\s*\(volatile uint32_t \*\)\(uintptr_t\)0x9d400000;",
