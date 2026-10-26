@@ -21,16 +21,29 @@ def main():
             r"MOV64\s+x0,\s*\(0x9d400000\s*\+\s*2128\s*\*\s*4320\)",
             r"MOV64\s+x10,\s*0x9c000000",
             r"MOV64\s+x9,\s*0x0c170000",
-            r"Lsweet_uart_xnu0_wait:",
-            r"movk\s+w10,\s*#0x304e,\s*lsl\s*#16",
-            r"Lwhyred_uart_entry_idle:",
-            r"Lwhyred_uart_crlf_idle:",
+            r"\.macro WHYRED_UART_TX",
+            r"WHYRED_UART_WORD 0x30554e58",
+            r"WHYRED_UART_WORD 0x31554e58",
+            r"WHYRED_UART_WORD 0x32554e58",
+            r"WHYRED_UART_WORD 0x33554e58",
+            r"WHYRED_UART_WORD 0x34554e58",
+            r"WHYRED_UART_WORD 0x35554e58",
+            r"WHYRED_UART_WORD 0x36554e58",
+            r"MOV64\s+x10,\s*0x0c000000",
+            r"ARM_TTE_BLOCK_ATTRINDX\(CACHE_ATTRINDX_DISABLE\)",
+            r"Lwhyred_boot_exception:",
+            r"mrs x14, ESR_EL1",
+            r"mrs x14, ELR_EL1",
+            r"mrs x14, FAR_EL1",
         ],
         "osfmk/arm64/sweet_early.c": [
             r"early_fb\s*=\s*\(volatile uint32_t \*\)\(uintptr_t\)0x9d400000;",
             r"#define EARLY_WIDTH 1080u",
             r"#define EARLY_HEIGHT 2160u",
             r"#define EARLY_STRIDE \(4320u / 4\)",
+            r"XNU_C",
+            r"whyred_boot_uart_disabled = 1;",
+            r"XNU_EARLY_PANIC",
         ],
         "osfmk/arm64/arm_vm_init.c": [
             r"sweet_early_relocate\(SWEET_EARLY_FB_VA \+ 0x01400000\);",
@@ -60,7 +73,7 @@ def main():
                 raise SystemExit(f"Missing whyred source requirement in {relative}: {pattern}")
         hashes[relative] = hashlib.sha256(content).hexdigest()
     startup = (root / "osfmk/arm64/start.s").read_text().split("LEXT(start_first_cpu)", 1)[1]
-    if not (startup.index("MOV64\tx9, 0x0c170000") < startup.index("OSLAR_EL1") <
+    if not (startup.index("WHYRED_UART_WORD 0x30554e58") < startup.index("OSLAR_EL1") <
             startup.index("Lsweet_mark_pixel:")):
         raise SystemExit("UART entry marker must precede OSLAR and framebuffer writes")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
@@ -74,6 +87,10 @@ def main():
         "uartdm": {"physical_base": "0x0c170000", "baud": 115200,
                    "mode": "firmware-configured 8-N-1", "direction": "TX-only PIO",
                    "entry_marker": "XNU0 before OSLAR and framebuffer", "tx_idle_wait": True},
+        "bootstrap_uart": {"stages": ["XNU" + str(i) for i in range(7)],
+                           "device_block_base": "0x0c000000", "memory_type": "Device-nGnRnE",
+                           "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
+                           "c_stages": True},
         "result": "whyred framebuffer and UARTDM requirements passed",
     }
     args.report.write_text(json.dumps(report, indent=2) + "\n")
