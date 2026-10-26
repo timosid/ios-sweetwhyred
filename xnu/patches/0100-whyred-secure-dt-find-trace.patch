@@ -9,10 +9,11 @@ diff --git a/pexpert/gen/device_tree.c b/pexpert/gen/device_tree.c
  
  SECURITY_READ_ONLY_LATE(static int) DTInitialized;
  SECURITY_READ_ONLY_LATE(RealDTEntry) DTRootNode;
-@@ -275,17 +276,24 @@
+@@ -275,17 +276,25 @@
  }
  
  static char const *startingP;         // needed for find_entry
++/* Bounded trace state for the early single-CPU PE device-tree lookup. */
 +static unsigned int whyred_find_entry_depth;
  int find_entry(const char *propName, const char *propValue, DTEntry *entryH);
  
@@ -35,7 +36,7 @@ diff --git a/pexpert/gen/device_tree.c b/pexpert/gen/device_tree.c
  }
  
  int
-@@ -293,16 +301,24 @@
+@@ -293,16 +302,24 @@
  {
  	DeviceTreeNode const *nodeP = (DeviceTreeNode const *) (void const *) startingP;
  	unsigned int k;
@@ -61,7 +62,7 @@ diff --git a/pexpert/gen/device_tree.c b/pexpert/gen/device_tree.c
  		DeviceTreeNodeProperty const *propP = (DeviceTreeNodeProperty const *) (void const *) startingP;
  		ASSERT_PROP_IN_DT(propP);
  
-@@ -312,6 +328,7 @@
+@@ -312,6 +329,7 @@
  			if (propValue == NULL || strcmp((char const *)(propP + 1), propValue) == 0) {
  				*entryH = (DTEntry)nodeP;
  				ASSERT_HEADER_IN_DT(*entryH, sizeof(DeviceTreeNode));
@@ -69,7 +70,7 @@ diff --git a/pexpert/gen/device_tree.c b/pexpert/gen/device_tree.c
  				return kSuccess;
  			}
  		}
-@@ -319,10 +336,15 @@
+@@ -319,10 +337,15 @@
  
  	// Search child nodes
  	for (k = 0; k < nodeP->nChildren; ++k) {
