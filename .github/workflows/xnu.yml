@@ -1,3 +1,4 @@
+# Start the whyred diagnostic build after Actions was enabled for this fork.
 name: whyred-xnu
 
 on:
