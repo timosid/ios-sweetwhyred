@@ -48,6 +48,13 @@ def main():
         "osfmk/arm64/arm_vm_init.c": [
             r"sweet_early_relocate\(SWEET_EARLY_FB_VA \+ 0x01400000\);",
         ],
+        "osfmk/arm/arm_init.c": [
+            r'sweet_early_mark\(10, "arm_setup_pre_sign done"\);',
+            r'sweet_early_mark\(11, "arm_slide_rebase_and_sign_image done"\);',
+            r'sweet_early_mark\(12, "boot_args copied"\);',
+            r'sweet_early_mark\(13, "cpu_data_init done"\);',
+            r'sweet_early_mark\(14, "before PE_init_platform"\);',
+        ],
         "pexpert/arm/pe_serial.c": [
             r"#define WHYRED_UARTDM_PA\s+0x0c170000ULL",
             r"ml_io_map\(WHYRED_UARTDM_PA, WHYRED_UARTDM_SIZE\)",
@@ -91,6 +98,19 @@ def main():
                       r"MSR_VBAR_EL1_X0\s*")
     if not re.fullmatch(physical_setup, setup):
         raise SystemExit("Physical VBAR must use the PC-relative address without another VA/PA conversion")
+    arm_init = (root / "osfmk/arm/arm_init.c").read_text()
+    checkpoints = [
+        'sweet_early_mark(1, "arm_init entered (MMU on)")',
+        'sweet_early_mark(10, "arm_setup_pre_sign done")',
+        'sweet_early_mark(11, "arm_slide_rebase_and_sign_image done")',
+        'sweet_early_mark(12, "boot_args copied")',
+        'sweet_early_mark(13, "cpu_data_init done")',
+        'sweet_early_mark(14, "before PE_init_platform")',
+        'sweet_early_mark(2, "PE_init_platform done")',
+    ]
+    if [arm_init.index(item) for item in checkpoints] != sorted(
+            arm_init.index(item) for item in checkpoints):
+        raise SystemExit("arm_init UART checkpoints are missing or out of order")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
