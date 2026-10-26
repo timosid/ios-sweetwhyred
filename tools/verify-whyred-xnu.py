@@ -84,6 +84,13 @@ def main():
     restore_vbar = startup.rindex("EXT(ExceptionVectorsBase)@page")
     if not (vector_base < mmu_marker < mmu_enable < first_stage_enable < stage6 < restore_vbar):
         raise SystemExit("Diagnostic VBAR must span MMU enable and restore before arm_init")
+    vector_setups = list(re.finditer(r"adrp\s+x0,\s*EXT\(LowExceptionVectorBase\)@page\b", startup))
+    setup = startup[vector_setups[-1].start():mmu_marker]
+    physical_setup = (r"adrp\s+x0,\s*EXT\(LowExceptionVectorBase\)@page\s+"
+                      r"add\s+x0,\s*x0,\s*EXT\(LowExceptionVectorBase\)@pageoff\s+"
+                      r"MSR_VBAR_EL1_X0\s*")
+    if not re.fullmatch(physical_setup, setup):
+        raise SystemExit("Physical VBAR must use the PC-relative address without another VA/PA conversion")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
@@ -99,6 +106,7 @@ def main():
                            "device_block_base": "0x0c000000", "memory_type": "Device-nGnRnE",
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
                            "vbar_spans_mmu": True,
+                           "vbar_physical_pc_relative": True,
                            "c_stages": True},
         "result": "whyred framebuffer and UARTDM requirements passed",
     }

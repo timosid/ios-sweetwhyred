@@ -11,7 +11,7 @@ index e305f0d..ec609f0 100644
  options		ALTERNATE_DEBUGGER	# <alternate_debugger>
  
 diff --git a/osfmk/arm64/start.s b/osfmk/arm64/start.s
-index 2a21aa1..900820e 100644
+index 2a21aa1..68d556f 100644
 --- a/osfmk/arm64/start.s
 +++ b/osfmk/arm64/start.s
 @@ -42,6 +42,68 @@
@@ -256,16 +256,14 @@ index 2a21aa1..900820e 100644
  	/* Ensure TTEs are visible */
  	dsb		ish
  
-@@ -832,11 +996,23 @@ common_start:
+@@ -832,11 +996,21 @@ common_start:
  	PAC_INIT_KEY_STATE tmp=x0, tmp2=x1
  #endif /* HAS_APPLE_PAC */
  
 +#if defined(WHYRED_UARTDM)
-+	/* Keep stackless UART vectors active across SCTLR_EL1.M. */
++	/* ADRP already gives the PA while executing with the MMU off. */
 +	adrp	x0, EXT(LowExceptionVectorBase)@page
 +	add	x0, x0, EXT(LowExceptionVectorBase)@pageoff
-+	add	x0, x0, x23
-+	sub	x0, x0, x22
 +	MSR_VBAR_EL1_X0
 +	WHYRED_UART_WORD 0x34554e58 /* XNU4: diagnostic V=P vectors active, MMU off. */
 +#endif
@@ -280,7 +278,7 @@ index 2a21aa1..900820e 100644
  #if !VMAPPLE && !defined(SWEET)
  	MOV64   x1, SCTLR_EL1_DEFAULT
  	cmp		x0, x1
-@@ -899,6 +1075,16 @@ common_start:
+@@ -899,6 +1073,16 @@ common_start:
  	mov	lr, x21
  #endif
  

@@ -13,3 +13,7 @@ The follow-up workflow saves build.log in its artifact. A successful full build 
 Run 40350616642 attempt 1 executed no steps. GitHub annotations report: "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times" and "The job was not acquired by Runner of type hosted even after multiple attempts", plus an internal server error. No active workflows were found in the account's nine accessible repositories during diagnosis.
 
 The default build host is now the standard macos-15-intel pool, with macos-15 available as a manual runner_image choice. The target remains ARM64 and Xcode stays pinned to 16.4. This changes the machine pool used to build the kernel; a successful Intel-hosted full build remains to be verified.
+
+## Physical bootstrap VBAR correction
+
+Before flashing v4, audit found that ADRP/ADD was followed by another VA-to-PA conversion while already executing with the MMU off. Remove that extra conversion: the PC-relative address is already physical. Keep the normal high-vector restoration before arm_init. The source guard now requires this direct setup; local compilation of all five diagnostic units passed, and a negative check rejected the old setup. Boot-image packaging also checks the compiled ADRP/ADD/MSR sequence before XNU4.
