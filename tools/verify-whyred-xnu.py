@@ -193,9 +193,11 @@ def main():
             soc_body.index(item) for item in soc_checkpoints):
         raise SystemExit("SoC lookup UART checkpoints are missing or out of order")
     device_tree = (root / "pexpert/gen/device_tree.c").read_text()
-    find_entry_body = device_tree.split(
-        "SecureDTFindEntry(const char *propName, const char *propValue, DTEntry *entryH)", 1)[1].split(
-        "int\\nfind_entry(const char *propName", 1)[0]
+    secure_find_signature = "SecureDTFindEntry(const char *propName, const char *propValue, DTEntry *entryH)"
+    recursive_signature = "find_entry(const char *propName, const char *propValue, DTEntry *entryH)"
+    secure_find_start = device_tree.index(secure_find_signature)
+    recursive_start = device_tree.index(recursive_signature, secure_find_start + len(secure_find_signature))
+    find_entry_body = device_tree[secure_find_start + len(secure_find_signature):recursive_start]
     find_entry_checkpoints = [
         'sweet_early_mark(39, "SecureDTFindEntry entered")',
         'startingP = (char const *)DTRootNode;',
@@ -206,8 +208,7 @@ def main():
     if [find_entry_body.index(item) for item in find_entry_checkpoints] != sorted(
             find_entry_body.index(item) for item in find_entry_checkpoints):
         raise SystemExit("SecureDTFindEntry UART checkpoints are missing or out of order")
-    recursive_body = device_tree.split(
-        "find_entry(const char *propName, const char *propValue, DTEntry *entryH)\\n{", 1)[1]
+    recursive_body = device_tree[recursive_start:]
     recursion_checkpoints = [
         'unsigned int trace_depth = whyred_find_entry_depth++;',
         'sweet_early_mark(40 + trace_depth, "SecureDTFindEntry recursion depth")',
