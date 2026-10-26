@@ -90,6 +90,15 @@ def main():
             r"sweet_early_mark\(38, \"PE arm-io reg read done\"\);",
             r"whyred synthetic ADT provides arm-io reg, not ranges",
         ],
+        "pexpert/gen/device_tree.c": [
+            r"#include <arm64/sweet_early.h>",
+            r"static unsigned int whyred_find_entry_depth;",
+            r"sweet_early_mark\(39, \"SecureDTFindEntry entered\"\);",
+            r"sweet_early_mark\(96, \"SecureDTFindEntry returned\"\);",
+            r"sweet_early_mark\(40 \+ trace_depth, \"SecureDTFindEntry recursion depth\"\);",
+            r"sweet_early_mark\(60 \+ k, \"SecureDTFindEntry root property\"\);",
+            r"sweet_early_mark\(80 \+ k, \"SecureDTFindEntry root child\"\);",
+        ],
         "pexpert/pexpert/arm/protos.h": [
             r"SERIAL_WHYRED_UARTDM\s*=\s*0x40",
         ],
@@ -183,6 +192,31 @@ def main():
     if [soc_body.index(item) for item in soc_checkpoints] != sorted(
             soc_body.index(item) for item in soc_checkpoints):
         raise SystemExit("SoC lookup UART checkpoints are missing or out of order")
+    device_tree = (root / "pexpert/gen/device_tree.c").read_text()
+    find_entry_body = device_tree.split(
+        "SecureDTFindEntry(const char *propName, const char *propValue, DTEntry *entryH)", 1)[1].split(
+        "int\\nfind_entry(const char *propName", 1)[0]
+    find_entry_checkpoints = [
+        'sweet_early_mark(39, "SecureDTFindEntry entered")',
+        'startingP = (char const *)DTRootNode;',
+        'whyred_find_entry_depth = 0;',
+        'result = find_entry(propName, propValue, entryH);',
+        'sweet_early_mark(96, "SecureDTFindEntry returned")',
+    ]
+    if [find_entry_body.index(item) for item in find_entry_checkpoints] != sorted(
+            find_entry_body.index(item) for item in find_entry_checkpoints):
+        raise SystemExit("SecureDTFindEntry UART checkpoints are missing or out of order")
+    recursive_body = device_tree.split(
+        "find_entry(const char *propName, const char *propValue, DTEntry *entryH)\\n{", 1)[1]
+    recursion_checkpoints = [
+        'unsigned int trace_depth = whyred_find_entry_depth++;',
+        'sweet_early_mark(40 + trace_depth, "SecureDTFindEntry recursion depth")',
+        'sweet_early_mark(60 + k, "SecureDTFindEntry root property")',
+        'sweet_early_mark(80 + k, "SecureDTFindEntry root child")',
+    ]
+    if [recursive_body.index(item) for item in recursion_checkpoints] != sorted(
+            recursive_body.index(item) for item in recursion_checkpoints):
+        raise SystemExit("SecureDTFindEntry recursive UART checkpoints are missing or out of order")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
@@ -195,6 +229,9 @@ def main():
                    "mode": "firmware-configured 8-N-1", "direction": "TX-only PIO",
                    "entry_marker": "XNU0 before OSLAR and framebuffer", "tx_idle_wait": True},
         "pe_identify_machine_uart_markers": list(range(21, 39)),
+        "secure_device_tree_find_trace": {"entry": 39, "depth_markers": [40, 55],
+                                           "root_property_markers": [60, 75],
+                                           "root_child_markers": [80, 95], "returned": 96},
         "bootstrap_uart": {"stages": ["XNU" + str(i) for i in range(7)],
                            "device_block_base": "0x0c000000", "memory_type": "Device-nGnRnE",
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
