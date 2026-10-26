@@ -55,6 +55,13 @@ def main():
             r'sweet_early_mark\(13, "cpu_data_init done"\);',
             r'sweet_early_mark\(14, "before PE_init_platform"\);',
         ],
+        "pexpert/arm/pe_init.c": [
+            r'#include <arm64/sweet_early\.h>',
+            r'sweet_early_mark\(17, "PE before SecureDTInit"\);',
+            r'sweet_early_mark\(18, "PE SecureDTInit done"\);',
+            r'sweet_early_mark\(19, "PE identify machine done"\);',
+            r'sweet_early_mark\(20, "PE init debug done"\);',
+        ],
         "pexpert/arm/pe_serial.c": [
             r"#define WHYRED_UARTDM_PA\s+0x0c170000ULL",
             r"ml_io_map\(WHYRED_UARTDM_PA, WHYRED_UARTDM_SIZE\)",
@@ -111,6 +118,19 @@ def main():
     if [arm_init.index(item) for item in checkpoints] != sorted(
             arm_init.index(item) for item in checkpoints):
         raise SystemExit("arm_init UART checkpoints are missing or out of order")
+    pe_init = (root / "pexpert/arm/pe_init.c").read_text().split(
+        "PE_init_platform(boolean_t vm_initialized", 1)[1]
+    pe_checkpoints = [
+        'sweet_early_mark(17, "PE before SecureDTInit")',
+        'SecureDTInit(PE_state.deviceTreeHead, PE_state.deviceTreeSize);',
+        'sweet_early_mark(18, "PE SecureDTInit done")',
+        'pe_identify_machine(boot_args_ptr);',
+        'sweet_early_mark(19, "PE identify machine done")',
+        'sweet_early_mark(20, "PE init debug done")',
+    ]
+    if [pe_init.index(item) for item in pe_checkpoints] != sorted(
+            pe_init.index(item) for item in pe_checkpoints):
+        raise SystemExit("PE_init_platform UART checkpoints are missing or out of order")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
