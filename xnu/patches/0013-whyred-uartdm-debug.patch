@@ -1,0 +1,170 @@
+diff --git a/config/MASTER.arm64.sweet b/config/MASTER.arm64.sweet
+index e305f0d..ec609f0 100644
+--- a/config/MASTER.arm64.sweet
++++ b/config/MASTER.arm64.sweet
+@@ -96,6 +96,7 @@ machine		"arm64"						# <arm64>
+ makeoptions	OSFMK_MACHINE = "arm64"				# <mach>
+ 
+ options		COUNT_SYSCALLS		# count bsd system calls 	# <countcalls>
++options		WHYRED_UARTDM		# whyred Qualcomm UARTDM diagnostic console
+ options     TRASH_VFP_ON_SAVE   # <debug,trash_vfp>
+ options		ALTERNATE_DEBUGGER	# <alternate_debugger>
+ 
+diff --git a/pexpert/arm/pe_identify_machine.c b/pexpert/arm/pe_identify_machine.c
+index aa75c0a..749a450 100644
+--- a/pexpert/arm/pe_identify_machine.c
++++ b/pexpert/arm/pe_identify_machine.c
+@@ -188,8 +188,18 @@ pe_arm_get_soc_base_phys(void)
+ 			strlcpy(gPESoCDeviceTypeBuffer, tmpStr, SOC_DEVICE_TYPE_BUFFER_SIZE);
+ 			gPESoCDeviceType = gPESoCDeviceTypeBuffer;
+ 
+-			SecureDTGetProperty(entryP, "ranges", (void const **)&ranges_prop, &prop_size);
+-			gPESoCBasePhys = *(ranges_prop + 1);
++			if (SecureDTGetProperty(entryP, "ranges", (void const **)&ranges_prop, &prop_size) == kSuccess &&
++			    prop_size >= 2 * sizeof(*ranges_prop)) {
++				gPESoCBasePhys = *(ranges_prop + 1);
++			} else {
++				/* whyred synthetic ADT provides arm-io reg, not ranges. */
++				uintptr_t const *reg_prop = NULL;
++				if (SecureDTGetProperty(entryP, "reg", (void const **)&reg_prop, &prop_size) != kSuccess ||
++				    prop_size < sizeof(*reg_prop)) {
++					return 0;
++				}
++				gPESoCBasePhys = *reg_prop;
++			}
+ 		}
+ 		return gPESoCBasePhys;
+ 	}
+diff --git a/pexpert/arm/pe_serial.c b/pexpert/arm/pe_serial.c
+index 19f27cd..266269f 100644
+--- a/pexpert/arm/pe_serial.c
++++ b/pexpert/arm/pe_serial.c
+@@ -698,6 +698,103 @@ register_serial_functions(struct pe_serial_functions *fns)
+ 	gPESF = fns;
+ }
+ 
++#ifdef WHYRED_UARTDM
++/*
++ * whyred debug UART: ABL and the shim use UARTDM at physical 0x0c170000.
++ * Preserve the firmware's 115200 8-N-1 clock/pin configuration; only push
++ * single-byte PIO words through the TX FIFO. All waits are bounded so a
++ * missing/unclocked peripheral cannot hang kernel startup.
++ */
++#define WHYRED_UARTDM_PA       0x0c170000ULL
++#define WHYRED_UARTDM_SIZE     0x1000
++#define WHYRED_UARTDM_CR       0x10
++#define WHYRED_UARTDM_SR       0x08
++#define WHYRED_UARTDM_NCF_TX   0x40
++#define WHYRED_UARTDM_TX       0x70
++#define WHYRED_UARTDM_CR_RESET_TX_READY 0x300
++#define WHYRED_UARTDM_SR_TX_READY       (1u << 2)
++
++static volatile uint32_t *whyred_uartdm_registers;
++
++static uint32_t
++whyred_uartdm_read(unsigned int offset)
++{
++	return whyred_uartdm_registers[offset / sizeof(uint32_t)];
++}
++
++static void
++whyred_uartdm_write(unsigned int offset, uint32_t value)
++{
++	whyred_uartdm_registers[offset / sizeof(uint32_t)] = value;
++}
++
++static unsigned int
++whyred_uartdm_transmit_ready(void)
++{
++	/* transmit_data() performs a bounded hardware-ready poll itself. */
++	return whyred_uartdm_registers != NULL;
++}
++
++static void
++whyred_uartdm_transmit_data(uint8_t c)
++{
++	if (whyred_uartdm_registers == NULL) {
++		return;
++	}
++	whyred_uartdm_write(WHYRED_UARTDM_CR, WHYRED_UARTDM_CR_RESET_TX_READY);
++	whyred_uartdm_write(WHYRED_UARTDM_NCF_TX, 1);
++	(void)whyred_uartdm_read(WHYRED_UARTDM_NCF_TX);
++	for (uint32_t i = 0; i < 0x10000; i++) {
++		if (whyred_uartdm_read(WHYRED_UARTDM_SR) & WHYRED_UARTDM_SR_TX_READY) {
++			whyred_uartdm_write(WHYRED_UARTDM_TX, c);
++			return;
++		}
++	}
++}
++
++static unsigned int
++whyred_uartdm_receive_ready(void)
++{
++	return 0;
++}
++
++static uint8_t
++whyred_uartdm_receive_data(void)
++{
++	return 0;
++}
++
++static void
++whyred_uartdm_init(void)
++{
++	static const char banner[] = "\r\n[whyred-XNU] UARTDM console ready\r\n";
++	for (const char *p = banner; *p; p++) {
++		whyred_uartdm_transmit_data((uint8_t)*p);
++	}
++}
++
++static SECURITY_READ_ONLY_LATE(struct pe_serial_functions) whyred_uartdm_serial_functions = {
++	.init = whyred_uartdm_init,
++	.transmit_ready = whyred_uartdm_transmit_ready,
++	.transmit_data = whyred_uartdm_transmit_data,
++	.receive_ready = whyred_uartdm_receive_ready,
++	.receive_data = whyred_uartdm_receive_data,
++	.device = SERIAL_WHYRED_UARTDM
++};
++
++static void
++whyred_uartdm_probe(void)
++{
++	if (whyred_uartdm_registers != NULL) {
++		return;
++	}
++	whyred_uartdm_registers = (volatile uint32_t *)ml_io_map(WHYRED_UARTDM_PA, WHYRED_UARTDM_SIZE);
++	if (whyred_uartdm_registers != NULL) {
++		register_serial_functions(&whyred_uartdm_serial_functions);
++	}
++}
++#endif /* WHYRED_UARTDM */
++
+ /*****************************************************************************/
+ 
+ /*
+@@ -1044,6 +1141,10 @@ serial_init(void)
+ 	}
+ #endif /* APPLE_UART */
+ 
++	#ifdef WHYRED_UARTDM
++	whyred_uartdm_probe();
++	#endif /* WHYRED_UARTDM */
++
+ 	if (gPESF == NULL) {
+ 		return 0;
+ 	}
+diff --git a/pexpert/pexpert/arm/protos.h b/pexpert/pexpert/arm/protos.h
+index 9004f2b..ee6869c 100644
+--- a/pexpert/pexpert/arm/protos.h
++++ b/pexpert/pexpert/arm/protos.h
+@@ -51,7 +51,8 @@ typedef enum serial_device {
+ 	SERIAL_PI3_UART=0x4,
+ 	SERIAL_VMAPPLE_UART=0x8,
+ 	SERIAL_DCC_UART=0x10,
+-	SERIAL_SWEET_FBCON=0x20
++	SERIAL_SWEET_FBCON=0x20,
++	SERIAL_WHYRED_UARTDM=0x40
+ } serial_device_t;
+ 
+ kern_return_t serial_irq_enable(serial_device_t device);

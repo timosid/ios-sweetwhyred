@@ -134,6 +134,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: xnu-whyred-early-fb
+          name: xnu-whyred-uartdm-debug-early-fb
           path: out/
           if-no-files-found: warn
