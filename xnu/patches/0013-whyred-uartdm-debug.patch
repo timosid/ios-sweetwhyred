@@ -11,16 +11,27 @@ index e305f0d..ec609f0 100644
  options		ALTERNATE_DEBUGGER	# <alternate_debugger>
  
 diff --git a/osfmk/arm64/start.s b/osfmk/arm64/start.s
-index 2a21aa1..138a370 100644
+index 2a21aa1..9d76c04 100644
 --- a/osfmk/arm64/start.s
 +++ b/osfmk/arm64/start.s
-@@ -530,6 +530,45 @@ Lsweet_mark_pixel:
- 	subs	x2, x2, #1
- 	b.ne	Lsweet_mark_row
- 	dsb		sy
-+
+@@ -506,6 +506,68 @@ start_cpu:
+ 	.globl EXT(start_first_cpu)
+ LEXT(start_first_cpu)
+ 
++#if defined(WHYRED_UARTDM)
 +	/* XNU0: prove entry into start_first_cpu over the shim's UARTDM. */
 +	MOV64	x9, 0x0c170000
++	// Wait for the shim text to leave the FIFO before changing NCF_TX.
++	mov		x12, #0x10000
++Lwhyred_uart_entry_idle:
++	ldr		w11, [x9, #0x08]
++	tbnz	w11, #3, Lwhyred_uart_entry_idle_ready
++	ldr		w11, [x9, #0x14]
++	tbnz	w11, #7, Lwhyred_uart_entry_idle_ready
++	subs	x12, x12, #1
++	b.ne	Lwhyred_uart_entry_idle
++	b		Lsweet_uart_xnu0_done
++Lwhyred_uart_entry_idle_ready:
 +	// UARTDM PIO word "XNU0" (firmware leaves 115200 8-N-1 configured).
 +	mov		w10, #0x300
 +	str		w10, [x9, #0x10]
@@ -39,7 +50,17 @@ index 2a21aa1..138a370 100644
 +	movk	w10, #0x304e, lsl #16
 +	str		w10, [x9, #0x70]
 +
-+	// Emit CRLF after the marker without depending on a stack or C runtime.
++	// Drain the marker before starting the separate CRLF transfer.
++	mov		x12, #0x10000
++Lwhyred_uart_crlf_idle:
++	ldr		w11, [x9, #0x08]
++	tbnz	w11, #3, Lwhyred_uart_crlf_idle_ready
++	ldr		w11, [x9, #0x14]
++	tbnz	w11, #7, Lwhyred_uart_crlf_idle_ready
++	subs	x12, x12, #1
++	b.ne	Lwhyred_uart_crlf_idle
++	b		Lsweet_uart_xnu0_done
++Lwhyred_uart_crlf_idle_ready:
 +	mov		w10, #0x300
 +	str		w10, [x9, #0x10]
 +	mov		w10, #2
@@ -57,6 +78,17 @@ index 2a21aa1..138a370 100644
 +	str		w10, [x9, #0x70]
 +Lsweet_uart_xnu0_done:
 +	dsb		sy
++#endif
++
+ 	// Unlock the core for debugging
+ 	msr		OSLAR_EL1, xzr
+ 	msr		DAIFSet, #(DAIFSC_ALL)				// Disable all interrupts
+@@ -530,6 +592,8 @@ Lsweet_mark_pixel:
+ 	subs	x2, x2, #1
+ 	b.ne	Lsweet_mark_row
+ 	dsb		sy
++
++
  #endif
  
  	// Set low reset vector before attempting any loads
@@ -86,10 +118,10 @@ index aa75c0a..749a450 100644
  		return gPESoCBasePhys;
  	}
 diff --git a/pexpert/arm/pe_serial.c b/pexpert/arm/pe_serial.c
-index 19f27cd..266269f 100644
+index 19f27cd..14ea4b2 100644
 --- a/pexpert/arm/pe_serial.c
 +++ b/pexpert/arm/pe_serial.c
-@@ -698,6 +698,103 @@ register_serial_functions(struct pe_serial_functions *fns)
+@@ -698,6 +698,115 @@ register_serial_functions(struct pe_serial_functions *fns)
  	gPESF = fns;
  }
  
@@ -103,6 +135,7 @@ index 19f27cd..266269f 100644
 +#define WHYRED_UARTDM_PA       0x0c170000ULL
 +#define WHYRED_UARTDM_SIZE     0x1000
 +#define WHYRED_UARTDM_CR       0x10
++#define WHYRED_UARTDM_ISR      0x14
 +#define WHYRED_UARTDM_SR       0x08
 +#define WHYRED_UARTDM_NCF_TX   0x40
 +#define WHYRED_UARTDM_TX       0x70
@@ -134,6 +167,17 @@ index 19f27cd..266269f 100644
 +whyred_uartdm_transmit_data(uint8_t c)
 +{
 +	if (whyred_uartdm_registers == NULL) {
++		return;
++	}
++	/* Match the working shim protocol: drain TX before changing NCF_TX. */
++	uint32_t idle;
++	for (idle = 0; idle < 0x10000; idle++) {
++		if ((whyred_uartdm_read(WHYRED_UARTDM_SR) & (1u << 3)) ||
++		    (whyred_uartdm_read(WHYRED_UARTDM_ISR) & (1u << 7))) {
++			break;
++		}
++	}
++	if (idle == 0x10000) {
 +		return;
 +	}
 +	whyred_uartdm_write(WHYRED_UARTDM_CR, WHYRED_UARTDM_CR_RESET_TX_READY);
@@ -193,7 +237,7 @@ index 19f27cd..266269f 100644
  /*****************************************************************************/
  
  /*
-@@ -1044,6 +1141,10 @@ serial_init(void)
+@@ -1044,6 +1153,10 @@ serial_init(void)
  	}
  #endif /* APPLE_UART */
  
