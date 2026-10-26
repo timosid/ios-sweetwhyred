@@ -44,6 +44,8 @@ def main():
             r"XNU_C",
             r"whyred_boot_uart_disabled = 1;",
             r"XNU_EARLY_PANIC",
+            r"sweet_early_hex64\(const char \*label, uint64_t value\)",
+            r"XNU_HEX ",
         ],
         "osfmk/arm64/arm_vm_init.c": [
             r"sweet_early_relocate\(SWEET_EARLY_FB_VA \+ 0x01400000\);",
@@ -98,6 +100,14 @@ def main():
             r"sweet_early_mark\(40 \+ trace_depth, \"SecureDTFindEntry recursion depth\"\);",
             r"sweet_early_mark\(60 \+ k, \"SecureDTFindEntry root property\"\);",
             r"sweet_early_mark\(80 \+ k, \"SecureDTFindEntry root child\"\);",
+            r"sweet_early_hex64\(\"DTRootNode\",",
+            r"sweet_early_hex64\(\"DTEnd\",",
+            r"sweet_early_hex64\(\"DTSize\",",
+            r"sweet_early_mark\(97, \"SecureDTFindEntry root header bounds ok\"\);",
+            r"sweet_early_hex64\(\"root nProperties\",",
+            r"sweet_early_hex64\(\"root nChildren\",",
+            r"sweet_early_mark\(98, \"SecureDTFindEntry root header loaded\"\);",
+            r"sweet_early_mark\(99, \"SecureDTFindEntry root property scan starts\"\);",
         ],
         "pexpert/pexpert/arm/protos.h": [
             r"SERIAL_WHYRED_UARTDM\s*=\s*0x40",
@@ -161,7 +171,7 @@ def main():
         raise SystemExit("PE_init_platform UART checkpoints are missing or out of order")
     identify = (root / "pexpert/arm/pe_identify_machine.c").read_text()
     identify_body = identify.split("pe_identify_machine(boot_args * bootArgs)", 1)[1].split(
-        "vm_offset_t\\npe_arm_get_soc_base_phys", 1)[0]
+        "vm_offset_t\npe_arm_get_soc_base_phys", 1)[0]
     identify_checkpoints = [
         'sweet_early_mark(21, "pe_identify_machine entered")',
         'sweet_early_mark(22, "PE before SoC base lookup")',
@@ -212,6 +222,10 @@ def main():
     recursion_checkpoints = [
         'unsigned int trace_depth = whyred_find_entry_depth++;',
         'sweet_early_mark(40 + trace_depth, "SecureDTFindEntry recursion depth")',
+        'ASSERT_HEADER_IN_DT(nodeP, sizeof(DeviceTreeNode));',
+        'sweet_early_mark(97, "SecureDTFindEntry root header bounds ok");',
+        'sweet_early_mark(98, "SecureDTFindEntry root header loaded");',
+        'sweet_early_mark(99, "SecureDTFindEntry root property scan starts");',
         'sweet_early_mark(60 + k, "SecureDTFindEntry root property")',
         'sweet_early_mark(80 + k, "SecureDTFindEntry root child")',
     ]
@@ -233,6 +247,9 @@ def main():
         "secure_device_tree_find_trace": {"entry": 39, "depth_markers": [40, 55],
                                            "root_property_markers": [60, 75],
                                            "root_child_markers": [80, 95], "returned": 96},
+        "secure_device_tree_bounds_trace": {"pre_assert_values": ["DTRootNode", "DTEnd", "DTSize"],
+                                             "header_bounds_ok": 97, "root_header_loaded": 98,
+                                             "root_property_scan_starts": 99},
         "bootstrap_uart": {"stages": ["XNU" + str(i) for i in range(7)],
                            "device_block_base": "0x0c000000", "memory_type": "Device-nGnRnE",
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
@@ -247,3 +264,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
