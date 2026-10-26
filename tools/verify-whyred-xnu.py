@@ -69,6 +69,25 @@ def main():
             r"whyred_uartdm_read\(WHYRED_UARTDM_ISR\) & \(1u << 7\)",
         ],
         "pexpert/arm/pe_identify_machine.c": [
+            r"#include <arm64/sweet_early.h>",
+            r"sweet_early_mark\(21, \"pe_identify_machine entered\"\);",
+            r"sweet_early_mark\(22, \"PE before SoC base lookup\"\);",
+            r"sweet_early_mark\(23, \"PE SoC base is zero\"\);",
+            r"sweet_early_mark\(24, \"PE SoC base lookup done\"\);",
+            r"sweet_early_mark\(25, \"PE before /cpus lookup\"\);",
+            r"sweet_early_mark\(26, \"PE /cpus lookup done\"\);",
+            r"sweet_early_mark\(27, \"PE /cpus iterator ready\"\);",
+            r"sweet_early_mark\(28, \"PE /cpus frequency scan done\"\);",
+            r"sweet_early_mark\(29, \"PE before arm-io lookup\"\);",
+            r"sweet_early_mark\(30, \"PE arm-io lookup done\"\);",
+            r"sweet_early_mark\(31, \"PE before arm-io device_type\"\);",
+            r"sweet_early_mark\(32, \"PE arm-io device_type read done\"\);",
+            r"sweet_early_mark\(33, \"PE before arm-io ranges\"\);",
+            r"sweet_early_mark\(34, \"PE arm-io ranges read done\"\);",
+            r"sweet_early_mark\(35, \"PE arm-io ranges absent; using reg\"\);",
+            r"sweet_early_mark\(36, \"PE before arm-io reg\"\);",
+            r"sweet_early_mark\(37, \"PE arm-io reg missing\"\);",
+            r"sweet_early_mark\(38, \"PE arm-io reg read done\"\);",
             r"whyred synthetic ADT provides arm-io reg, not ranges",
         ],
         "pexpert/pexpert/arm/protos.h": [
@@ -131,6 +150,39 @@ def main():
     if [pe_init.index(item) for item in pe_checkpoints] != sorted(
             pe_init.index(item) for item in pe_checkpoints):
         raise SystemExit("PE_init_platform UART checkpoints are missing or out of order")
+    identify = (root / "pexpert/arm/pe_identify_machine.c").read_text()
+    identify_body = identify.split("pe_identify_machine(boot_args * bootArgs)", 1)[1].split(
+        "vm_offset_t\\npe_arm_get_soc_base_phys", 1)[0]
+    identify_checkpoints = [
+        'sweet_early_mark(21, "pe_identify_machine entered")',
+        'sweet_early_mark(22, "PE before SoC base lookup")',
+        'sweet_early_mark(23, "PE SoC base is zero")',
+        'sweet_early_mark(24, "PE SoC base lookup done")',
+        'sweet_early_mark(25, "PE before /cpus lookup")',
+        'sweet_early_mark(26, "PE /cpus lookup done")',
+        'sweet_early_mark(27, "PE /cpus iterator ready")',
+        'sweet_early_mark(28, "PE /cpus frequency scan done")',
+    ]
+    if [identify_body.index(item) for item in identify_checkpoints] != sorted(
+            identify_body.index(item) for item in identify_checkpoints):
+        raise SystemExit("pe_identify_machine UART checkpoints are missing or out of order")
+    soc_body = identify.split("pe_arm_get_soc_base_phys(void)", 1)[1].split(
+        "extern void     fleh_fiq_generic", 1)[0]
+    soc_checkpoints = [
+        'sweet_early_mark(29, "PE before arm-io lookup")',
+        'sweet_early_mark(30, "PE arm-io lookup done")',
+        'sweet_early_mark(31, "PE before arm-io device_type")',
+        'sweet_early_mark(32, "PE arm-io device_type read done")',
+        'sweet_early_mark(33, "PE before arm-io ranges")',
+        'sweet_early_mark(34, "PE arm-io ranges read done")',
+        'sweet_early_mark(35, "PE arm-io ranges absent; using reg")',
+        'sweet_early_mark(36, "PE before arm-io reg")',
+        'sweet_early_mark(37, "PE arm-io reg missing")',
+        'sweet_early_mark(38, "PE arm-io reg read done")',
+    ]
+    if [soc_body.index(item) for item in soc_checkpoints] != sorted(
+            soc_body.index(item) for item in soc_checkpoints):
+        raise SystemExit("SoC lookup UART checkpoints are missing or out of order")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
@@ -142,6 +194,7 @@ def main():
         "uartdm": {"physical_base": "0x0c170000", "baud": 115200,
                    "mode": "firmware-configured 8-N-1", "direction": "TX-only PIO",
                    "entry_marker": "XNU0 before OSLAR and framebuffer", "tx_idle_wait": True},
+        "pe_identify_machine_uart_markers": list(range(21, 39)),
         "bootstrap_uart": {"stages": ["XNU" + str(i) for i in range(7)],
                            "device_block_base": "0x0c000000", "memory_type": "Device-nGnRnE",
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
