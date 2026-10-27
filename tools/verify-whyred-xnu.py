@@ -136,6 +136,14 @@ def main():
     restore_vbar = startup.rindex("EXT(ExceptionVectorsBase)@page")
     if not (vector_base < mmu_marker < mmu_enable < first_stage_enable < stage6 < restore_vbar):
         raise SystemExit("Diagnostic VBAR must span MMU enable and restore before arm_init")
+    late_start = startup[stage6:startup.index("// Return to arm_init()", stage6)]
+    preserved_bootargs = (r"mov\s+x19,\s*x0[^\n]*\n\s*"
+                          r"adrp\s+x0,\s*EXT\(ExceptionVectorsBase\)@page\s+"
+                          r"add\s+x0,\s*x0,\s*EXT\(ExceptionVectorsBase\)@pageoff\s+"
+                          r"add\s+x0,\s*x0,\s*x22\s+sub\s+x0,\s*x0,\s*x23\s+"
+                          r"MSR_VBAR_EL1_X0\s+mov\s+x0,\s*x19\s*\n\s*#endif\s*$")
+    if not re.search(preserved_bootargs, late_start):
+        raise SystemExit("XNU6 VBAR restore must preserve the arm_init boot_args pointer in x0")
     vector_setups = list(re.finditer(r"adrp\s+x0,\s*EXT\(LowExceptionVectorBase\)@page\b", startup))
     setup = startup[vector_setups[-1].start():mmu_marker]
     physical_setup = (r"adrp\s+x0,\s*EXT\(LowExceptionVectorBase\)@page\s+"
@@ -255,6 +263,7 @@ def main():
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
                            "vbar_spans_mmu": True,
                            "vbar_physical_pc_relative": True,
+                           "boot_args_x0_preserved": True,
                            "c_stages": True},
         "result": "whyred framebuffer and UARTDM requirements passed",
     }
@@ -264,4 +273,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
