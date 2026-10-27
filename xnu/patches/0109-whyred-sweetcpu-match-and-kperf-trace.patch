@@ -4,7 +4,7 @@
      "   {"
      "     'IOClass'         = SweetCPU;"
      "     'IOProviderClass' = IOPlatformDevice;"
--     "     'IONameMatch'     = 'qcom,kryo470';"
+-    "     'IONameMatch'     = 'qcom,kryo470';"
 +    "     'IONameMatch'     = 'whyred,kryo260';"
      "     'IOProbeScore'    = 10000:32;"
      "   },"
@@ -26,7 +26,15 @@
  		SweetCPU *cpu = __atomic_load_n(&sweet_cpus[i], __ATOMIC_ACQUIRE);
 --- a/osfmk/kperf/kperf.c
 +++ b/osfmk/kperf/kperf.c
-@@ -80,7 +80,13 @@
+@@ -42,6 +42,7 @@
+ #include <kperf/lazy.h>
+ #include <kperf/pet.h>
+ #include <kperf/sample.h>
++#include <pexpert/pexpert.h>
+ 
+ /* from libkern/libkern.h */
+ extern uint64_t strtouq(const char *, char **, int);
+@@ -80,7 +81,13 @@
  	 * kperf allocates based on the number of CPUs and requires them to all be
  	 * accounted for.
  	 */
@@ -40,3 +48,4 @@
  
  	boolean_t found_kperf = FALSE;
  	char kperf_config_str[64];
+
