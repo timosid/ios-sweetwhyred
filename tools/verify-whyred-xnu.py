@@ -246,6 +246,12 @@ def main():
     if [recursive_body.index(item) for item in recursion_checkpoints] != sorted(
             recursive_body.index(item) for item in recursion_checkpoints):
         raise SystemExit("SecureDTFindEntry recursive UART checkpoints are missing or out of order")
+    pfz = (root / "osfmk/arm/commpage/commpage_asm.s").read_text()
+    for name, address in (("enqueue", "x3"), ("dequeue", "x2")):
+        body = pfz.split("_pfz_trylock_and_" + name + ":", 1)[1].split("ARM64_STACK_EPILOG", 1)[0]
+        required = ["ldaxr\tw10, [" + address + "]", "stxr\tw12, w11, [" + address + "]", "clrex"]
+        if "casa" in body.lower() or any(item not in body for item in required):
+            raise SystemExit("PFZ " + name + " lacks the no-LSE exclusive lock sequence")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
@@ -253,6 +259,7 @@ def main():
         "source_commit": commit, "source_sha256": hashes,
         "cpu_target_flags": ["-mcpu=generic+crypto", "-mno-outline-atomics"],
         "whyred_pan_enabled": False,
+        "pfz_no_lse": True,
         "framebuffer": {"physical_base": "0x9d400000", "width": 1080,
                         "height": 2160, "stride": 4320,
                         "l2_block_base": "0x9c000000", "alias_offset": "0x01400000"},
