@@ -17,6 +17,9 @@ def main():
     args = parser.parse_args()
     root = args.source.resolve()
     patterns = {
+        "makedefs/MakeInc.def": [
+            r"(?m)^MACHINE_FLAGS_ARM64_SWEET\s*=\s*-DARM64_BOARD_CONFIG_SWEET\s+-mcpu=generic\s+-mno-outline-atomics\s*$",
+        ],
         "osfmk/arm64/start.s": [
             r"MOV64\s+x0,\s*\(0x9d400000\s*\+\s*2128\s*\*\s*4320\)",
             r"MOV64\s+x10,\s*0x9c000000",
@@ -245,6 +248,7 @@ def main():
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
     report = {
         "source_commit": commit, "source_sha256": hashes,
+        "cpu_target_flags": ["-mcpu=generic", "-mno-outline-atomics"],
         "framebuffer": {"physical_base": "0x9d400000", "width": 1080,
                         "height": 2160, "stride": 4320,
                         "l2_block_base": "0x9c000000", "alias_offset": "0x01400000"},
