@@ -56,17 +56,15 @@ jobs:
           git -C dxb checkout -q FETCH_HEAD
           # 12.5-14.3 use the top-level patches dir; ours go next to blacktop's
           cp xnu/patches/*.patch xnu/patches/*.sh dxb/patches/
-          # libfirehose_kernel is built arm64e-only; the SWEET kernel is plain arm64
-          sed -i '' 's/ARCHS="x86_64 arm64e" VALID_ARCHS="x86_64 arm64e"/ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"/' dxb/build.sh
-          grep -c 'VALID_ARCHS="x86_64 arm64e arm64"' dxb/build.sh
-          # libfirehose is built separately from XNU. Its ARM64 slice must
-          # also avoid LSE, while x86_64 and arm64e retain their own flags.
+          # The kernel needs only the plain ARM64 libfirehose slice.
+          sed -i '' 's/ARCHS="x86_64 arm64e" VALID_ARCHS="x86_64 arm64e"/ARCHS="arm64" VALID_ARCHS="arm64"/' dxb/build.sh
+          # libfirehose is built separately from XNU and must avoid LSE too.
           python3 - <<'PY'
           from pathlib import Path
           script = Path("dxb/build.sh")
           text = script.read_text()
-          target = 'xcodebuild install -target libfirehose_kernel -sdk macosx ARCHS="x86_64 arm64e arm64" VALID_ARCHS="x86_64 arm64e arm64"'
-          flags = " 'OTHER_CFLAGS[arch=arm64]=$(inherited) -mcpu=generic -mno-outline-atomics'"
+          target = 'xcodebuild install -target libfirehose_kernel -sdk macosx ARCHS="arm64" VALID_ARCHS="arm64"'
+          flags = " 'OTHER_CFLAGS=$(inherited) -mcpu=generic -mno-outline-atomics'"
           if text.count(target) != 1:
               raise SystemExit("Unexpected libfirehose build command")
           script.write_text(text.replace(target, target + flags))
