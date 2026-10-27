@@ -4,8 +4,8 @@
      "   {"
      "     'IOClass'         = SweetCPU;"
      "     'IOProviderClass' = IOPlatformDevice;"
--    "     'IONameMatch'     = 'qcom,kryo470';"
-+     "     'IONameMatch'     = 'whyred,kryo260';"
+-     "     'IONameMatch'     = 'qcom,kryo470';"
++    "     'IONameMatch'     = 'whyred,kryo260';"
      "     'IOProbeScore'    = 10000:32;"
      "   },"
      "   {"
@@ -31,13 +31,12 @@
  	 * accounted for.
  	 */
 +#if defined(SWEET)
-+	kprintf("WHYRED_STAGE: kperf before ml_wait_max_cpus\\n");
++	kprintf("WHYRED_STAGE: kperf before ml_wait_max_cpus\n");
 +#endif
  	ml_wait_max_cpus();
 +#if defined(SWEET)
-+	kprintf("WHYRED_STAGE: kperf ml_wait_max_cpus returned\\n");
++	kprintf("WHYRED_STAGE: kperf ml_wait_max_cpus returned\n");
 +#endif
  
-
  	boolean_t found_kperf = FALSE;
  	char kperf_config_str[64];
