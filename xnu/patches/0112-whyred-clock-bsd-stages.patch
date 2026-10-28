@@ -1,5 +1,5 @@
---- a/xnu/iokit/Kernel/IOStartIOKit.cpp
-+++ b/xnu/iokit/Kernel/IOStartIOKit.cpp
+--- a/iokit/Kernel/IOStartIOKit.cpp
++++ b/iokit/Kernel/IOStartIOKit.cpp
 @@ -72,22 +72,36 @@
  void
  IOKitInitializeTime( void )
@@ -39,8 +39,8 @@
  }
  
  void
---- a/xnu/osfmk/kern/clock.c
-+++ b/xnu/osfmk/kern/clock.c
+--- a/osfmk/kern/clock.c
++++ b/osfmk/kern/clock.c
 @@ -85,6 +85,13 @@
  #include <sys/timex.h>
  #include <kern/arithmetic_128.h>
@@ -117,8 +117,8 @@
  
  #if CONFIG_DTRACE
  	clock_track_calend_nowait();
---- a/xnu/bsd/kern/bsd_init.c
-+++ b/xnu/bsd/kern/bsd_init.c
+--- a/bsd/kern/bsd_init.c
++++ b/bsd/kern/bsd_init.c
 @@ -699,17 +699,24 @@
  	/* Initialize the file systems. */
  	bsd_init_kprintf("calling vfsinit\n");
