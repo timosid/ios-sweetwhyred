@@ -130,8 +130,9 @@ def main():
     cpu_source = (root / "iokit/Kernel/arm/SweetCPU.cpp").read_text()
     for required in (
         'getProperty("logical-cpu-id")', 'getProperty("reg")',
-        'WHYRED CPU: start provider=', 'WHYRED CPU: rejected provider properties',
-        'topology->boot_cpu->phys_id != 0x100', 'ml_set_max_cpus(topology->max_cpu_id + 1)',
+        'WHYRED CPU: start logical=', 'WHYRED CPU: rejected provider properties',
+        'WHYRED CPU: rejected reg=', 'topology->boot_cpu->phys_id != 0x100',
+        'Kryo 260', 'ml_set_max_cpus(topology->max_cpu_id + 1)',
     ):
         if required not in cpu_source:
             raise SystemExit(f"whyred CPU startup guard/diagnostic is missing: {required}")
