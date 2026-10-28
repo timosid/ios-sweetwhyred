@@ -1,17 +1,18 @@
 --- a/bsd/kern/sys_generic.c
 +++ b/bsd/kern/sys_generic.c
-@@ -1038,6 +1038,10 @@
+@@ -1038,6 +1038,11 @@
  static int seldrop(struct proc *p, u_int32_t *ibits, int nfd, int lim);
  static int select_internal(struct proc *p, struct select_nocancel_args *uap, uint64_t timeout, int32_t *retval);
  
 +#if defined(SWEET)
++extern void kprintf(const char *fmt, ...);
 +volatile int whyred_select_probe_active;
 +#endif
 +
  /*
   * This is used for the special device nodes that do not implement
   * a proper kevent filter (see filt_specattach).
-@@ -1439,15 +1443,35 @@
+@@ -1439,15 +1444,35 @@
  		panic("selprocess: 2nd pass assertwaiting");
  	}
  
