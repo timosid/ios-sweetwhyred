@@ -26,6 +26,7 @@ on:
     branches: [main, codex/whyred-early-fb]
     paths:
       - "xnu/patches/**"
+      - "tools/sweet-init.S"
       - ".github/workflows/xnu.yml"
 
 concurrency:
