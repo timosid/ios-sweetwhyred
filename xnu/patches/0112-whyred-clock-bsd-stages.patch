@@ -47,7 +47,7 @@
  #include <os/log.h>
 +
 +#if defined(SWEET)
-+extern int kprintf(const char *fmt, ...);
++extern void kprintf(const char *fmt, ...);
 +#define SWEET_CLOCK_STAGE(s) kprintf("WHYRED_CLOCK: " s "\n")
 +#else
 +#define SWEET_CLOCK_STAGE(s) do { } while (0)
