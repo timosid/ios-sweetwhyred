@@ -58,8 +58,8 @@ _start:
 	sub	x2, x2, x1
 	bl	write_console
 
-tick:
-	/* select(0, NULL, NULL, NULL, &5s) as a portable sleep */
+one_shot:
+	/* One timeout-only select: isolate return status and avoid log interleaving. */
 	adr	x1, before_select
 	adr	x2, before_select_end
 	sub	x2, x2, x1
@@ -79,17 +79,32 @@ tick:
 	sub	x2, x2, x1
 	bl	write_console
 	b.cs	hang
-	adr	x1, alive
-	adr	x2, alive_end
+	adr	x1, diagnostic_done
+	adr	x2, diagnostic_done_end
 	sub	x2, x2, x1
 	bl	write_console
-	b	tick
+	b	hang
 
 select_failed:
+	mov	x20, x0			/* Darwin errno from select */
 	adr	x1, select_failed_message
 	adr	x2, select_failed_end
 	sub	x2, x2, x1
 	bl	write_console
+	b.cs	hang
+	and	w21, w20, #0xf0
+	lsr	w21, w21, #4
+	adr	x22, hex_digits
+	ldrb	w21, [x22, w21, uxtw]
+	sub	sp, sp, #16
+	strb	w21, [sp]
+	and	w21, w20, #0x0f
+	ldrb	w21, [x22, w21, uxtw]
+	strb	w21, [sp, #1]
+	mov	x1, sp
+	mov	x2, #2
+	bl	write_console
+	add	sp, sp, #16
 	b	hang
 
 /* write(x19, x1, x2) */
@@ -113,15 +128,17 @@ hello:
 hello_tail:
 	.ascii	" ***\n"
 before_select:
-	.ascii	"SWEET init: entering select(5s)\n"
+	.ascii	"SWEET init: one-shot select(5s) begin\n"
 before_select_end:
 select_returned:
-	.ascii	"SWEET init: select returned\n"
+	.ascii	"SWEET init: one-shot select returned OK\n"
 select_returned_end:
 select_failed_message:
-	.ascii	"SWEET init: select syscall error\n"
+	.ascii	"SWEET init: one-shot select errno=0x"
 select_failed_end:
-alive:
-	.ascii	"SWEET init: still alive\n"
-alive_end:
+diagnostic_done:
+	.ascii	"SWEET init: one-shot diagnostic complete\n"
+diagnostic_done_end:
+hex_digits:
+	.ascii	"0123456789abcdef"
 
