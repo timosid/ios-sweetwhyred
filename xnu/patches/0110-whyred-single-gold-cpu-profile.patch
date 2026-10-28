@@ -27,4 +27,63 @@
  
  #define ARM_ARCH_TIMER
  #define __ARM_ARCH__              8
+--- a/iokit/Kernel/arm/SweetCPU.cpp
++++ b/iokit/Kernel/arm/SweetCPU.cpp
+@@ -64,26 +64,36 @@
+ 	const ml_topology_info_t *topology = ml_get_topology_info();
+ 	OSNumber *logical = OSDynamicCast(OSNumber, provider->getProperty("logical-cpu-id"));
+ 	OSData *reg = OSDynamicCast(OSData, provider->getProperty("reg"));
++	uint32_t logical_id = logical ? logical->unsigned32BitValue() : 0xffffffffU;
++	uint32_t reg_length = reg ? (uint32_t)reg->getLength() : 0;
++	IOLog("WHYRED CPU: start logical=%u reg_len=%u cpus=%u\n",
++	    logical_id, reg_length, topology->num_cpus);
+ 
+ 	if (logical == NULL || reg == NULL || reg->getLength() != sizeof(uint32_t) ||
+-	    logical->unsigned32BitValue() >= topology->num_cpus) {
+-		return false;
+-	}
+-	const ml_topology_cpu_t *cpu = &topology->cpus[logical->unsigned32BitValue()];
+-	if (*(const uint32_t *)reg->getBytesNoCopy() != cpu->phys_id) {
+-		return false;
+-	}
+-	/* MPIDR Aff1 = core: 0x000-0x500 A55, 0x600/0x700 A76 */
++	    logical_id >= topology->num_cpus) {
++		IOLog("WHYRED CPU: rejected provider properties\n");
++		return false;
++	}
++	const ml_topology_cpu_t *cpu = &topology->cpus[logical_id];
++	uint32_t provider_mpidr = *(const uint32_t *)reg->getBytesNoCopy();
++	if (provider_mpidr != cpu->phys_id) {
++		IOLog("WHYRED CPU: rejected reg=0x%x topology_mpidr=0x%x\n",
++		    provider_mpidr, cpu->phys_id);
++		return false;
++	}
++	/* whyred boots on Gold Aff1=1, Aff0=0 (MPIDR 0x100). */
+ 	if (cpu->phys_id > 0x700 || (cpu->phys_id & 0xff) != 0 ||
+ 	    topology->num_cpus > SWEET_SMP_MAX_CPUS) {
+ 		panic("SWEET CPU: invalid topology cpu=%u mpidr=0x%x count=%u",
+ 		    cpu->cpu_id, cpu->phys_id, topology->num_cpus);
+ 	}
+ 	if (!IOCPU::start(provider)) {
+-		return false;
+-	}
+-	cpuName = OSSymbol::withCStringNoCopy("Kryo 470");
++		IOLog("WHYRED CPU: IOCPU::start failed\n");
++		return false;
++	}
++	cpuName = OSSymbol::withCStringNoCopy("Kryo 260");
+ 	if (cpuName == NULL) {
++		IOLog("WHYRED CPU: CPU name allocation failed\n");
+ 		return false;
+ 	}
+ 	setCPUNumber(cpu->cpu_id);
+@@ -118,6 +128,8 @@
+ 		}
+ 		thread_deallocate(thread);
+ 	}
++	IOLog("WHYRED CPU: registered logical=%u mpidr=0x%x boot=%u\n",
++	    cpu->cpu_id, cpu->phys_id, cpu == topology->boot_cpu);
+ 	return true;
+ }
+ 
 
