@@ -72,6 +72,7 @@ jobs:
           ls dxb/patches
 
       - name: Require whyred source diagnostics before compiling
+        # The verifier also pins bring-up to the one confirmed Gold CPU and checks start diagnostics.
         run: |
           python3 - <<'PY'
           from pathlib import Path
