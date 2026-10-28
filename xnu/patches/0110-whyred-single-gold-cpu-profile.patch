@@ -9,7 +9,8 @@
 + * Kryo 260 cluster and boots XNU on Gold at MPIDR 0x100.
   *
   * Generic ARM like BCM2837 (no APPLE_ARM64_ARCH_FAMILY: none of Apple's
-@@ -17,12 +18,12 @@
+  * implementation-defined system registers exist), 16K pages and GICv3 like
+@@ -18,12 +19,11 @@
  #define SWEET                     1
  
  /*
@@ -23,4 +24,7 @@
   */
 -#define SWEET_SMP_MAX_CPUS         8
 +#define SWEET_SMP_MAX_CPUS         1
+ 
+ #define ARM_ARCH_TIMER
+ #define __ARM_ARCH__              8
 
