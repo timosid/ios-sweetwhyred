@@ -54,7 +54,7 @@ _start:
 	add	sp, sp, #16
 
 	adr	x1, hello_tail
-	adr	x2, alive
+	adr	x2, hello_tail_end
 	sub	x2, x2, x1
 	bl	write_console
 
@@ -127,6 +127,7 @@ hello:
 	.ascii	"\n*** SWEET userspace: init running as PID "
 hello_tail:
 	.ascii	" ***\n"
+hello_tail_end:
 before_select:
 	.ascii	"SWEET init: one-shot select(5s) begin\n"
 before_select_end:
