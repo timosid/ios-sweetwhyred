@@ -15,7 +15,7 @@ The v27 diagnostic kernel has booted on the phone and passed these milestones:
 - BSD selected the test RAM disk as `md0`; `vfs_mountroot()` returned success.
 - Calendar initialization completed. The UART trace contains all `WHYRED_CLOCK` C1–C14 markers.
 
-The latest verified image came from [Actions run 40698136953](https://github.com/timosid/ios-sweetwhyred/actions/runs/40698136953). The follow-up [run 40702435098](https://github.com/timosid/ios-sweetwhyred/actions/runs/40702435098) is building diagnostics for the steps after mounting root.
+The v27 image came from [Actions run 40698136953](https://github.com/timosid/ios-sweetwhyred/actions/runs/40698136953). The follow-up [run 40702435098](https://github.com/timosid/ios-sweetwhyred/actions/runs/40702435098) completed successfully with diagnostics for root handoff and PID 1 bootstrap. Its v28 image has been flashed to the device; UART confirmation is pending.
 
 **PID 1 has not yet been confirmed.** The boot image contains a small static test init on a mockfs RAM disk; it is not Apple's `launchd`. `backboardd`, SpringBoard, and the iOS home screen have not been reached on `whyred`.
 
