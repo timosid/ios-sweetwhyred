@@ -60,6 +60,11 @@ _start:
 
 tick:
 	/* select(0, NULL, NULL, NULL, &5s) as a portable sleep */
+	adr	x1, before_select
+	adr	x2, before_select_end
+	sub	x2, x2, x1
+	bl	write_console
+	b.cs	hang
 	mov	x0, #0
 	mov	x1, #0
 	mov	x2, #0
@@ -67,12 +72,25 @@ tick:
 	adr	x4, five_sec
 	mov	x16, #SYS_select
 	svc	#0x80
+	b.cs	select_failed
 
+	adr	x1, select_returned
+	adr	x2, select_returned_end
+	sub	x2, x2, x1
+	bl	write_console
+	b.cs	hang
 	adr	x1, alive
 	adr	x2, alive_end
 	sub	x2, x2, x1
 	bl	write_console
 	b	tick
+
+select_failed:
+	adr	x1, select_failed_message
+	adr	x2, select_failed_end
+	sub	x2, x2, x1
+	bl	write_console
+	b	hang
 
 /* write(x19, x1, x2) */
 write_console:
@@ -94,6 +112,16 @@ hello:
 	.ascii	"\n*** SWEET userspace: init running as PID "
 hello_tail:
 	.ascii	" ***\n"
+before_select:
+	.ascii	"SWEET init: entering select(5s)\n"
+before_select_end:
+select_returned:
+	.ascii	"SWEET init: select returned\n"
+select_returned_end:
+select_failed_message:
+	.ascii	"SWEET init: select syscall error\n"
+select_failed_end:
 alive:
 	.ascii	"SWEET init: still alive\n"
 alive_end:
+
