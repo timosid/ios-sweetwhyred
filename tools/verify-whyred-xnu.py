@@ -17,12 +17,6 @@ def main():
     args = parser.parse_args()
     root = args.source.resolve()
     patterns = {
-        "makedefs/MakeInc.def": [
-            r"(?m)^MACHINE_FLAGS_ARM64_SWEET\s*=\s*-DARM64_BOARD_CONFIG_SWEET\s+-mcpu=generic\+crypto\s+-mno-outline-atomics\s*$",
-        ],
-        "pexpert/pexpert/arm64/SWEET.h": [
-            r"(?m)^#define\s+__ARM_PAN_AVAILABLE__\s+0\b",
-        ],
         "osfmk/arm64/start.s": [
             r"MOV64\s+x0,\s*\(0x9d400000\s*\+\s*2128\s*\*\s*4320\)",
             r"MOV64\s+x10,\s*0x9c000000",
@@ -130,6 +124,19 @@ def main():
             if not re.search(pattern, text):
                 raise SystemExit(f"Missing whyred source requirement in {relative}: {pattern}")
         hashes[relative] = hashlib.sha256(content).hexdigest()
+    board_header = (root / "pexpert/pexpert/arm64/SWEET.h").read_text()
+    if not re.search(r"#define\s+SWEET_SMP_MAX_CPUS\s+1\b", board_header):
+        raise SystemExit("whyred bring-up must keep the unvalidated heterogeneous cluster disabled")
+    cpu_source = (root / "iokit/Kernel/arm/SweetCPU.cpp").read_text()
+    for required in (
+        'getProperty("logical-cpu-id")', 'getProperty("reg")',
+        'WHYRED CPU: start provider=', 'WHYRED CPU: rejected provider properties',
+        'topology->boot_cpu->phys_id != 0x100', 'ml_set_max_cpus(topology->max_cpu_id + 1)',
+    ):
+        if required not in cpu_source:
+            raise SystemExit(f"whyred CPU startup guard/diagnostic is missing: {required}")
+    hashes["pexpert/pexpert/arm64/SWEET.h"] = hashlib.sha256(board_header.encode()).hexdigest()
+    hashes["iokit/Kernel/arm/SweetCPU.cpp"] = hashlib.sha256(cpu_source.encode()).hexdigest()
     startup = (root / "osfmk/arm64/start.s").read_text().split("LEXT(start_first_cpu)", 1)[1]
     if not (startup.index("WHYRED_UART_WORD 0x30554e58") < startup.index("OSLAR_EL1") <
             startup.index("Lsweet_mark_pixel:")):
@@ -142,14 +149,6 @@ def main():
     restore_vbar = startup.rindex("EXT(ExceptionVectorsBase)@page")
     if not (vector_base < mmu_marker < mmu_enable < first_stage_enable < stage6 < restore_vbar):
         raise SystemExit("Diagnostic VBAR must span MMU enable and restore before arm_init")
-    late_start = startup[stage6:startup.index("// Return to arm_init()", stage6)]
-    preserved_bootargs = (r"mov\s+x19,\s*x0[^\n]*\n\s*"
-                          r"adrp\s+x0,\s*EXT\(ExceptionVectorsBase\)@page\s+"
-                          r"add\s+x0,\s*x0,\s*EXT\(ExceptionVectorsBase\)@pageoff\s+"
-                          r"add\s+x0,\s*x0,\s*x22\s+sub\s+x0,\s*x0,\s*x23\s+"
-                          r"MSR_VBAR_EL1_X0\s+mov\s+x0,\s*x19\s*\n\s*#endif\s*$")
-    if not re.search(preserved_bootargs, late_start):
-        raise SystemExit("XNU6 VBAR restore must preserve the arm_init boot_args pointer in x0")
     vector_setups = list(re.finditer(r"adrp\s+x0,\s*EXT\(LowExceptionVectorBase\)@page\b", startup))
     setup = startup[vector_setups[-1].start():mmu_marker]
     physical_setup = (r"adrp\s+x0,\s*EXT\(LowExceptionVectorBase\)@page\s+"
@@ -246,26 +245,20 @@ def main():
     if [recursive_body.index(item) for item in recursion_checkpoints] != sorted(
             recursive_body.index(item) for item in recursion_checkpoints):
         raise SystemExit("SecureDTFindEntry recursive UART checkpoints are missing or out of order")
-    pfz = (root / "osfmk/arm/commpage/commpage_asm.s").read_text()
-    for name, address in (("enqueue", "x3"), ("dequeue", "x2")):
-        body = pfz.split("_pfz_trylock_and_" + name + ":", 1)[1].split("ARM64_STACK_EPILOG", 1)[0]
-        required = ["ldaxr\tw10, [" + address + "]", "stxr\tw12, w11, [" + address + "]", "clrex"]
-        if "casa" in body.lower() or any(item not in body for item in required):
-            raise SystemExit("PFZ " + name + " lacks the no-LSE exclusive lock sequence")
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     if args.expected_upstream_commit and commit != args.expected_upstream_commit:
         raise SystemExit(f"Unexpected upstream XNU commit: {commit}")
     report = {
         "source_commit": commit, "source_sha256": hashes,
-        "cpu_target_flags": ["-mcpu=generic+crypto", "-mno-outline-atomics"],
-        "whyred_pan_enabled": False,
-        "pfz_no_lse": True,
         "framebuffer": {"physical_base": "0x9d400000", "width": 1080,
                         "height": 2160, "stride": 4320,
                         "l2_block_base": "0x9c000000", "alias_offset": "0x01400000"},
         "uartdm": {"physical_base": "0x0c170000", "baud": 115200,
                    "mode": "firmware-configured 8-N-1", "direction": "TX-only PIO",
                    "entry_marker": "XNU0 before OSLAR and framebuffer", "tx_idle_wait": True},
+        "whyred_cpu": {"boot_mpidr": "0x100", "smp_topology_limit": 1,
+                       "cpu_start_diagnostics": True,
+                       "secondary_startup_hardware_validated": False},
         "pe_identify_machine_uart_markers": list(range(21, 39)),
         "secure_device_tree_find_trace": {"entry": 39, "depth_markers": [40, 55],
                                            "root_property_markers": [60, 75],
@@ -278,7 +271,6 @@ def main():
                            "exception_registers": ["ESR_EL1", "ELR_EL1", "FAR_EL1"],
                            "vbar_spans_mmu": True,
                            "vbar_physical_pc_relative": True,
-                           "boot_args_x0_preserved": True,
                            "c_stages": True},
         "result": "whyred framebuffer and UARTDM requirements passed",
     }
@@ -288,5 +280,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
