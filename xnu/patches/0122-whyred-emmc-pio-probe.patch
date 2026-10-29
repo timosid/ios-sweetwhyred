@@ -251,7 +251,7 @@
 +		whyred_emmc_write32(base, SDHCI_INT_STATUS, SDHCI_INT_DATA_AVAILABLE);
 +	}
 +
-+	uint32_t status = 0;
++	status = 0;
 +	if (whyred_emmc_wait_status(base, SDHCI_INT_DATA_END, start,
 +	    timeout, &status) != 0 || (status & SDHCI_INT_DATA_END) == 0 ||
 +	    (status & SDHCI_INT_ERROR_MASK) != 0) {
@@ -369,4 +369,4 @@
 +{
 +}
 +#endif
-
+
