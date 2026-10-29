@@ -233,7 +233,18 @@ future filesystem bring-up. Writes and out-of-partition requests fail closed.
  	return 0;
  }
  
-@@ -1140,8 +1331,8 @@
+@@ -943,6 +1134,10 @@
+ void
+ whyred_emmc_pio_probe(void)
+ {
++	if (whyred_emmc_block_ready) {
++		printf("WHYRED EMMC: block device already initialized; skipping reinit\n");
++		return;
++	}
+ 	vm_offset_t mapping = ml_io_map((vm_offset_t)WHYRED_SDCC1_HC_PHYS,
+ 	    WHYRED_SDCC1_HC_SIZE);
+ 	if (mapping == 0) {
+@@ -1140,8 +1335,8 @@
  	    (unsigned int)ext_csd[192], (unsigned int)ext_csd[196], sectors);
  	printf("WHYRED EMMC: EXT_CSD metadata stage complete; no media writes\n");
  	uint32_t gpt_requested = 0;
@@ -244,7 +255,7 @@ future filesystem bring-up. Writes and out-of-partition requests fail closed.
  		/* CMD17 addresses 512-byte sectors only in the confirmed user area. */
  		if ((ocr & 0x40000000U) == 0 || ext_csd[61] != 0 ||
  		    (ext_csd[179] & 7) != 0 || ext_csd[192] < 2 || sectors < 4) {
-@@ -1149,6 +1340,8 @@
+@@ -1149,6 +1344,8 @@
  			    ocr, (unsigned int)ext_csd[61], (unsigned int)ext_csd[179]);
  		} else {
  			struct whyred_gpt_io io = { .base = base, .sectors = sectors };
@@ -253,7 +264,7 @@ future filesystem bring-up. Writes and out-of-partition requests fail closed.
  			printf("WHYRED GPT: bounded read-only discovery begin sectors=%u block_bytes=512\n", sectors);
  			if (whyred_gpt_probe(whyred_emmc_read_sector, &io, sectors) != 0) {
  				printf("WHYRED GPT: discovery failed; no block device published\n");
-@@ -1156,10 +1349,56 @@
+@@ -1156,10 +1353,57 @@
  				    SDHCI_PSTATE_DATA_INHIBIT) != 0) {
  					(void)whyred_emmc_reset_data_path(base);
  				}
@@ -289,6 +300,7 @@ future filesystem bring-up. Writes and out-of-partition requests fail closed.
 +	    sizeof(partition_name)) || partition_name[0] == '\0') {
 +		return EINVAL;
 +	}
++	partition_name[sizeof(partition_name) - 1] = '\0';
 +	if (!whyred_emmc_block_ready && whyred_emmc_block_probe() != 0) {
 +		return ENXIO;
 +	}
