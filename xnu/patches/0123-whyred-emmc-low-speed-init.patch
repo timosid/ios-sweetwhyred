@@ -51,7 +51,7 @@
  #define SDHCI_INT_RESPONSE               0x00000001
  #define SDHCI_INT_DATA_END               0x00000002
  #define SDHCI_INT_DATA_AVAILABLE         0x00000020
-@@ -49,7 +62,15 @@
+@@ -49,7 +62,16 @@
  #define SDHCI_CMD_DATA_PRESENT           0x0020
  #define SDHCI_CMD_SEND_STATUS            13
  #define SDHCI_CMD_SEND_EXT_CSD           8
@@ -62,12 +62,13 @@
 +#define SDHCI_CMD_SELECT_CARD            7
  #define WHYRED_EMMC_RCA                  1
 +#define WHYRED_EMMC_OCR                  0x40ff8000
-+#define WHYRED_EMMC_INIT_CLOCK_HZ        400000
++#define WHYRED_SDCC1_CLOCK_SOURCE_MAX_HZ 384000000ULL
++#define WHYRED_EMMC_INIT_CLOCK_HZ        200000
 +#define WHYRED_EMMC_OCR_READY            0x80000000
  #define WHYRED_EXT_CSD_BYTES             512
  #define WHYRED_EMMC_TIMEOUT_MS           1000
  #define WHYRED_EMMC_STATUS_TRANSFER      4
-@@ -64,6 +85,12 @@
+@@ -64,6 +86,12 @@
  	return *(volatile uint16_t *)(base + offset);
  }
  
@@ -80,7 +81,7 @@
  static uint32_t
  whyred_emmc_read32(volatile uint8_t *base, unsigned int offset)
  {
-@@ -74,6 +101,12 @@
+@@ -74,6 +102,12 @@
  whyred_emmc_write16(volatile uint8_t *base, unsigned int offset, uint16_t value)
  {
  	*(volatile uint16_t *)(base + offset) = value;
@@ -93,7 +94,7 @@
  }
  
  static void
-@@ -97,6 +130,95 @@
+@@ -97,6 +131,99 @@
  	}
  	uint64_t ticks = (frequency * WHYRED_EMMC_TIMEOUT_MS) / 1000;
  	return ticks ? ticks : 1;
@@ -113,7 +114,7 @@
 +}
 +
 +static int
-+whyred_emmc_set_400khz_clock(volatile uint8_t *base, uint32_t caps,
++whyred_emmc_set_200khz_clock(volatile uint8_t *base, uint32_t caps,
 +	uint32_t *divider_out)
 +{
 +	uint32_t base_mhz = (caps >> 8) & 0xff;
@@ -121,15 +122,18 @@
 +		printf("WHYRED EMMC INIT: SDHCI base clock is zero; abort\n");
 +		return -1;
 +	}
-+	uint64_t base_hz = (uint64_t)base_mhz * 1000000;
-+	uint32_t divider = (uint32_t)((base_hz +
++	uint64_t source_hz = (uint64_t)base_mhz * 1000000;
++	if (source_hz < WHYRED_SDCC1_CLOCK_SOURCE_MAX_HZ) {
++		source_hz = WHYRED_SDCC1_CLOCK_SOURCE_MAX_HZ;
++	}
++	uint32_t divider = (uint32_t)((source_hz +
 +	    (2 * WHYRED_EMMC_INIT_CLOCK_HZ - 1)) /
 +	    (2 * WHYRED_EMMC_INIT_CLOCK_HZ));
 +	if (divider == 0) {
 +		divider = 1;
 +	}
 +	if (divider > 1023) {
-+		printf("WHYRED EMMC INIT: 400kHz divider out of range: %u\n",
++		printf("WHYRED EMMC INIT: 200kHz divider out of range: %u\n",
 +		    divider);
 +		return -1;
 +	}
@@ -160,9 +164,10 @@
 +	clock |= SDHCI_CLOCK_CARD_ENABLE;
 +	whyred_emmc_write16(base, SDHCI_CLOCK_CONTROL, clock);
 +	*divider_out = divider;
-+	printf("WHYRED EMMC INIT: clock base=%uMHz divider=%u target=%uHz actual<=%lluHz\n",
-+	    base_mhz, divider, WHYRED_EMMC_INIT_CLOCK_HZ,
-+	    (unsigned long long)(base_hz / (2 * divider)));
++	printf("WHYRED EMMC INIT: source upper=%lluHz caps base=%uMHz divider=%u target=%uHz output<=%lluHz\n",
++	    (unsigned long long)source_hz, base_mhz, divider,
++	    WHYRED_EMMC_INIT_CLOCK_HZ,
++	    (unsigned long long)(source_hz / (2 * divider)));
 +	return 0;
 +}
 +
@@ -189,7 +194,7 @@
  }
  
  static int
-@@ -265,11 +387,16 @@
+@@ -265,11 +392,16 @@
  	uint32_t present = whyred_emmc_read32(base, SDHCI_PRESENT_STATE);
  	uint16_t clock = whyred_emmc_read16(base, SDHCI_CLOCK_CONTROL);
  	uint8_t power = *(volatile uint8_t *)(base + SDHCI_POWER_CONTROL);
@@ -209,12 +214,12 @@
  	if ((present & (SDHCI_PSTATE_CMD_INHIBIT | SDHCI_PSTATE_DATA_INHIBIT |
  	    SDHCI_PSTATE_DATA_AVAILABLE)) != 0 ||
  	    (present & SDHCI_PSTATE_CMD_LEVEL) == 0 ||
-@@ -293,12 +420,91 @@
+@@ -293,12 +425,91 @@
  		whyred_emmc_write32(base, SDHCI_SIGNAL_ENABLE, 0);
  	}
  
 +	uint32_t divider = 0;
-+	if (whyred_emmc_set_400khz_clock(base, caps, &divider) != 0) {
++	if (whyred_emmc_set_200khz_clock(base, caps, &divider) != 0) {
 +		whyred_emmc_restore_signals(base, signal_enable);
 +		return;
 +	}
@@ -226,7 +231,7 @@
 +		whyred_emmc_restore_signals(base, signal_enable);
 +		return;
 +	}
-+	printf("WHYRED EMMC INIT: CMD0 complete at 400kHz\n");
++	printf("WHYRED EMMC INIT: CMD0 complete at <=200kHz\n");
 +	whyred_emmc_delay_us(1000);
 +	whyred_emmc_select_legacy_mode(base);
 +
@@ -302,7 +307,7 @@
  		whyred_emmc_restore_signals(base, signal_enable);
  		return;
  	}
-@@ -308,7 +514,7 @@
+@@ -308,7 +519,7 @@
  	    (card_status & WHYRED_EMMC_STATUS_READY) != 0);
  	if (state != WHYRED_EMMC_STATUS_TRANSFER ||
  	    (card_status & WHYRED_EMMC_STATUS_READY) == 0) {
