@@ -7,9 +7,9 @@
 
 ### v45 candidate
 - Patch 0129, xnu/patches/0129-whyred-emmc-disable-low-clock-dll-and-pio-progress.patch, sets the Qualcomm SDHCI-MSM DLL reset and powerdown bits while the card clock is stopped at the 200 kHz identification clock. It adds PIO snapshots after words 1, 16 and 128. This tests the low-frequency behavior documented in Qualcomm's driver: https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/whyred-o-oss/drivers/mmc/host/sdhci-msm.c#L3265-L3292
-- Commit: 405972c44de74c50840475ca84c29a9c4840b313. Actions run 40924026881 is queued: https://github.com/timosid/ios-sweetwhyred/actions/runs/40924026881
-- Local patch replay confirms 0128 reproduces the v44 source and 0129 applies to it. Packager: tools/package-emmc-init-v45.py. No v45 artifact is packaged yet.
-- Next: collect the Actions artifact and package v45 after the build passes. The user supplied UART from v44; Fastboot availability is not established. Do not flash until the phone is back in Fastboot. Preserve all user data and existing device backups.
+- Commit: 405972c44de74c50840475ca84c29a9c4840b313. Actions run 40924026881 succeeded: https://github.com/timosid/ios-sweetwhyred/actions/runs/40924026881. Artifact SHA-256: b669710596bbfbfc064598c7db073a8b451d3f75235d99c40f7a84946b5c4c92. Kernel SHA-256: 74776c56c3bcfcc0b7a0e10c11c55ff7a5ebc5c33884e5b395bf17b4dc95af38.
+- Local patch replay confirms 0128 reproduces the v44 source and 0129 applies to it. The v45 packaging guard passed patches 0115–0129, boot layout, and zero linked LSE/PAN instructions. Packager: tools/package-emmc-init-v45.py. Image: whyred-port/out/whyred-emmc-init-v45-40924026881/shim-boot-whyred-uartdm-debug.img (17,539,072 bytes, SHA-256 f4306b73b9cb8c9f0fbe300aa063f88dec54397e17af46e0542a90858e5187ad).
+- Fastboot listed device de9ec666; stock boot backup SHA-256 matched 7aaa6094c477e4def3638a5a58fc7be063a2bb2661d16ad3305b01bebbd25a0f. Flashed only boot with v45; fastboot flash and reboot returned OKAY. The user asked to collect future logs manually; no UART was read. Await v45 lines for DLL config and PIO progress at words 1, 16, and 128. The probe adds no user-sector reads or media writes. Preserve all user data and existing device backups.
 
 ---
 
