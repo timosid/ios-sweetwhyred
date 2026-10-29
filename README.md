@@ -22,7 +22,7 @@ The v32 diagnostic boot image was packaged locally from that run’s artifacts. 
 - Test init SHA-256: `dd897881eb5cb817c092df8d8e5dca40fc2a6d801170df434331e97e8975d594`
 - v32 boot image SHA-256: `679e8b9598a699496c75f5688dd74b8f0040fcb9fde08dcf5232155b54965b3c`
 
-The v32 image has not yet been tested on the phone.
+The v32 and v33 images have not been tested on the phone; v33 is packaged locally and has not been flashed.
 
 Patch [0116](xnu/patches/0116-whyred-display-storage-guard.patch) now matches AppleCLCD to whyred’s `whyred,display` ADT entry and excludes the `interrupt-controller` node from generic IOKit nub creation. [Actions run 40849359706](https://github.com/timosid/ios-sweetwhyred/actions/runs/40849359706) compiled the updated source successfully. This is a compile result only; the service and display stack still need device validation.
 
@@ -56,7 +56,7 @@ A successful CI build is not evidence of a successful device boot; confirm runti
 
 ## Scope and limitations
 
-The current root is the `md0` mockfs diagnostic ramdisk. Whyred uses eMMC through the Qualcomm SDHCI controller at `0x0c0c4000` (`qcom,sdhci-msm-v5`); this XNU tree has no whyred eMMC block driver. The inherited `sweet_ufs.c` expects a UFS host and a `/sweet-ufs` ADT node, which whyred does not provide, so the old `rd=ufsroot0` path cannot mount the HFS+ image built by `mkiosroot.sh`. A real iOS root and Apple launchd remain blocked on storage integration. Touch, buttons, battery telemetry, radios, GPU acceleration, suspend, and power management are also unvalidated; the built-in AMFI/HFS components and several platform services are bring-up implementations. This project is for kernel/platform experiments, not daily use.
+The current root is the `md0` mockfs diagnostic ramdisk. Whyred uses eMMC through the Qualcomm SDHCI controller at `0x0c0c4000` (`qcom,sdhci-msm-v5`); this XNU tree has no whyred eMMC block driver. The inherited `sweet_ufs.c` expects a UFS host and a `/sweet-ufs` ADT node, which whyred does not provide, so the old `rd=ufsroot0` path cannot mount the HFS+ image built by `mkiosroot.sh`. A real iOS root and Apple launchd remain blocked on storage integration. The inherited SWEET touch poller targets SE7/GT9896/Goodix/Focaltech; whyred's DTS lists Synaptics DSX (`0x20`) and Novatek NVT (`0x62`). Its key poller is PM6150L-specific, while whyred uses PM660/PM660L. The current IOKit HID services expose the event interface, but there is no whyred hardware input driver feeding them. These legacy pollers are not activated by the `md0` diagnostic boot and must not be enabled on whyred as-is. Battery telemetry, radios, GPU acceleration, suspend, and power management are also unvalidated; the built-in AMFI/HFS components and several platform services are bring-up implementations. This project is for kernel/platform experiments, not daily use.
 
 ## Credits
 
