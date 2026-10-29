@@ -316,4 +316,3 @@
  		whyred_emmc_restore_signals(base, signal_enable);
  		return;
  	}
-
