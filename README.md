@@ -24,6 +24,8 @@ The v32 diagnostic boot image was packaged locally from that run’s artifacts. 
 
 The v32 image has not yet been tested on the phone.
 
+Patch [0116](xnu/patches/0116-whyred-display-storage-guard.patch) now matches AppleCLCD to whyred’s `whyred,display` ADT entry and excludes the `interrupt-controller` node from generic IOKit nub creation. [Actions run 40849359706](https://github.com/timosid/ios-sweetwhyred/actions/runs/40849359706) compiled the updated source successfully. This is a compile result only; the service and display stack still need device validation.
+
 **Userspace status:** The ramdisk provides only the project’s static test init as PID 1. It is not Apple launchd; backboardd, SpringBoard, and the iOS home screen have not been reached.
 
 ## Display status
