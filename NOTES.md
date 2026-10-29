@@ -1,5 +1,11 @@
 ## Current whyred eMMC bring-up handoff (2026-10-29)
 
+### HakiOS reference review (2026-10-29)
+- Inspected `oosexgang/hakios-xnu-kernel` at commit `88513176b1e96ecf0b764cd62c6f4e6ac71345e3`; detailed local findings are in `research/hakios-review.md`. Useful references: the transport-independent APFS reader and host image checks; userspace init/ABI probes; BSD block-device glue; Linux clang/cctools build tooling; software framebuffer/IOSurface interfaces.
+- This is xnu-8796.121.2/redwood/SM7325, not a ready whyred port. No eMMC/SDHCI implementation was found in the inspected tree. Its UFS path uses resident UEFI, its monolithic patch forces PAN (unsupported by our measured Gold), and its documented ~2.5-GB RAM system image exceeds our current ~1.218-GiB managed window. Adapt selected modules; retain the current no-PAN/no-LSE and image guards.
+- Exercised its reviewed `soc-args.py` locally on saved `stock-dtb`: it produced five IPA/IMEM arguments, only a partial match. No arguments were added to our boot image. No HakiOS patch or prebuilt was applied to the working kernel.
+- Current hardware remains v47 with successful EXT_CSD. Local draft 0132 for bounded GPT reads remains uncompiled/untested/unpublished and must complete offline validation before CI or a phone attempt. Manual UART policy remains in force.
+
 ### v47 hardware success; bounded GPT discovery is next (2026-10-29)
 - User-supplied UART confirms the FIFO fix: VENDOR_SPEC3 changed from `0x02626440` to `0x02626040` (`alt_before=1`, `alt_after=0`). FIFO count decreased `0x200 -> 0x1fc -> 0x1c0 -> 0`; EXT_CSD completed successfully with revision 8, card type `0x57`, and 61,071,360 512-byte sectors (31,268,536,320 bytes). This resolves the stuck EXT_CSD PIO symptom on this boot. Zeros in the first four reserved words are not a failure when the meaningful fields and completion are valid.
 - Manual capture is preserved locally at `out/whyred-emmc-init-v47-40935026945/uart-hardware-v47-20261029.txt`; the image manifest records success. v47 remains the flashed boot image; there is still no eMMC block device or real iOS root mount.
