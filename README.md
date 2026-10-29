@@ -1,48 +1,54 @@
 # ios-sweetwhyred
 
-An experimental bring-up of the Apple XNU kernel (the iOS 16 generation, xnu-8796) on the Xiaomi Redmi Note 5 (`whyred`, Qualcomm SDM636 / Snapdragon 636).
+An experimental bring-up of Apple XNU (the iOS 16 generation, xnu-8796) on the Xiaomi Redmi Note 5 (whyred, Qualcomm SDM636 / Snapdragon 636).
 
-This branch targets `whyred`. The inherited `sweet` documentation described a Redmi Note 10 Pro running a complete iOS userland; those claims do not describe the current state of this branch.
+This branch targets whyred. The inherited sweet documentation described a Redmi Note 10 Pro running a complete iOS userland; those claims do not describe the current state of this branch.
 
-> **Early development.** This is not a usable phone OS. Keep a verified stock `boot.img` backup. Do not store personal data on experimental builds.
+> **Early development.** This is not a usable phone OS. Keep a verified stock boot.img backup. Do not store personal data on experimental builds.
 
-## Current status — 2026-10-28
+## Current status — 2026-10-29
 
-The v27 diagnostic kernel has booted on the phone and passed these milestones:
+The v31 diagnostic image reached XNU startup, initialized VM and IOKit, mounted the test mockfs root as md0, and launched the project’s static test init as PID 1. The init printed:
 
-- XNU entered on the Kryo 260 Gold core at MPIDR `0x100`.
-- The kernel initialized its MMU and VM, the GIC virtual timer (INTID 19), UARTDM console, IOKit, one boot CPU, BSD, and the built-in AMFI/HFS registrations.
-- BSD selected the test RAM disk as `md0`; `vfs_mountroot()` returned success.
-- Calendar initialization completed. The UART trace contains all `WHYRED_CLOCK` C1–C14 markers.
+`SWEET init: one-shot select(5s) begin`
 
-The v27 image came from [Actions run 40698136953](https://github.com/timosid/ios-sweetwhyred/actions/runs/40698136953). The follow-up [run 40702435098](https://github.com/timosid/ios-sweetwhyred/actions/runs/40702435098) built the v28 root-handoff diagnostics. Its UART capture confirmed the `md0` root mount, then stopped at the `IOSecureBSDRoot` wait for `IOPlatformExpert`. Source review found that the whyred diagnostic fallback did not explicitly register that service; [patch 0114](xnu/patches/0114-whyred-platform-expert-register.patch) adds registration and tracing. [Run 40707929849](https://github.com/timosid/ios-sweetwhyred/actions/runs/40707929849) completed successfully with patch 0114 applied. The v29 image (`b425a38df5c3ef1b206f7206c2930029a878dfc36c535b7616017aec77f9893c`) was flashed to `boot` on the unlocked `whyred` (Fastboot serial `de9ec666`). Its UART confirms the platform expert registers, the secure-root wait returns, BSD mounts `devfs`, and the static test init runs as PID 1. This init is not Apple's launchd; `backboardd` and SpringBoard are not present or confirmed.
+No further UART output appeared after 2–3 minutes. This confirms that XNU and PID 1 started, but the timed select call has not been observed returning. The exact stall within syscall dispatch, wait queue, timer IRQ, or wakeup is still being investigated.
 
-**Userspace status:** The boot image still provides only the project's static test init on a mockfs RAM disk; it is not Apple's `launchd`, and `backboardd`, SpringBoard, and the iOS home screen have not been reached. The v30 UART shows one successful `select()` return, then an error marker and a conflicting second entry marker; the user waited about one more minute without output.
+[Actions run 40728953072](https://github.com/timosid/ios-sweetwhyred/actions/runs/40728953072) completed successfully with XNU patch 0115 and the mockfs PID 1 build. Patch [0115](xnu/patches/0115-whyred-select-timer-trace.patch) adds targeted traces at select entry, wait-queue timer enqueue, virtual-timer programming, GIC IRQ delivery, timer callback, and return from sleep.
 
-The first v31 workflow [40716443013](https://github.com/timosid/ios-sweetwhyred/actions/runs/40716443013) built XNU but exposed a missing `alive` label still used by `adr x2, alive` in the init assembly (`unknown AArch64 fixup kind`). The reference now uses `hello_tail_end`. The init-only [Actions run 40719859405](https://github.com/timosid/ios-sweetwhyred/actions/runs/40719859405) succeeded; signed init SHA-256: `dd897881eb5cb817c092df8d8e5dca40fc2a6d801170df434331e97e8975d594`. Packaged v31 image SHA-256: `9c51d3efded9e3420c321a140013cc8beed72f7cf9a02622d99ebdb3fa385dd0`; its kernel SHA-256 is `212b854d3b96e7da7b8784933485015d0257e31c3283db8ee435f221809f63fc`, with patch 0114 applied and LSE/PAN instruction counts both zero. The image was flashed only to `boot` on the unlocked `whyred` (Fastboot serial `de9ec666`), and reboot returned OKAY. Await the one-shot UART result: PID 1 now calls `select()` once, prints success or its two-digit errno, then parks.
+The v32 diagnostic boot image was packaged locally from that run’s artifacts. Its kernel contains all seven expected trace markers. The ADT sets the confirmed Gold CPU timebase to 19.2 MHz and retains Qualcomm timer PPI order 1, 2, 3, 0, with the virtual timer at INTID 19.
+
+- Kernel SHA-256: `dd462ff2244f9c0503e6420e4b1daabdee50fae70144dd2247833b68b27e94c3`
+- Test init SHA-256: `dd897881eb5cb817c092df8d8e5dca40fc2a6d801170df434331e97e8975d594`
+- v32 boot image SHA-256: `679e8b9598a699496c75f5688dd74b8f0040fcb9fde08dcf5232155b54965b3c`
+
+The v32 image has not yet been tested on the phone.
+
+**Userspace status:** The ramdisk provides only the project’s static test init as PID 1. It is not Apple launchd; backboardd, SpringBoard, and the iOS home screen have not been reached.
 
 ## Display status
 
-A photo from the device shows the early XNU framebuffer console and its colored stage strip. This verifies that the new panel can display kernel-written pixels. The screen remains on the early boot text: XNU disables that early framebuffer console after UART initialization, and the `serial=1` boot argument routes later console output to UARTDM. The photo is not evidence that the normal display stack or graphical userspace has started.
+A photo from the device shows the early XNU framebuffer console and its colored stage strip. This verifies that the kernel can write pixels to the replacement panel. The normal display stack and graphical userspace are not confirmed.
 
 ## Hardware facts used by this port
 
-- Target: Redmi Note 5 `whyred`, Qualcomm SDM636 / Snapdragon 636, heterogeneous Kryo 260 cores.
-- The verified boot core is Gold MPIDR `0x100`; the current XNU topology is deliberately limited to that one core. Secondary-core startup is not validated.
-- The Gold core supports 16 KiB translation granules and reports no LSE atomics or PAN. The tested kernel is built without LSE/PAN instructions.
-- The observed interrupt path uses the GIC virtual timer, INTID 19. UARTDM is the diagnostic console.
+- Target: Redmi Note 5 whyred, Qualcomm SDM636 / Snapdragon 636, heterogeneous Kryo 260 cores.
+- The verified boot core is Gold MPIDR 0x100. XNU topology is deliberately limited to that one core; secondary-core startup is not validated.
+- The Gold core supports 16 KiB translation granules and reports no LSE atomics or PAN. The diagnostic kernel is built without LSE/PAN instructions.
+- The observed interrupt route uses the GIC virtual timer, INTID 19. UARTDM is the diagnostic console.
+- The timer-frequency property in the v32 ADT is 19.2 MHz. Runtime counter and IRQ values still need confirmation from UART.
 
 ## Build and diagnostics
 
-GitHub Actions builds the ARM64 XNU kernel using the workflow in [`.github/workflows/xnu.yml`](.github/workflows/xnu.yml). Whyred-specific source patches are in [`xnu/patches/`](xnu/patches/) and apply from the XNU source root. The build includes a signed static mockfs test init and uploads the kernel, build log, and source tree as workflow artifacts.
+GitHub Actions builds the ARM64 XNU kernel using [the workflow](.github/workflows/xnu.yml). Whyred-specific source patches are in [xnu/patches](xnu/patches/) and apply from the XNU source root. The workflow uploads the kernel, build log, and build tree as artifacts.
 
-The current diagnostic sequence checks:
+Current diagnostic milestones:
 
-1. XNU handoff, CPU, VM, IOKit, and calendar initialization.
-2. BSD setup and root selection/mount from `rd=md0`.
-3. Root vnode setup, `devfs`, and the transition to the test PID 1.
+1. XNU handoff, Gold CPU, VM, IOKit, and GIC setup.
+2. BSD setup, mockfs root mount, and transition to the test PID 1.
+3. Timed select tracing through wait-queue registration, timer programming, interrupt delivery, callback, and syscall return.
 
-Do not treat a successful CI build as a successful device boot; use the UART log to confirm runtime milestones.
+A successful CI build is not evidence of a successful device boot; confirm runtime milestones from UART.
 
 ## Scope and limitations
 
@@ -50,5 +56,4 @@ Storage drivers, touch, buttons, battery telemetry, radios, GPU acceleration, su
 
 ## Credits
 
-This work builds on Apple's open-source XNU sources, the XNU build tooling from [blacktop/darwin-xnu-build](https://github.com/blacktop/darwin-xnu-build), and published Qualcomm/Xiaomi kernel sources used to identify hardware details. Apple's iOS binaries and firmware are not distributed here.
-
+This work builds on Apple’s open-source XNU sources, the XNU build tooling from [blacktop/darwin-xnu-build](https://github.com/blacktop/darwin-xnu-build), and published Qualcomm/Xiaomi kernel sources used to identify hardware details. Apple’s iOS binaries and firmware are not distributed here.
