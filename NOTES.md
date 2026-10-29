@@ -1,5 +1,11 @@
 ## Current whyred eMMC bring-up handoff (2026-10-29)
 
+### v45 hardware result and v46 candidate (2026-10-29)
+- Observed in the user-supplied v45 log: XNU reaches BSD `vfs_mountroot()` success, starts the mockfs PID 1, and completes the one-shot `select(5s)`. This is a kernel/userspace smoke boot; Apple launchd, backboardd, and SpringBoard are not present.
+- eMMC initialization remains good through CMD13 (state 4 / ready=1), but EXT_CSD PIO still reads zero across 128 words; FIFO count stays `0x200`, data count stays zero, and DATA_END never arrives. v45 confirms DLL reset/powerdown readback (`cfg_after=0x6705642c`, status 0), so DLL state did not fix the symptom. The probe still issues no user-sector read or media write.
+- Source audit found XNU does not apply the board's SDC1 active pinctrl state. Whyred DTS requests clock no-pull/16 mA; CMD and DATA pull-up/10 mA; RCLK pull-down: [whyred SDCC1 state](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/whyred-o-oss/arch/arm/boot/dts/qcom/sdm660-mtp_whyred.dtsi#L208-L232), [SDM660 pad fields](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/whyred-o-oss/drivers/pinctrl/qcom/pinctrl-sdm660.c#L1669-L1675), [TLMM base](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/whyred-o-oss/arch/arm/boot/dts/qcom/sdm660-pinctrl.dtsi#L15-L18). This is a concrete missing adaptation, though UEFI may already have left the pins in that state.
+- Patch 0130 applies those exact fields with read-modify-write and readback at TLMM physical `0x0399a000`; it preserves all other bits and stops before card commands if mapping/readback fails. Commit: `ced6e5dbf92647a06b9b10270dd6eeb1718de7a4`. Actions should build it automatically from the branch push. Package only after the build log confirms patch 0130 applied. Do not flash until the phone is in Fastboot; the user will provide UART manually.
+
 ### v44 hardware result
 - Observed: CMD0 through CMD8 completed; CMD13 returned state 4 / ready=1. EXT_CSD signaled DATA_AVAILABLE, but the 128 PIO reads yielded zero samples; Qualcomm data count stayed 0 and FIFO count stayed 0x200. DATA_END did not arrive. A data-circuit reset cleared the host and CMD13 again returned state 4 / ready=1.
 - Observed DLL config: 0x0705642c at 200 kHz, so the DLL remained enabled after low-speed setup. This correlation does not prove that DLL state caused the PIO stall.
