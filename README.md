@@ -26,7 +26,7 @@ The v32 image has not yet been tested on the phone.
 
 Patch [0116](xnu/patches/0116-whyred-display-storage-guard.patch) now matches AppleCLCD to whyred’s `whyred,display` ADT entry and excludes the `interrupt-controller` node from generic IOKit nub creation. [Actions run 40849359706](https://github.com/timosid/ios-sweetwhyred/actions/runs/40849359706) compiled the updated source successfully. This is a compile result only; the service and display stack still need device validation.
 
-A further ADT check found that the custom platform-expert personality still matched the inherited `xiaomi,sweet` identifier, while the generated whyred ADT identifies its root as `xiaomi,whyred`. Patch [0117](xnu/patches/0117-whyred-platform-expert-root-match.patch) corrects the match so the whyred `SweetPlatformExpert` can be selected instead of the generic fallback. [Actions run 40851815254](https://github.com/timosid/ios-sweetwhyred/actions/runs/40851815254) is checking this change; it is not device-tested yet.
+A further ADT check found that the custom platform-expert personality still matched the inherited `xiaomi,sweet` identifier, while the generated whyred ADT identifies its root as `xiaomi,whyred`. Patch [0117](xnu/patches/0117-whyred-platform-expert-root-match.patch) corrects the match so the whyred `SweetPlatformExpert` can be selected instead of the generic fallback. [Actions run 40851815254](https://github.com/timosid/ios-sweetwhyred/actions/runs/40851815254) completed successfully; its log confirms patches 0115, 0116, and 0117 were applied. Local v33 image SHA-256: `8ce989fceb1aad4c3fef28dbab2c2fbd6ef751955b2ab9aa885fead16a1d3ecd`. The image is prepared but has not been flashed or tested on the phone.
 
 **Userspace status:** The ramdisk provides only the project’s static test init as PID 1. It is not Apple launchd; backboardd, SpringBoard, and the iOS home screen have not been reached.
 
@@ -56,7 +56,7 @@ A successful CI build is not evidence of a successful device boot; confirm runti
 
 ## Scope and limitations
 
-Storage drivers, touch, buttons, battery telemetry, radios, GPU acceleration, suspend, and power management are not validated by the current boot. The built-in AMFI/HFS components and several platform services are bring-up implementations. This project is for kernel/platform experiments, not daily use.
+The current root is the `md0` mockfs diagnostic ramdisk. Whyred uses eMMC through the Qualcomm SDHCI controller at `0x0c0c4000` (`qcom,sdhci-msm-v5`); this XNU tree has no whyred eMMC block driver. The inherited `sweet_ufs.c` expects a UFS host and a `/sweet-ufs` ADT node, which whyred does not provide, so the old `rd=ufsroot0` path cannot mount the HFS+ image built by `mkiosroot.sh`. A real iOS root and Apple launchd remain blocked on storage integration. Touch, buttons, battery telemetry, radios, GPU acceleration, suspend, and power management are also unvalidated; the built-in AMFI/HFS components and several platform services are bring-up implementations. This project is for kernel/platform experiments, not daily use.
 
 ## Credits
 
