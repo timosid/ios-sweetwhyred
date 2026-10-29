@@ -7,14 +7,14 @@ the ext4 superblock magic. Keep md0 as root and never write eMMC media.
 --- a/bsd/dev/whyred_emmc_pio_probe.c
 +++ b/bsd/dev/whyred_emmc_pio_probe.c
 @@ -3,8 +3,8 @@
-  *
-  * This opt-in diagnostic preserves the existing SDCC1 power rails, returns
-  * the card and host to the eMMC legacy 1-bit initialization mode, then reads
+ *
+ * This opt-in diagnostic preserves the existing SDCC1 power rails, returns
+ * the card and host to the eMMC legacy 1-bit initialization mode, then reads
 - * EXT_CSD and opt-in primary GPT metadata. It issues no media-write command
 - * and does not read partition contents.
 + * EXT_CSD and opt-in primary GPT metadata. An explicit system probe may
 + * read one superblock sector. This code never issues media-write commands.
-  */
+ */
  #include <sys/param.h>
  #include <sys/systm.h>
 @@ -801,6 +801,45 @@
@@ -35,29 +35,29 @@ the ext4 superblock magic. Keep md0 as root and never write eMMC media.
 +			if (system != NULL) {
 +				printf("WHYRED ROOTFS PROBE: duplicate system GPT entries; skipped\n");
 +				return;
-			}
++			}
 +			system = &whyred_gpt_parts[i];
-		}
-	}
-	if (system == NULL || system->last - system->first < 2 ||
-	    system->first > UINT32_MAX - 2 || system->first + 2 >= whyred_emmc_sector_count) {
-		printf("WHYRED ROOTFS PROBE: valid system partition not found; skipped\n");
-		return;
-	}
-
-	/* ext4's 1024-byte superblock begins at partition offset 1024. */
-	uint8_t sector[WHYRED_GPT_BLOCK_BYTES];
-	uint32_t lba = (uint32_t)system->first + 2;
-	lck_mtx_lock(&whyred_emmc_lock);
-	int read_error = whyred_emmc_read_sector(&whyred_emmc_live_io, lba, sector);
-	lck_mtx_unlock(&whyred_emmc_lock);
-	if (read_error != 0) {
-		printf("WHYRED ROOTFS PROBE: system superblock sector read failed lba=%u\n", lba);
-		return;
-	}
-	uint16_t ext4_magic = (uint16_t)sector[0x38] | ((uint16_t)sector[0x39] << 8);
-	printf("WHYRED ROOTFS PROBE: one read-only system superblock sector lba=%u ext4_magic=0x%04x result=%s\n",
-	    lba, ext4_magic, ext4_magic == 0xef53 ? "ext4" : "not-ext4");
++		}
++	}
++	if (system == NULL || system->last - system->first < 2 ||
++	    system->first > UINT32_MAX - 2 || system->first + 2 >= whyred_emmc_sector_count) {
++		printf("WHYRED ROOTFS PROBE: valid system partition not found; skipped\n");
++		return;
++	}
++
++	/* ext4's 1024-byte superblock begins at partition offset 1024. */
++	uint8_t sector[WHYRED_GPT_BLOCK_BYTES];
++	uint32_t lba = (uint32_t)system->first + 2;
++	lck_mtx_lock(&whyred_emmc_lock);
++	int read_error = whyred_emmc_read_sector(&whyred_emmc_live_io, lba, sector);
++	lck_mtx_unlock(&whyred_emmc_lock);
++	if (read_error != 0) {
++		printf("WHYRED ROOTFS PROBE: system superblock sector read failed lba=%u\n", lba);
++		return;
++	}
++	uint16_t ext4_magic = (uint16_t)sector[0x38] | ((uint16_t)sector[0x39] << 8);
++	printf("WHYRED ROOTFS PROBE: one read-only system superblock sector lba=%u ext4_magic=0x%04x result=%s\n",
++	    lba, ext4_magic, ext4_magic == 0xef53 ? "ext4" : "not-ext4");
 +}
 +
 +static const struct whyred_gpt_partition *
