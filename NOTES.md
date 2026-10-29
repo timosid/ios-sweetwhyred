@@ -1,3 +1,18 @@
+## Current whyred eMMC bring-up handoff (2026-10-29)
+
+### v44 hardware result
+- Observed: CMD0 through CMD8 completed; CMD13 returned state 4 / ready=1. EXT_CSD signaled DATA_AVAILABLE, but the 128 PIO reads yielded zero samples; Qualcomm data count stayed 0 and FIFO count stayed 0x200. DATA_END did not arrive. A data-circuit reset cleared the host and CMD13 again returned state 4 / ready=1.
+- Observed DLL config: 0x0705642c at 200 kHz, so the DLL remained enabled after low-speed setup. This correlation does not prove that DLL state caused the PIO stall.
+- The probe issues no user-sector reads and no media-write commands.
+
+### v45 candidate
+- Patch 0129, xnu/patches/0129-whyred-emmc-disable-low-clock-dll-and-pio-progress.patch, sets the Qualcomm SDHCI-MSM DLL reset and powerdown bits while the card clock is stopped at the 200 kHz identification clock. It adds PIO snapshots after words 1, 16 and 128. This tests the low-frequency behavior documented in Qualcomm's driver: https://android.googlesource.com/kernel/msm/%2B/494fd11726717faabf58dbf2d7f56e58baafdda1/drivers/mmc/host/sdhci-msm.c
+- Commit: 405972c44de74c50840475ca84c29a9c4840b313. Actions run 40924026881 is queued: https://github.com/timosid/ios-sweetwhyred/actions/runs/40924026881
+- Local patch replay confirms 0128 reproduces the v44 source and 0129 applies to it. Packager: tools/package-emmc-init-v45.py. No v45 artifact is packaged yet.
+- Next: collect the Actions artifact and package v45 after the build passes. The user supplied UART from v44; Fastboot availability is not established. Do not flash until the phone is back in Fastboot. Preserve all user data and existing device backups.
+
+---
+
 # iOS 16 on sweet (Redmi Note 10 Pro, SM7150) - working notes
 
 ## Whyred CI migration (2026-10-26)
