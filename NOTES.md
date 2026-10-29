@@ -6,7 +6,7 @@
 - The probe issues no user-sector reads and no media-write commands.
 
 ### v45 candidate
-- Patch 0129, xnu/patches/0129-whyred-emmc-disable-low-clock-dll-and-pio-progress.patch, sets the Qualcomm SDHCI-MSM DLL reset and powerdown bits while the card clock is stopped at the 200 kHz identification clock. It adds PIO snapshots after words 1, 16 and 128. This tests the low-frequency behavior documented in Qualcomm's driver: https://android.googlesource.com/kernel/msm/%2B/494fd11726717faabf58dbf2d7f56e58baafdda1/drivers/mmc/host/sdhci-msm.c
+- Patch 0129, xnu/patches/0129-whyred-emmc-disable-low-clock-dll-and-pio-progress.patch, sets the Qualcomm SDHCI-MSM DLL reset and powerdown bits while the card clock is stopped at the 200 kHz identification clock. It adds PIO snapshots after words 1, 16 and 128. This tests the low-frequency behavior documented in Qualcomm's driver: https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/whyred-o-oss/drivers/mmc/host/sdhci-msm.c#L3265-L3292
 - Commit: 405972c44de74c50840475ca84c29a9c4840b313. Actions run 40924026881 is queued: https://github.com/timosid/ios-sweetwhyred/actions/runs/40924026881
 - Local patch replay confirms 0128 reproduces the v44 source and 0129 applies to it. Packager: tools/package-emmc-init-v45.py. No v45 artifact is packaged yet.
 - Next: collect the Actions artifact and package v45 after the build passes. The user supplied UART from v44; Fastboot availability is not established. Do not flash until the phone is back in Fastboot. Preserve all user data and existing device backups.
