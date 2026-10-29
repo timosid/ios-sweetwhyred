@@ -16,7 +16,7 @@ No further UART output appeared after 2–3 minutes. This confirms that XNU and 
 
 [Actions run 40728953072](https://github.com/timosid/ios-sweetwhyred/actions/runs/40728953072) completed successfully with XNU patch 0115 and the mockfs PID 1 build. Patch [0115](xnu/patches/0115-whyred-select-timer-trace.patch) adds targeted traces at select entry, wait-queue timer enqueue, virtual-timer programming, GIC IRQ delivery, timer callback, and return from sleep.
 
-The v32 diagnostic boot image was packaged locally from that run’s artifacts. Its kernel contains all seven expected trace markers. The ADT sets the confirmed Gold CPU timebase to 19.2 MHz and retains Qualcomm timer PPI order 1, 2, 3, 0, with the virtual timer at INTID 19.
+The v32 diagnostic boot image was packaged locally from that run’s artifacts. Its kernel contains all seven expected trace markers. The v32 ADT declares a 19.2 MHz timebase for the Gold CPU and retains Qualcomm timer PPI order 1, 2, 3, 0, with the virtual timer at INTID 19.
 
 - Kernel SHA-256: `dd462ff2244f9c0503e6420e4b1daabdee50fae70144dd2247833b68b27e94c3`
 - Test init SHA-256: `dd897881eb5cb817c092df8d8e5dca40fc2a6d801170df434331e97e8975d594`
