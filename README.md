@@ -26,6 +26,8 @@ The v32 image has not yet been tested on the phone.
 
 Patch [0116](xnu/patches/0116-whyred-display-storage-guard.patch) now matches AppleCLCD to whyred’s `whyred,display` ADT entry and excludes the `interrupt-controller` node from generic IOKit nub creation. [Actions run 40849359706](https://github.com/timosid/ios-sweetwhyred/actions/runs/40849359706) compiled the updated source successfully. This is a compile result only; the service and display stack still need device validation.
 
+A further ADT check found that the custom platform-expert personality still matched the inherited `xiaomi,sweet` identifier, while the generated whyred ADT identifies its root as `xiaomi,whyred`. Patch [0117](xnu/patches/0117-whyred-platform-expert-root-match.patch) corrects the match so the whyred `SweetPlatformExpert` can be selected instead of the generic fallback. [Actions run 40851815254](https://github.com/timosid/ios-sweetwhyred/actions/runs/40851815254) is checking this change; it is not device-tested yet.
+
 **Userspace status:** The ramdisk provides only the project’s static test init as PID 1. It is not Apple launchd; backboardd, SpringBoard, and the iOS home screen have not been reached.
 
 ## Display status
