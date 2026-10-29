@@ -12,7 +12,7 @@
  #define SDHCI_PSTATE_CMD_INHIBIT         0x00000001
  #define SDHCI_PSTATE_DATA_INHIBIT        0x00000002
  #define SDHCI_PSTATE_DATA_AVAILABLE      0x00000800
-@@ -172,7 +173,7 @@
+@@ -221,7 +222,7 @@
  	vendor |= SDHCI_CORE_MCLK_SEL_DEFAULT;
  	whyred_emmc_write32(base, SDHCI_CORE_VENDOR_SPEC, vendor);
  	(void)whyred_emmc_read32(base, SDHCI_CORE_VENDOR_SPEC);
