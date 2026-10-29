@@ -1,5 +1,10 @@
 ## Current whyred eMMC bring-up handoff (2026-10-29)
 
+### v46 pinctrl package prepared (2026-10-29)
+- Patch 0130 is commit `ced6e5dbf92647a06b9b10270dd6eeb1718de7a4`; Actions [run 40929435388](https://github.com/timosid/ios-sweetwhyred/actions/runs/40929435388) completed successfully. The job reports Build, minimal mockfs PID 1, and artifact uploads as successful; its build log confirmed patch 0130 was applied. Kernel artifact `xnu-whyred-early-fb` (ID `12921509740`) SHA-256 `8db23986f6d0fd523c9c91ab4b424f5473bc10117a2bf76753bd1d7cce4f6daa` matches GitHub.
+- Local `tools/package-emmc-init-v46.py` passed the 0115–0130 patch guard, Android boot image structure/layout checks, and zero linked LSE/PAN instruction checks. Kernel SHA-256 `8bc52eda7f159d854fde6c8538f85c97b6260a709518634684985cc2603b4b0a`. Image `whyred-port/out/whyred-emmc-init-v46-40929435388/shim-boot-whyred-uartdm-debug.img`, 17,539,072 bytes, SHA-256 `d39479be88e2aa96a43ff558363837346d9f9b9382062a9c0770f2c094848e3e`.
+- Stock boot backup SHA-256 remains `7aaa6094c477e4def3638a5a58fc7be063a2bb2661d16ad3305b01bebbd25a0f`. `fastboot devices -l` returned no device, so v46 has not been flashed. The user will supply UART logs manually; no assistant UART capture was performed. The eMMC probe reads only EXT_CSD and issues no media-write commands.
+
 ### v45 hardware result and v46 candidate (2026-10-29)
 - Observed in the user-supplied v45 log: XNU reaches BSD `vfs_mountroot()` success, starts the mockfs PID 1, and completes the one-shot `select(5s)`. This is a kernel/userspace smoke boot; Apple launchd, backboardd, and SpringBoard are not present.
 - eMMC initialization remains good through CMD13 (state 4 / ready=1), but EXT_CSD PIO still reads zero across 128 words; FIFO count stays `0x200`, data count stays zero, and DATA_END never arrives. v45 confirms DLL reset/powerdown readback (`cfg_after=0x6705642c`, status 0), so DLL state did not fix the symptom. The probe still issues no user-sector read or media write.
