@@ -338,6 +338,15 @@ future filesystem bring-up. Writes and out-of-partition requests fail closed.
  	err = IOFindBSDRoot(rootdevice, sizeof(rootdevice), &rootdev, &flags);
  	if (err) {
  		printf("setconf: IOFindBSDRoot returned an error (%d);"
+@@ -1240,7 +1252,7 @@
+ 	if (PE_parse_boot_argn("whyred-emmc-pio-probe",
+ 	    &whyred_emmc_pio_probe_requested,
+ 	    sizeof(whyred_emmc_pio_probe_requested)) &&
+-	    whyred_emmc_pio_probe_requested) {
++	    whyred_emmc_pio_probe_requested && !whyred_emmc_block_requested) {
+ 		whyred_emmc_pio_probe();
+ 	}
+ #endif
 --- a/iokit/bsddev/IOKitBSDInit.cpp
 +++ b/iokit/bsddev/IOKitBSDInit.cpp
 @@ -770,6 +770,20 @@
