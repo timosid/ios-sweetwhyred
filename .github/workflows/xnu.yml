@@ -152,6 +152,8 @@ jobs:
           sudo chmod 1777 "$mountpoint/tmp"
           sudo chmod 0700 "$mountpoint/root"
           sudo chmod 0555 "$mountpoint/empty"
+          sudo python3 "$GITHUB_WORKSPACE/tools/seed-whyred-var.py" "$mountpoint"
+          sudo python3 "$GITHUB_WORKSPACE/tools/seed-whyred-var.py" "$mountpoint" --verify
           sudo sync
           sudo umount "$mountpoint"
           mounted=0
