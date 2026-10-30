@@ -40,9 +40,16 @@ def verify(root):
             r'struct hfs_mount_args hfs_args;',
             r'\.hfs_args = { \.hfs_mask = 0777 }',
             r'"/private/var", &mount_args, sizeof\(mount_args\)',
+            r'KERNEL_MOUNT_NOAUTH \| KERNEL_MOUNT_WHYRED_RAMVAR',
             r'WHYRED VAR: mounting RAM HFS before PID 1',
         ],
         'bsd/sweet_hfs/core/hfs_mount.h': [r'struct hfs_mount_args', r'journal_disable'],
+        'bsd/sys/mount_internal.h': [r'KERNEL_MOUNT_WHYRED_RAMVAR\s+0x800'],
+        'bsd/vfs/vfs_syscalls.c': [
+            r'whyred_ramvar_mount', r'strncmp\(fstypename, \"hfs\"',
+            r'strcmp\(cnp->cn_pnbuf, \"/private/var\"',
+            r'MNT_UPDATE \| MNT_RDONLY', r'!whyred_ramvar_mount',
+        ],
         'config/MASTER': [r'options\s+WHYRED_APFS'],
         'config/MASTER.arm64.sweet': [r'FILESYS_BASE.*\bwhyred_apfs\b'],
     }

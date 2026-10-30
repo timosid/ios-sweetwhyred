@@ -52,6 +52,7 @@ struct timezone { int tz_minuteswest, tz_dsttime; };
 #define NULLVP NULL
 #define MNT_DONTBROWSE 0x100
 #define KERNEL_MOUNT_NOAUTH 1
+#define KERNEL_MOUNT_WHYRED_RAMVAR 0x800
 static int var_requested, var_mount_calls, var_panics;
 static void *vfs_context_kernel(void) { return (void *)(uintptr_t)1; }
 static int PE_parse_boot_argn(const char *name, void *data, size_t size)
@@ -69,7 +70,7 @@ static int kernel_mount(const char *type, void *parent, void *covered,
     struct hfs_mount_args args;
     if (size != sizeof(device) + sizeof(args) || !data ||
         strcmp(type, "hfs") || strcmp(path, "/private/var") || parent || covered ||
-        flags != MNT_DONTBROWSE || kernel_flags != KERNEL_MOUNT_NOAUTH ||
+        flags != MNT_DONTBROWSE || kernel_flags != (KERNEL_MOUNT_NOAUTH | KERNEL_MOUNT_WHYRED_RAMVAR) ||
         context != vfs_context_kernel()) return EINVAL;
     memcpy(&device, data, sizeof(device));
     memcpy(&args, (char *)data + sizeof(device), sizeof(args));
