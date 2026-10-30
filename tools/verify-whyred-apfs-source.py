@@ -28,6 +28,13 @@ def verify(root):
         'bsd/miscfs/apfs/apfs_deflate.c': [r'#define FREESTANDING 1', r'#undef ARCH_ARM64', r'#undef ARCH_X86_64'],
         'bsd/miscfs/apfs/apfs_vnops.c': [r'return EROFS;', r'UPL_COMMIT_CLEAR_DIRTY', r'INT64_MAX - \(uint64_t\)ap->a_size', r'whole > MIN\(XATTR_MAXSIZE, 1024 \* 1024\)'],
         'bsd/vfs/vfs_conf.c': [r'vfc_name = "apfs"', r'vfc_mountroot = apfs_mountroot', r'&apfs_vnodeop_opv_desc', r'VFC_VFSNATIVEXATTR'],
+        'bsd/dev/whyred_emmc_pio_probe.c': [
+            r'case DKIOCSETBLOCKSIZE:',
+            r'return \*v32 == WHYRED_GPT_BLOCK_BYTES \? 0 : EINVAL;',
+            r'return \(flags & FWRITE\) \? EROFS : 0;',
+            r'if \(\(buf_flags\(bp\) & B_READ\) == 0\) {\s*error = EROFS;',
+            r'case DKIOCISWRITABLE:\s*\*v32 = 0;',
+        ],
         'config/MASTER': [r'options\s+WHYRED_APFS'],
         'config/MASTER.arm64.sweet': [r'FILESYS_BASE.*\bwhyred_apfs\b'],
     }
@@ -68,3 +75,4 @@ def main():
 
 
 if __name__ == '__main__': main()
+

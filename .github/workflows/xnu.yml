@@ -30,6 +30,7 @@ on:
       - "tools/apfs/**"
       - "tools/apfs-*"
       - "tools/test-whyred-apfs.py"
+      - "tools/test-whyred-emmc-contract.py"
       - "tools/mkapfs-test-root.py"
       - "tools/apfs-host-windows/**"
       - "tools/verify-whyred-apfs-source.py"
@@ -90,6 +91,7 @@ jobs:
               raise SystemExit("Pinned build script patch entry point changed")
           guard = '    python3 "${WORK_DIR}/../tools/verify-whyred-xnu.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-source-report.json" --expected-upstream-commit 1b191cb58250d0705d8a51287127505aa4bc0789\n'
           guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-apfs-source.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-apfs-source-report.json"\n'
+          guard += '    python3 "${WORK_DIR}/../tools/test-whyred-emmc-contract.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-emmc-contract"\n'
           script.write_text(text.replace(marker, marker + guard))
           PY
 
@@ -109,14 +111,14 @@ jobs:
           xcrun --find iig
           xcrun iig -help 2>&1 || true
 
-      - name: Build 32 MiB raw HFS /private/var ramdisk
+      - name: Build 7 MiB raw HFS /private/var ramdisk
         run: |
           set -euo pipefail
           mkdir -p out
           image="$GITHUB_WORKSPACE/out/whyred-var.hfs"
           mountpoint="$GITHUB_WORKSPACE/out/whyred-var-mount"
           mkdir -p "$mountpoint"
-          attach_output="$(hdiutil attach -nomount ram://65536 2>&1)" || {
+          attach_output="$(hdiutil attach -nomount ram://14336 2>&1)" || {
             printf '%s\n' "$attach_output" >&2
             exit 1
           }
@@ -153,7 +155,7 @@ jobs:
           sudo sync
           sudo umount "$mountpoint"
           mounted=0
-          sudo dd if="$rawdev" of="$image" bs=1m count=32
+          sudo dd if="$rawdev" of="$image" bs=1m count=7
           sudo chown "$(id -u):$(id -g)" "$image"
           hdiutil detach "$dev" -quiet
           dev=""
@@ -163,7 +165,7 @@ jobs:
           with path.open("rb") as image:
               image.seek(1024)
               signature = image.read(2)
-          if path.stat().st_size != 32 * 1024 * 1024 or signature != b"H+":
+          if path.stat().st_size != 7 * 1024 * 1024 or signature != b"H+":
               raise SystemExit(f"invalid raw HFS+ image: size={path.stat().st_size}, signature={signature!r}")
           print(f"raw HFS+ /private/var image ready: {path.stat().st_size} bytes")
           PY
@@ -251,6 +253,7 @@ jobs:
           cp -R dxb/fakeroot/System/Library/Kernels/. out/ 2>/dev/null || true
           if [ -f dxb/whyred-source-report.json ]; then cp dxb/whyred-source-report.json out/; fi
           if [ -f dxb/whyred-apfs-source-report.json ]; then cp dxb/whyred-apfs-source-report.json out/; fi
+          if [ -f dxb/whyred-emmc-contract/report.json ]; then cp dxb/whyred-emmc-contract/report.json out/whyred-emmc-contract-report.json; fi
           ls -la out
           (cd out && shasum -a 256 kernel.* > SHA256SUMS) || true
           if [ -f out/whyred-var.hfs ]; then (cd out && shasum -a 256 whyred-var.hfs >> SHA256SUMS); fi
@@ -261,3 +264,4 @@ jobs:
           name: xnu-whyred-early-fb
           path: out/
           if-no-files-found: warn
+
