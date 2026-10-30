@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 
 
 def block(text, start):
@@ -146,9 +147,16 @@ int main(void)
     source = args.output / 'emmc-contract.c'
     executable = args.output / ('emmc-contract.exe' if os.name == 'nt' else 'emmc-contract')
     source.write_text(harness)
-    subprocess.run([args.cc, '-std=c11', '-Wall', '-Wextra', '-Werror', '-O1',
-                    str(source), '-o', str(executable)], check=True)
-    result = subprocess.check_output([str(executable.resolve())], text=True)
+    host_env = os.environ.copy()
+    host_env.pop('SDKROOT', None)
+    compiler = [args.cc, '-std=c11', '-Wall', '-Wextra', '-Werror', '-O1']
+    if sys.platform == 'darwin':
+        sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'],
+                                      text=True, env=host_env).strip()
+        compiler += ['-isysroot', sdk]
+    subprocess.run([*compiler, str(source), '-o', str(executable)],
+                   check=True, env=host_env)
+    result = subprocess.check_output([str(executable.resolve())], text=True, env=host_env)
     print(result, end='')
     report = {'result': result.strip(), 'source_sha256': {
         p.relative_to(args.source).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
