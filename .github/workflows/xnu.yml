@@ -27,6 +27,12 @@ on:
     paths:
       - "xnu/patches/**"
       - "tools/sweet-init.S"
+      - "tools/apfs/**"
+      - "tools/apfs-*"
+      - "tools/test-whyred-apfs.py"
+      - "tools/mkapfs-test-root.py"
+      - "tools/apfs-host-windows/**"
+      - "tools/verify-whyred-apfs-source.py"
       - ".github/workflows/xnu.yml"
 
 concurrency:
@@ -83,12 +89,13 @@ jobs:
           if text.count(marker) != 1:
               raise SystemExit("Pinned build script patch entry point changed")
           guard = '    python3 "${WORK_DIR}/../tools/verify-whyred-xnu.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-source-report.json" --expected-upstream-commit 1b191cb58250d0705d8a51287127505aa4bc0789\n'
+          guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-apfs-source.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-apfs-source-report.json"\n'
           script.write_text(text.replace(marker, marker + guard))
           PY
 
       - name: Deps
         run: |
-          brew install jq gum bash cmake ninja
+          brew install jq gum bash cmake ninja openssl@3
           # build.sh only checks that xcodes exists; Xcode is preinstalled.
           printf '#!/bin/sh\nexit 0\n' | sudo tee /usr/local/bin/xcodes >/dev/null
           sudo chmod +x /usr/local/bin/xcodes
@@ -113,11 +120,16 @@ jobs:
           set -o pipefail
           bash build.sh 2>&1 | tee build.log
 
+      - name: Check read-only APFS parser on synthetic images
+        run: |
+          python3 tools/test-whyred-apfs.py --source dxb/xnu --output out/apfs-host-test
+
       - name: Build minimal mockfs PID 1
         run: |
           mkdir -p out
           xcrun clang -target arm64-apple-ios16.0 -c tools/sweet-init.S -o out/sweet-init.o
           python3 tools/mkinit.py out/sweet-init.o out/sweet-init.macho
+          python3 tools/mkapfs-test-root.py --init out/sweet-init.macho --output out/whyred-test-root.apfs
           python3 - <<'PY'
           from pathlib import Path
           import struct
@@ -170,6 +182,7 @@ jobs:
           if [ -f dxb/build.log ]; then cp dxb/build.log out/; fi
           cp -R dxb/fakeroot/System/Library/Kernels/. out/ 2>/dev/null || true
           if [ -f dxb/whyred-source-report.json ]; then cp dxb/whyred-source-report.json out/; fi
+          if [ -f dxb/whyred-apfs-source-report.json ]; then cp dxb/whyred-apfs-source-report.json out/; fi
           ls -la out
           (cd out && shasum -a 256 kernel.* > SHA256SUMS) || true
 
@@ -179,4 +192,3 @@ jobs:
           name: xnu-whyred-early-fb
           path: out/
           if-no-files-found: warn
-

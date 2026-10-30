@@ -6,18 +6,19 @@ This branch targets whyred. The inherited sweet documentation described a Redmi 
 
 > **Early development.** This is not a usable phone OS. Keep a verified stock boot.img backup. Do not store personal data on experimental builds.
 
-## Current status — 2026-10-29
+## Current status — 2026-10-30
 
-The v36 diagnostic image reached the project's static test init as PID 1 and verified the timed wait/wakeup path on the Redmi Note 5 whyred. It is not a usable phone OS, and it has not started Apple launchd, backboardd, SpringBoard, or the home screen.
+XNU boots on whyred through VM and BSD, mounts the project's RAM-backed mockfs root and runs the static test PID 1. The handset has confirmed timer wakeups and `SWEET init: one-shot select returned OK`. Apple launchd, backboardd and SpringBoard have not started.
 
-- The v36 image was built from [Actions run 40878122126](https://github.com/timosid/ios-sweetwhyred/actions/runs/40878122126), packaged locally, and flashed only to `boot`.
-- GIC redistributor readback is `0x80002`: SGI 1 and virtual timer PPI 19 are enabled. UART records delivered INTID 19 interrupts, two timer callbacks, and `SWEET init: one-shot select returned OK`.
-- The PID 1 test intentionally prints `SWEET init: one-shot diagnostic complete` and parks. The boot therefore confirms XNU, VM, BSD mockfs root, PID 1, and timer wakeup; it does not demonstrate a normal iOS boot.
-- v36 kernel SHA-256: `c192b3a149abe8e5a358f1db996454e6b9572e1f5a1f4bf6a07486db4bfd29bf`
-- v36 boot image SHA-256: `4e5cc717ee89df7308cc1cdf7ebad29b081788a9b5f7015780e5ffa8df2b31ab`
-- The linked diagnostic kernel was checked for unsupported instructions: zero LSE and PAN instructions.
+- v47 established eMMC EXT_CSD reads after fixing the Qualcomm SDHCI FIFO selection.
+- v48 read and validated the primary GPT; the handset reported all 64 partitions with valid CRCs.
+- v49 registered bounded, read-only BSD block devices for those partitions, then continued with `BSD root: md0`. [Build run 40949733049](https://github.com/timosid/ios-sweetwhyred/actions/runs/40949733049) succeeded. Only the boot image was flashed.
+- v50 adds an opt-in one-sector system-partition filesystem probe; it is built but has not been flashed.
+- Patch 0135 adds a gated read-only APFS reader/VFS port adapted from HakiOS, without its platform drivers, write modules or scheduler hooks. Local C parser tests and ARM64 compilation passed; a full Apple-clang kernel build and a handset APFS mount are still required. [APFS scope and checks](docs/whyred-apfs.md).
+- The tools can build a 4 MiB diagnostic APFS root with the project's static PID 1. This test image contains no Apple iOS userland. Root mounting requires `whyred-apfs-root=1`; the default boot continues to use mockfs.
+- The tested kernel uses one Gold core and avoids unsupported LSE/PAN instructions.
 
-**Next major blocker:** whyred's storage is eMMC through Qualcomm SDHCI. This XNU port has no whyred eMMC block driver, so the HFS+ iOS root image cannot yet be mounted. Storage support must come before replacing the mockfs init with Apple's launchd and attempting backboardd/SpringBoard.
+**Next:** confirm the APFS kernel link, then verify mounting and executing the small diagnostic root. A full iOS filesystem, writable runtime state and additional userspace/platform adaptation are still needed before attempting the graphical interface.
 
 ## Display status
 
