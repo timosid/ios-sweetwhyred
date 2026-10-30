@@ -83,7 +83,18 @@ one_shot:
 	adr	x2, diagnostic_done_end
 	sub	x2, x2, x1
 	bl	write_console
-	b	hang
+	b	wait_forever
+
+/* Keep PID 1 blocked after the one-shot probe so the CPU can idle. */
+wait_forever:
+	mov	x0, #0
+	mov	x1, #0
+	mov	x2, #0
+	mov	x3, #0
+	mov	x4, #0		/* NULL timeout: wait indefinitely */
+	mov	x16, #SYS_select
+	svc	#0x80
+	b	wait_forever
 
 select_failed:
 	mov	x20, x0			/* Darwin errno from select */
