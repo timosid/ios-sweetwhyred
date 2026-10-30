@@ -116,9 +116,14 @@ jobs:
           image="$GITHUB_WORKSPACE/out/whyred-var.hfs"
           mountpoint="$GITHUB_WORKSPACE/out/whyred-var-mount"
           mkdir -p "$mountpoint"
-          dev="$(hdiutil attach -nomount ram://65536 | awk '/^\/dev\/disk[0-9]+$/ { print $1; exit }')"
+          attach_output="$(hdiutil attach -nomount ram://65536 2>&1)" || {
+            printf '%s\\n' "$attach_output" >&2
+            exit 1
+          }
+          dev="$(printf '%s\\n' "$attach_output" | sed -nE 's#.*(/dev/disk[0-9]+).*#\\1#p' | head -n 1)"
           if [ -z "$dev" ]; then
-            echo "hdiutil did not return the raw RAM disk device" >&2
+            echo "hdiutil did not return a recognizable disk device; output was:" >&2
+            printf '%s\\n' "$attach_output" >&2
             exit 1
           fi
           rawdev="/dev/rdisk${dev#/dev/disk}"
@@ -203,10 +208,13 @@ jobs:
           SDK=$(xcrun --sdk macosx --show-sdk-path)
           mkdir -p sdk-kernel-platform
           cp -R "$SDK/System/Library/Frameworks/Kernel.framework/Versions/A/PrivateHeaders/platform" sdk-kernel-platform/ || true
-          tar czf buildtree.tgz \
-            --exclude='*.o' --exclude='*.cpo' --exclude='*.a' --exclude='*.dSYM' --exclude='*.unstripped' \
-            --exclude='kernel.development.*' --exclude='.git' \
-            -C dxb build/xnu.obj fakeroot/usr/local/include xnu \
+          tar_paths=(xnu)
+          [ -d build/xnu.obj ] && tar_paths+=(build/xnu.obj)
+          [ -d fakeroot/usr/local/include ] && tar_paths+=(fakeroot/usr/local/include)
+          tar czf buildtree.tgz \\
+            --exclude='*.o' --exclude='*.cpo' --exclude='*.a' --exclude='*.dSYM' --exclude='*.unstripped' \\
+            --exclude='kernel.development.*' --exclude='.git' \\
+            -C dxb "${tar_paths[@]}" \\
             -C .. sdk-kernel-platform
           ls -la buildtree.tgz
 
@@ -221,12 +229,18 @@ jobs:
         if: always()
         run: |
           mkdir -p out/kdk-libs
+          found=0
           for lib in /Library/Developer/KDKs/*/System/Library/KernelSupport/lib*.a; do
+            [ -f "$lib" ] || continue
+            found=1
             b=$(basename "$lib" .a)
             ar t "$lib" > "out/kdk-libs/$b.members.txt" 2>&1 || true
             nm -m "$lib" > "out/kdk-libs/$b.nm.txt" 2>&1 || true
             lipo -info "$lib" >> out/kdk-libs/arch.txt 2>&1 || true
           done
+          if [ "$found" = 0 ]; then
+            echo "No installed KDK support libraries found."
+          fi
           ls -la out/kdk-libs
 
       - name: Collect
