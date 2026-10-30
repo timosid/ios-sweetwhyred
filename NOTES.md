@@ -1,9 +1,9 @@
 ## Current whyred bring-up handoff (2026-10-30, v51)
 
 - User UART confirms v51 mounted the read-only APFS diagnostic volume `WhyredTest` and executed the project's static test PID 1. After the 5-second `select()` timed wait, virtual timer INTID 19 fired; the kernel panicked at `return_to_user`: `preemption count not 0 ... (1)`.
-- This moves the blocker beyond APFS mount/root selection and userspace exec. It does not establish a complete Apple userspace boot: the embedded root contains only the test PID 1, not Apple launchd, backboardd, or SpringBoard.
-- Published patch 0136, `xnu/patches/0136-whyred-select-preemption-trace.patch`, commit `192a7457e23dac7029aa946757d5d2441d1f8110`. Actions run 41061191920 is building. It adds gated logs for timer target/current preemption counts, continuation entry, BSD sleep continuation return, and syscall return. This is instrumentation, not a forced counter reset.
-- Next: inspect the build; if successful, package the new kernel with the same diagnostic APFS root and boot arguments, verify hashes/layout, then flash only `boot`. Do not write the eMMC `system` partition. User supplies UART manually.
+- This moves the blocker beyond APFS mount/root selection and userspace exec. It does not establish a complete Apple userspace boot: the embedded root contains only test PID 1, not Apple launchd, backboardd, or SpringBoard.
+- Patch 0136 is `xnu/patches/0136-whyred-select-preemption-trace.patch`. The first build (run 41061191920) caught incomplete `struct thread` access from BSD `kern_synch.c`. Updated commit `dc3b242605ce207332c54d63964683bc08627ffe` keeps preemption-count reads in ARM64 code and leaves only phase markers in the BSD continuation. New Actions run 41064551319 is queued.
+- The trace is diagnostic; it does not change scheduling or clear the count. Next: inspect the build, package with the same APFS diagnostic root if successful, verify hashes/layout, and flash only `boot`. Do not write the eMMC `system` partition. User supplies UART manually.
 
 ## Current whyred eMMC bring-up handoff (2026-10-29)
 
