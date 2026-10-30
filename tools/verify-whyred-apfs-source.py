@@ -26,8 +26,8 @@ def verify(root):
             r'le32\(blk \+ 36\) != bs', r'if \(zerr != Z_STREAM_END\)'],
         'bsd/miscfs/apfs/apfs_lib.h': [r'#define APFS_CACHE_BLOCKS 256'],
         'bsd/miscfs/apfs/apfs_deflate.c': [r'#define FREESTANDING 1', r'#undef ARCH_ARM64', r'#undef ARCH_X86_64'],
-        'bsd/miscfs/apfs/apfs_vnops.c': [r'return EROFS;', r'UPL_COMMIT_CLEAR_DIRTY', r'INT64_MAX - \(uint64_t\)ap->a_size'],
-        'bsd/vfs/vfs_conf.c': [r'vfc_name = "apfs"', r'vfc_mountroot = apfs_mountroot', r'&apfs_vnodeop_opv_desc'],
+        'bsd/miscfs/apfs/apfs_vnops.c': [r'return EROFS;', r'UPL_COMMIT_CLEAR_DIRTY', r'INT64_MAX - \(uint64_t\)ap->a_size', r'whole > MIN\(XATTR_MAXSIZE, 1024 \* 1024\)'],
+        'bsd/vfs/vfs_conf.c': [r'vfc_name = "apfs"', r'vfc_mountroot = apfs_mountroot', r'&apfs_vnodeop_opv_desc', r'VFC_VFSNATIVEXATTR'],
         'config/MASTER': [r'options\s+WHYRED_APFS'],
         'config/MASTER.arm64.sweet': [r'FILESYS_BASE.*\bwhyred_apfs\b'],
     }

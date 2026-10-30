@@ -5906,7 +5906,7 @@ new file mode 100644
 +			}
 +		}
 +	}
-+	if (error == 0 && size > INT64_MAX) error = EFBIG;
++	if (error == 0 && size > INT64_MAX - 2 * 1024 * 1024) error = EFBIG;
 +	apfs_unlock(am);
 +	if (error) {
 +		return error;
@@ -6286,7 +6286,7 @@ diff --git a/bsd/miscfs/apfs/apfs_vnops.c b/bsd/miscfs/apfs/apfs_vnops.c
 new file mode 100644
 --- /dev/null
 +++ b/bsd/miscfs/apfs/apfs_vnops.c
-@@ -0,0 +1,1091 @@
+@@ -0,0 +1,1092 @@
 +/*
 + * apfs vnode operations.  Read only; see apfs.h.
 + *
@@ -6590,7 +6590,7 @@ new file mode 100644
 +			break;
 +		}
 +		if (got == 0) {
-+			bzero(dst, len);        /* (shorter than its size says: zeros, as pagein gives) */
++			error = EIO; /* metadata promised bytes before EOF */
 +			break;
 +		}
 +		at += (off_t)got;
@@ -6895,7 +6895,7 @@ new file mode 100644
 +			break;
 +		}
 +		if (got == 0) {
-+			bzero(dst, (size_t)(end - at));
++			error = EIO; /* do not execute zero-filled replacements for missing data */
 +			break;
 +		}
 +		at += got;
@@ -7126,6 +7126,7 @@ new file mode 100644
 +		return error == ENOENT ? ENOATTR : error;
 +	}
 +	whole = (xa.flags & APFS_XATTR_DATA_STREAM) ? (size_t)xa.stream_size : xa.data_len;
++	if (whole > MIN(XATTR_MAXSIZE, 1024 * 1024)) return E2BIG;
 +	if (ap->a_uio == NULL) {
 +		*ap->a_size = whole;    /* only the size was asked for */
 +		return 0;
@@ -13888,7 +13889,7 @@ diff --git a/bsd/vfs/vfs_conf.c b/bsd/vfs/vfs_conf.c
 +        .vfc_typenum = FT_WHYRED_APFS,
 +        .vfc_flags = MNT_LOCAL | MNT_RDONLY,
 +        .vfc_mountroot = apfs_mountroot,
-+        .vfc_vfsflags = VFC_VFS64BITREADY | VFC_VFSGENERICARGS,
++        .vfc_vfsflags = VFC_VFS64BITREADY | VFC_VFSGENERICARGS | VFC_VFSNATIVEXATTR,
 +    },
 +#endif
  
