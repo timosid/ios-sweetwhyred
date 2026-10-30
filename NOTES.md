@@ -1,9 +1,10 @@
-## Current whyred bring-up handoff (2026-10-30, v51)
+## Current whyred bring-up handoff (2026-10-30, v52)
 
-- User UART confirms v51 mounted the read-only APFS diagnostic volume `WhyredTest` and executed the project's static test PID 1. After the 5-second `select()` timed wait, virtual timer INTID 19 fired; the kernel panicked at `return_to_user`: `preemption count not 0 ... (1)`.
-- This moves the blocker beyond APFS mount/root selection and userspace exec. It does not establish a complete Apple userspace boot: the embedded root contains only test PID 1, not Apple launchd, backboardd, or SpringBoard.
-- Patch 0136 is `xnu/patches/0136-whyred-select-preemption-trace.patch`. The first build (run 41061191920) caught incomplete `struct thread` access from BSD `kern_synch.c`. Updated commit `dc3b242605ce207332c54d63964683bc08627ffe` keeps preemption-count reads in ARM64 code and leaves only phase markers in the BSD continuation. New Actions run 41064551319 is queued.
-- The trace is diagnostic; it does not change scheduling or clear the count. Next: inspect the build, package with the same APFS diagnostic root if successful, verify hashes/layout, and flash only `boot`. Do not write the eMMC `system` partition. User supplies UART manually.
+- User UART from v51 confirms the read-only APFS `WhyredTest` volume mounted and the project's static test PID 1 executed. After its 5-second `select()` wait, timer INTID 19 fired; `return_to_user` panicked because the current thread had preemption count 1. This proves APFS mount/root selection and PID 1 exec, not a complete Apple userspace boot; this image contains no Apple launchd, backboardd, or SpringBoard.
+- Patch 0136 v2 is commit `dc3b242605ce207332c54d63964683bc08627ffe`. Actions run 41064551319 succeeded, including full XNU build, APFS host validation, and artifact packaging. It logs timer target/current preemption levels, continuation dispatch/phase, and syscall return. It does not alter scheduler state.
+- v52 image SHA-256 `8f15ba5750ee99480708a1ff8b98d2212d562653ec5262760858092ce47a942d`; kernel SHA-256 `814d91356e79a0b0a3da8d3e6731ceb0734c19d111221a3dc3f42a5d0303af85`. Packager validated CI source/artifact hashes, boot layout and no LSE/PAN instructions. The 4 MiB APFS RAM root still contains only the static test PID 1.
+- v52 was flashed to `boot`; fastboot flash/reboot returned OKAY. The eMMC `system` partition was not written. Await user-supplied UART manually. Next capture should include `WHYRED TIMER: enter/exit`, `WHYRED SCHED`, `WHYRED SLEEP`, `WHYRED SYSCALL RETURN`, and any panic/stall. No automatic UART or phone log-file collection is enabled.
+- Full iOS system root and SpringBoard image remain future work; see `research/whyred-apfs-v51.md`.
 
 ## Current whyred eMMC bring-up handoff (2026-10-29)
 
