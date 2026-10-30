@@ -38,6 +38,18 @@ SYMLINKS = {
     "db/timezone/localtime": "/var/db/timezone/zoneinfo/Etc/UTC",
 }
 
+BUILD = "20F66"
+PREFERENCES = {
+    "mobile/Library/Preferences/com.apple.migration.plist": {
+        "LastSystemVersion": BUILD,
+        "DMUserDataDisposition": {"SyntheticDidUpgrade": False, "buildVersion": BUILD},
+    },
+    "mobile/Library/Preferences/com.apple.springboard.plist": {
+        "BKNoWatchdogs": True,
+        "FBLaunchWatchdogExceptions": {"com.apple.purplebuddy": 100.0},
+    },
+}
+
 MARKERS = (
     "db/diagnostics/.migrated",
     "db/diagnostics/timesync/.migrated",
@@ -94,6 +106,12 @@ def main():
             plistlib.dump({"KeyBagKeys": b"SWEET"}, stream, fmt=plistlib.FMT_XML)
         os.chown(bag, 0, 0)
         os.chmod(bag, 0o600)
+        for relative, values in PREFERENCES.items():
+            path = checked_path(root, relative)
+            with path.open("wb") as stream:
+                plistlib.dump(values, stream, fmt=plistlib.FMT_XML)
+            os.chown(path, 501, 501)
+            os.chmod(path, 0o600)
         for relative in MARKERS:
             path = checked_path(root, relative)
             path.touch()
@@ -114,13 +132,19 @@ def main():
     with bag.open("rb") as stream:
         if plistlib.load(stream) != {"KeyBagKeys": b"SWEET"}:
             raise ValueError("synthetic system keybag does not match the AKS provider")
+    for relative, expected in PREFERENCES.items():
+        path = checked_path(root, relative)
+        metadata(path, 501, 501, 0o600)
+        with path.open("rb") as stream:
+            if plistlib.load(stream) != expected:
+                raise ValueError(f"incorrect bring-up preferences: {relative}")
     for relative in MARKERS:
         path = checked_path(root, relative)
         metadata(path, 272, 272, 0o644)
         if path.stat().st_size != 0:
             raise ValueError(f"logd migration marker is not empty: {relative}")
     print(json.dumps({"required_directories": len(DIRECTORIES), "keybag": "verified",
-                      "logd_migration_markers": len(MARKERS), "timezone_links": len(SYMLINKS), "owners_and_modes": "verified"}))
+                      "logd_migration_markers": len(MARKERS), "timezone_links": len(SYMLINKS), "bringup_preferences": len(PREFERENCES), "owners_and_modes": "verified"}))
 
 
 if __name__ == "__main__":
