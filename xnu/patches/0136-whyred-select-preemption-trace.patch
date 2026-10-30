@@ -80,7 +80,7 @@
  /*
 --- a/bsd/kern/kern_synch.c
 +++ b/bsd/kern/kern_synch.c
-@@ -75,8 +75,15 @@
+@@ -75,8 +75,14 @@
  	int sig, catch;
  	int error = 0;
  	int dropmutex, spinmutex;
@@ -89,14 +89,13 @@
  	ut = get_bsdthread_info(self);
 +#if defined(SWEET)
 +	if (whyred_select_probe_active && p->p_pid == 1) {
-+		printf("WHYRED SLEEP: continuation wait=%d preempt=%u\n",
-+		    wresult, self->machine.preemption_count);
++        printf("WHYRED SLEEP: continuation wait=%d\n", wresult);
 +	}
 +#endif
  	catch     = ut->uu_pri & PCATCH;
  	dropmutex = ut->uu_pri & PDROP;
  	spinmutex = ut->uu_pri & PSPIN;
-@@ -134,7 +141,14 @@
+@@ -134,7 +140,13 @@
  	ut->uu_wchan = NULL;
  	ut->uu_wmesg = NULL;
  
@@ -104,8 +103,7 @@
 +	syscall_result = (*ut->uu_continuation)(error);
 +#if defined(SWEET)
 +	if (whyred_select_probe_active && p->p_pid == 1) {
-+		printf("WHYRED SLEEP: syscall continuation result=%d preempt=%u\n",
-+		    syscall_result, self->machine.preemption_count);
++        printf("WHYRED SLEEP: syscall continuation result=%d\n", syscall_result);
 +	}
 +#endif
 +	unix_syscall_return(syscall_result);
