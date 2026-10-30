@@ -31,7 +31,7 @@ authenticated external sealed-root hash are not supported.
 - Patch replay reproduces every candidate file. The five APFS C units and
   vfs_conf.c compile with v49 CI headers/flags. Local LLVM needs metadata
   builtin shims for the two VFS units; these local objects are diagnostics,
-  not production kernel inputs. Apple-clang CI must confirm the real link.
+  not production kernel inputs. The subsequent full Apple-clang CI link passed.
 - The new objects have no unresolved symbols when combined with the v49
   kernel's symbols. All five APFS objects have zero LSE and PAN instructions.
 - A native host executable built from the exact C parser reads a synthetic
@@ -47,9 +47,23 @@ authenticated external sealed-root hash are not supported.
 
 The workflow now runs the APFS source guard before compiling, the host parser
 cases after linking, and builds a small diagnostic APFS root beside the kernel.
-Full CI and real-kernel mount/exec results must be recorded before claiming a
-working whyred APFS root. No phone operation is part of this source work.
+Actions [run 41048205578](https://github.com/timosid/ios-sweetwhyred/actions/runs/41048205578)
+passed all steps at code commit `1f1ca0d7444c13abb7f77ccefc1031076c1a9af1`.
+The downloaded artifact's SHA-256 matched GitHub; the final linked kernel has
+zero LSE/PAN instructions. v51 was packaged with the 4 MiB diagnostic APFS md0;
+its image SHA-256 is `79b4b69a190971ca15c43cd8b360aa6a9c2dcac3ca21f49aaa91539c48f5bc06`.
+Kernel SHA-256: `d1e8598a74d11422b7b064f055e241ad44b0a0c20ad260cf030b1837499d9155`.
+Boot-layout and trusted bootstrap/ADT checks passed. No phone operation was
+performed; a real-kernel APFS mount and exec remain untested.
+
+The original iOS 16.5 (20F66) root/OS/App images were downloaded locally from
+Apple's public IPSW with exact-range, size and ZIP CRC checks. The same C reader
+opened the real AppCryptex and read `/usr/libexec/webbookmarksd`; its extracted
+arm64/arm64e binary passed 76 CodeDirectory page-hash checks. This checks file
+content integrity, not the CMS signing identity. 7-Zip 26.02 could list that
+image but could not extract the LZBITMAP-compressed file, so byte comparison
+against 7-Zip was unavailable. None of these Apple images or files are published.
 
 This does not yet install iOS launchd, dyld, backboardd or SpringBoard. A full
-iOS root still requires local extraction of the IPSW/cryptex inputs, a writable
+iOS root still requires preparation from the downloaded IPSW/cryptex inputs, a writable
 runtime /private/var solution, and subsequent userspace/platform adaptation.
