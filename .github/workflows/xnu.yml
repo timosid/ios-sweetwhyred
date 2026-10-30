@@ -117,13 +117,13 @@ jobs:
           mountpoint="$GITHUB_WORKSPACE/out/whyred-var-mount"
           mkdir -p "$mountpoint"
           attach_output="$(hdiutil attach -nomount ram://65536 2>&1)" || {
-            printf '%s\\n' "$attach_output" >&2
+            printf '%s\n' "$attach_output" >&2
             exit 1
           }
-          dev="$(printf '%s\\n' "$attach_output" | sed -nE 's#.*(/dev/disk[0-9]+).*#\\1#p' | head -n 1)"
+          dev="$(printf '%s\n' "$attach_output" | sed -nE 's#.*(/dev/disk[0-9]+).*#\1#p' | head -n 1)"
           if [ -z "$dev" ]; then
             echo "hdiutil did not return a recognizable disk device; output was:" >&2
-            printf '%s\\n' "$attach_output" >&2
+            printf '%s\n' "$attach_output" >&2
             exit 1
           fi
           rawdev="/dev/rdisk${dev#/dev/disk}"
@@ -211,10 +211,10 @@ jobs:
           tar_paths=(xnu)
           [ -d build/xnu.obj ] && tar_paths+=(build/xnu.obj)
           [ -d fakeroot/usr/local/include ] && tar_paths+=(fakeroot/usr/local/include)
-          tar czf buildtree.tgz \\
-            --exclude='*.o' --exclude='*.cpo' --exclude='*.a' --exclude='*.dSYM' --exclude='*.unstripped' \\
-            --exclude='kernel.development.*' --exclude='.git' \\
-            -C dxb "${tar_paths[@]}" \\
+          tar czf buildtree.tgz \
+            --exclude='*.o' --exclude='*.cpo' --exclude='*.a' --exclude='*.dSYM' --exclude='*.unstripped' \
+            --exclude='kernel.development.*' --exclude='.git' \
+            -C dxb "${tar_paths[@]}" \
             -C .. sdk-kernel-platform
           ls -la buildtree.tgz
 
