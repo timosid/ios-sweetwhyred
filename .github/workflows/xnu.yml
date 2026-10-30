@@ -109,6 +109,60 @@ jobs:
           xcrun --find iig
           xcrun iig -help 2>&1 || true
 
+      - name: Build 32 MiB raw HFS /private/var ramdisk
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          image="$GITHUB_WORKSPACE/out/whyred-var.hfs"
+          mountpoint="$GITHUB_WORKSPACE/out/whyred-var-mount"
+          mkdir -p "$mountpoint"
+          dev="$(hdiutil attach -nomount ram://65536 | awk '/^\/dev\/disk[0-9]+$/ { print $1; exit }')"
+          if [ -z "$dev" ]; then
+            echo "hdiutil did not return the raw RAM disk device" >&2
+            exit 1
+          fi
+          rawdev="/dev/rdisk${dev#/dev/disk}"
+          mounted=0
+          cleanup() {
+            if [ "$mounted" = 1 ]; then sudo umount "$mountpoint" || true; fi
+            if [ -n "${dev:-}" ]; then hdiutil detach "$dev" -quiet || true; fi
+          }
+          trap cleanup EXIT
+          sudo newfs_hfs -v SWEETVAR "$rawdev"
+          sudo mount -t hfs -o owners "$dev" "$mountpoint"
+          mounted=1
+          sudo mkdir -p \
+            "$mountpoint/db/uuidtext" "$mountpoint/db/diagnostics" \
+            "$mountpoint/db/dyld" "$mountpoint/db/launchd" \
+            "$mountpoint/db/analyticsd" "$mountpoint/run" "$mountpoint/tmp" \
+            "$mountpoint/log" "$mountpoint/logs" "$mountpoint/mobile/Library" \
+            "$mountpoint/root/Library" "$mountpoint/containers" \
+            "$mountpoint/folders" "$mountpoint/Keychains" \
+            "$mountpoint/preferences" "$mountpoint/MobileDevice" \
+            "$mountpoint/Managed Preferences/mobile" "$mountpoint/empty"
+          sudo chown -R 0:0 "$mountpoint"
+          sudo chown -R 501:501 "$mountpoint/mobile"
+          sudo chmod 1777 "$mountpoint/tmp"
+          sudo chmod 0700 "$mountpoint/root"
+          sudo chmod 0555 "$mountpoint/empty"
+          sudo sync
+          sudo umount "$mountpoint"
+          mounted=0
+          sudo dd if="$rawdev" of="$image" bs=1m count=32
+          sudo chown "$(id -u):$(id -g)" "$image"
+          hdiutil detach "$dev" -quiet
+          dev=""
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("out/whyred-var.hfs")
+          with path.open("rb") as image:
+              image.seek(1024)
+              signature = image.read(2)
+          if path.stat().st_size != 32 * 1024 * 1024 or signature != b"H+":
+              raise SystemExit(f"invalid raw HFS+ image: size={path.stat().st_size}, signature={signature!r}")
+          print(f"raw HFS+ /private/var image ready: {path.stat().st_size} bytes")
+          PY
+
       - name: Build
         working-directory: dxb
         env:
@@ -185,6 +239,7 @@ jobs:
           if [ -f dxb/whyred-apfs-source-report.json ]; then cp dxb/whyred-apfs-source-report.json out/; fi
           ls -la out
           (cd out && shasum -a 256 kernel.* > SHA256SUMS) || true
+          if [ -f out/whyred-var.hfs ]; then (cd out && shasum -a 256 whyred-var.hfs >> SHA256SUMS); fi
 
       - uses: actions/upload-artifact@v4
         if: always()
