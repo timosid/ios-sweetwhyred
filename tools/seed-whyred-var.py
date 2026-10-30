@@ -8,8 +8,15 @@ import plistlib
 import stat
 
 # Required by tools/mkiosroot.sh and sweet-root-tweaks.py in the same project.
-DIRECTORIES = {
+OVERRIDES = {
     "keybags": (0, 0, 0o700),
+    "root": (0, 0, 0o700),
+    "empty": (0, 0, 0o555),
+    "root/Library/Caches": (0, 0, 0o700),
+    "root/Library/Logs": (0, 0, 0o700),
+    "mobile/tmp": (501, 501, 0o700),
+    "mobile/Containers/Data": (501, 501, 0o755),
+    "mobile/Containers/Shared": (501, 501, 0o755),
     "db/diagnostics": (272, 272, 0o751),
     "db/diagnostics/timesync": (272, 272, 0o755),
     "db/uuidtext": (272, 272, 0o755),
@@ -23,6 +30,14 @@ DIRECTORIES = {
     "mobile/Media": (501, 501, 0o755),
     "root/Library/Preferences": (0, 0, 0o755),
 }
+LAYOUT = json.loads(Path(__file__).with_name("whyred-var-layout.json").read_text(encoding="utf-8"))
+DIRECTORIES = {r["path"]: (r["uid"], r["gid"], int(r["mode"], 8)) for r in LAYOUT["directories"]}
+DIRECTORIES.update(OVERRIDES)
+SYMLINKS = {
+    "db/timezone/zoneinfo": "/usr/share/zoneinfo.default",
+    "db/timezone/localtime": "/var/db/timezone/zoneinfo/Etc/UTC",
+}
+
 MARKERS = (
     "db/diagnostics/.migrated",
     "db/diagnostics/timesync/.migrated",
@@ -30,9 +45,12 @@ MARKERS = (
 )
 
 
-def checked_path(root, relative):
+def checked_path(root, relative, follow_leaf=True):
+    if Path(relative).is_absolute() or ".." in Path(relative).parts:
+        raise ValueError(f"unsafe image path: {relative}")
     path = root / relative
-    if not path.resolve().is_relative_to(root):
+    resolved = path.resolve() if follow_leaf else path.parent.resolve()
+    if not resolved.is_relative_to(root):
         raise ValueError(f"path escapes mounted image: {relative}")
     return path
 
@@ -60,6 +78,15 @@ def main():
             path.mkdir(parents=True, exist_ok=True)
             os.chown(path, uid, gid)
             os.chmod(path, mode)
+        for relative, target in SYMLINKS.items():
+            path = checked_path(root, relative, follow_leaf=False)
+            if path.is_symlink() and os.readlink(path) != target:
+                path.unlink()
+            if not path.is_symlink():
+                if path.exists():
+                    raise ValueError(f"expected a symlink, found existing data: {relative}")
+                path.symlink_to(target)
+            os.lchown(path, 0, 0)
         # SWEET is the existing unlocked AKS provider's synthetic bag payload.
         # This file contains no passcode or device key material.
         bag = checked_path(root, "keybags/systembag.kb")
@@ -77,6 +104,11 @@ def main():
         if not path.is_dir():
             raise ValueError(f"required directory missing: {relative}")
         metadata(path, uid, gid, mode)
+    for relative, target in SYMLINKS.items():
+        path = checked_path(root, relative, follow_leaf=False)
+        st = path.lstat()
+        if not path.is_symlink() or os.readlink(path) != target or (st.st_uid, st.st_gid) != (0, 0):
+            raise ValueError(f"incorrect time-zone symlink: {relative}")
     bag = checked_path(root, "keybags/systembag.kb")
     metadata(bag, 0, 0, 0o600)
     with bag.open("rb") as stream:
@@ -88,7 +120,7 @@ def main():
         if path.stat().st_size != 0:
             raise ValueError(f"logd migration marker is not empty: {relative}")
     print(json.dumps({"required_directories": len(DIRECTORIES), "keybag": "verified",
-                      "logd_migration_markers": len(MARKERS), "owners_and_modes": "verified"}))
+                      "logd_migration_markers": len(MARKERS), "timezone_links": len(SYMLINKS), "owners_and_modes": "verified"}))
 
 
 if __name__ == "__main__":

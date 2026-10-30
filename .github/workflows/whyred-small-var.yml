@@ -5,6 +5,8 @@ on:
     branches: [codex/whyred-early-fb]
     paths:
       - .github/workflows/whyred-small-var.yml
+      - tools/seed-whyred-var.py
+      - tools/whyred-var-layout.json
   workflow_dispatch:
 
 jobs:
