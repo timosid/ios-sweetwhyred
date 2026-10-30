@@ -35,6 +35,14 @@ def verify(root):
             r'if \(\(buf_flags\(bp\) & B_READ\) == 0\) {\s*error = EROFS;',
             r'case DKIOCISWRITABLE:\s*\*v32 = 0;',
         ],
+        'bsd/kern/bsd_init.c': [
+            r'#include <sweet_hfs/core/hfs_mount.h>',
+            r'struct hfs_mount_args hfs_args;',
+            r'\.hfs_args = { \.hfs_mask = 0777 }',
+            r'"/private/var", &mount_args, sizeof\(mount_args\)',
+            r'WHYRED VAR: mounting RAM HFS before PID 1',
+        ],
+        'bsd/sweet_hfs/core/hfs_mount.h': [r'struct hfs_mount_args', r'journal_disable'],
         'config/MASTER': [r'options\s+WHYRED_APFS'],
         'config/MASTER.arm64.sweet': [r'FILESYS_BASE.*\bwhyred_apfs\b'],
     }
@@ -44,6 +52,11 @@ def verify(root):
         for pattern in required:
             if not re.search(pattern, text): raise SystemExit(f'{rel}: missing APFS requirement {pattern}')
         hashes[rel] = hashlib.sha256(data).hexdigest()
+    init = (root / 'bsd/kern/bsd_init.c').read_text()
+    var_mount = init.index('uint32_t whyred_var_md0 = 0;')
+    if not (init.index('devfs_kernel_mount') < var_mount <
+            init.index('bsd_utaskbootstrap();') < init.index('bsdinit_task(void)')):
+        raise SystemExit('RAM HFS must mount in the kernel map before PID 1 is cloned')
     files = (root / 'bsd/conf/files').read_text()
     make = (root / 'bsd/conf/Makefile.arm64').read_text()
     for name in UNITS:

@@ -29,6 +29,79 @@ def function(text, name):
     return text[start:block(text, signature.start())]
 
 
+def var_mount_harness(root):
+    init_path = root / 'bsd/kern/bsd_init.c'
+    header_path = root / 'bsd/sweet_hfs/core/hfs_mount.h'
+    init = init_path.read_text()
+    start = init.index('\tuint32_t whyred_var_md0 = 0;')
+    end = init.index('\n#endif', start)
+    if not (init.index('devfs_kernel_mount') < start <
+            init.index('bsd_utaskbootstrap();') < init.index('bsdinit_task(void)')):
+        raise SystemExit('RAM HFS must mount after devfs, before cloning PID 1')
+    header = header_path.read_text()
+    hs = header.index('struct hfs_mount_args {')
+    structure = header[hs:block(header, hs)] + ';'
+    code = r'''
+#define KERNEL 1
+#define uid_t uint32_t
+#define gid_t uint32_t
+#define mode_t uint16_t
+#define u_int32_t uint32_t
+struct timezone { int tz_minuteswest, tz_dsttime; };
+''' + structure + r'''
+#define NULLVP NULL
+#define MNT_DONTBROWSE 0x100
+#define KERNEL_MOUNT_NOAUTH 1
+static int var_requested, var_mount_calls, var_panics;
+static void *vfs_context_kernel(void) { return (void *)(uintptr_t)1; }
+static int PE_parse_boot_argn(const char *name, void *data, size_t size)
+{
+    if (strcmp(name, "whyred-var-md0") || size != sizeof(uint32_t)) return 0;
+    *(uint32_t *)data = (uint32_t)var_requested;
+    return 1;
+}
+static void panic(__unused const char *message, ...) { var_panics++; }
+static int kernel_mount(const char *type, void *parent, void *covered,
+    const char *path, void *data, size_t size, int flags, uint32_t kernel_flags,
+    void *context)
+{
+    char *device;
+    struct hfs_mount_args args;
+    if (size != sizeof(device) + sizeof(args) || !data ||
+        strcmp(type, "hfs") || strcmp(path, "/private/var") || parent || covered ||
+        flags != MNT_DONTBROWSE || kernel_flags != KERNEL_MOUNT_NOAUTH ||
+        context != vfs_context_kernel()) return EINVAL;
+    memcpy(&device, data, sizeof(device));
+    memcpy(&args, (char *)data + sizeof(device), sizeof(args));
+    if (strcmp(device, "/dev/md0") || args.hfs_uid || args.hfs_gid ||
+        args.hfs_mask != 0777 || args.hfs_encoding || args.hfs_timezone.tz_minuteswest ||
+        args.hfs_timezone.tz_dsttime || args.flags || args.journal_tbuffer_size ||
+        args.journal_flags || args.journal_disable) return EINVAL;
+    var_mount_calls++;
+    return 0;
+}
+static void mount_var_from_bsd_init(void)
+{
+''' + init[start:end] + r'''
+}
+static int hfs_contract(void)
+{
+    char *legacy_device = "/dev/md0";
+    if (kernel_mount("hfs", NULL, NULL, "/private/var", &legacy_device, 0,
+        MNT_DONTBROWSE, KERNEL_MOUNT_NOAUTH, vfs_context_kernel()) != EINVAL) return 1;
+    var_requested = 0;
+    mount_var_from_bsd_init();
+    if (var_mount_calls || var_panics) return 1;
+    var_requested = 1;
+    mount_var_from_bsd_init();
+    if (var_mount_calls != 1 || var_panics) return 1;
+    printf("whyred HFS mount contract: 3 checks passed; complete arguments before PID 1\n");
+    return 0;
+}
+'''
+    return code, (init_path, header_path)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
@@ -48,6 +121,7 @@ def main():
 #include <stdio.h>
 #include <errno.h>
 #include <limits.h>
+#include <string.h>
 #ifndef __unused
 #define __unused __attribute__((unused))
 #endif
@@ -143,6 +217,10 @@ int main(void)
     return 0;
 }
 '''
+    var_code, var_paths = var_mount_harness(args.source)
+    harness = harness.replace('#define CHECK(expr)', var_code + '\n#define CHECK(expr)')
+    harness = harness.replace('    printf("whyred eMMC contract:',
+                              '    if (hfs_contract() != 0) return 1;\n    printf("whyred eMMC contract:')
     args.output.mkdir(parents=True, exist_ok=True)
     source = args.output / 'emmc-contract.c'
     executable = args.output / ('emmc-contract.exe' if os.name == 'nt' else 'emmc-contract')
@@ -160,7 +238,7 @@ int main(void)
     print(result, end='')
     report = {'result': result.strip(), 'source_sha256': {
         p.relative_to(args.source).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in (driver_path, spec_path)}, 'hardware_emulated': False}
+        for p in (driver_path, spec_path, *var_paths)}, 'hardware_emulated': False}
     (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
 
 
