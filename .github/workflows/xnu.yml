@@ -31,6 +31,7 @@ on:
       - "tools/apfs-*"
       - "tools/test-whyred-apfs.py"
       - "tools/test-whyred-emmc-contract.py"
+      - "tools/prepare-whyred-ramfs-io-check.py"
       - "tools/mkapfs-test-root.py"
       - "tools/apfs-host-windows/**"
       - "tools/verify-whyred-apfs-source.py"
@@ -186,6 +187,13 @@ jobs:
       - name: Check read-only APFS parser on synthetic images
         run: |
           python3 tools/test-whyred-apfs.py --source dxb/xnu --output out/apfs-host-test
+
+      - name: Check RAMFS atomic writes and directory ABI
+        run: |
+          python3 tools/prepare-whyred-ramfs-io-check.py dxb/xnu/bsd/miscfs/whyred_ramfs/ramfs.c out/ramfs-io-host-check
+          sdk_path="$(xcrun --sdk macosx --show-sdk-path)"
+          xcrun --sdk macosx clang -std=c11 -Wall -Wextra -Werror -O1 -isysroot "$sdk_path" out/ramfs-io-host-check/ramfs-io.c -o out/ramfs-io-host-check/ramfs-io
+          out/ramfs-io-host-check/ramfs-io
 
       - name: Build minimal mockfs PID 1
         run: |
