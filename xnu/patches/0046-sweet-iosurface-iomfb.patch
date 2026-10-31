@@ -1211,21 +1211,21 @@
 +}
 +
 +static uint32_t sweet_fb_swaps_logged;
++static uint32_t sweet_fb_records_logged;
++static uint32_t sweet_fb_copies_logged;
 +
 +/* Copy each enabled layer's surface into the panel memory (no scaling). */
 +void
 +AppleCLCD::swap(const uint8_t *rec)
 +{
 +	uint32_t mask = get32(rec, 0x104);
++	bool copied = false;
 +
-+	if (!fConsolePaused) {
-+		int quiet = 0;
-+		fConsolePaused = true;
-+		if (PE_parse_boot_argn("sweetfb_noconsole", &quiet, sizeof(quiet)) && quiet != 0) {
-+			PE_Video video;
-+			PE_current_console(&video);
-+			PE_initialize_console(&video, kPEDisableScreen);
-+		}
++	if (sweet_fb_records_logged < 16) {
++		sweet_fb_records_logged++;
++		IOLog("SWEET FB: swap begin id=%u mask=0x%x surfaces=%u,%u,%u,%u\n",
++		    get32(rec, 0x50), mask, get32(rec, 0x54), get32(rec, 0x58),
++		    get32(rec, 0x5c), get32(rec, 0x60));
 +	}
 +
 +	for (uint32_t layer = 0; layer < SWEET_FB_LAYERS; layer++) {
@@ -1287,8 +1287,29 @@
 +				    (const void *)(src + s->offset + (uint64_t)(sy + y) * s->bytesPerRow + (uint64_t)sx * 4),
 +				    (size_t)w * 4);
 +			}
++			copied = true;
++			if (sweet_fb_copies_logged < 8) {
++				sweet_fb_copies_logged++;
++				IOLog("SWEET FB: copied layer=%u surface=%u rect=%dx%d at %d,%d\n",
++				    layer, id, w, h, dx, dy);
++			}
 +		}
 +		s->release();
++	}
++
++	/*
++	 * Keep the boot console visible until a valid IOSurface layer has actually
++	 * reached panel memory. An empty first SwapEnd is normal during display
++	 * setup; hiding the console there left whyred with a lit but black screen.
++	 */
++	if (copied && !fConsolePaused) {
++		fConsolePaused = true;
++		int quiet = 0;
++		if (PE_parse_boot_argn("sweetfb_noconsole", &quiet, sizeof(quiet)) && quiet != 0) {
++			PE_Video video;
++			PE_current_console(&video);
++			PE_initialize_console(&video, kPEDisableScreen);
++		}
 +	}
 +}
 +
