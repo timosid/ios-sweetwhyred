@@ -31,6 +31,9 @@ on:
       - "tools/apfs-*"
       - "tools/test-whyred-apfs.py"
       - "tools/test-whyred-framebuffer.py"
+      - "tools/test-whyred-framebuffer-content.py"
+      - "tools/test-whyred-aks-wrap.py"
+      - "tools/test-whyred-driverkit-memory.py"
       - "tools/test-whyred-emmc-contract.py"
       - "tools/prepare-whyred-ramfs-io-check.py"
       - "tools/mkapfs-test-root.py"
@@ -188,6 +191,18 @@ jobs:
       - name: Check framebuffer pixel copy, scaling and bounds
         run: |
           python3 tools/test-whyred-framebuffer.py dxb/xnu --output out/framebuffer-host-check
+
+      - name: Check whole-frame content diagnostics
+        run: |
+          python3 tools/test-whyred-framebuffer-content.py dxb/xnu --output out/framebuffer-content-host-check
+
+      - name: Check volatile AKS key wrapping
+        run: |
+          python3 tools/test-whyred-aks-wrap.py dxb/xnu --output out/aks-host-check
+
+      - name: Check driverkitd memory policy
+        run: |
+          python3 tools/test-whyred-driverkit-memory.py dxb/xnu --output out/driverkit-memory-host-check
 
       - name: Check read-only APFS parser on synthetic images
         run: |
