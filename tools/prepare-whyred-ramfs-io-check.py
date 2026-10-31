@@ -45,7 +45,9 @@ ADAPTERS = r'''
 #define kalloc_data(n,f) calloc(1,n)
 #define kfree_type(t,p) free(p)
 #define kfree_data(p,n) free(p)
+#ifndef bzero
 #define bzero(p,n) memset(p,0,n)
+#endif
 #ifndef ENOTSUP
 #define ENOTSUP 45
 #endif
