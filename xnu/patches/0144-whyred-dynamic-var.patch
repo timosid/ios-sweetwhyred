@@ -2614,7 +2614,7 @@ new file mode 100644
 +    {"logs/hidfw-crashlogs", VDIR, 501, 501, 0755, NULL, 0, NULL},
 +    {"logs/mediaserverd", VDIR, 501, 501, 0755, NULL, 0, NULL},
 +    {"mobile/Applications", VDIR, 501, 501, 0755, NULL, 0, NULL},
-+    {"mobile/Containers", VDIR, 0, 0, 0755, NULL, 0, NULL},
++    {"mobile/Containers", VDIR, 0, 501, 0755, NULL, 0, NULL},
 +    {"mobile/Library", VDIR, 501, 501, 0711, NULL, 0, NULL},
 +    {"mobile/Media", VDIR, 501, 501, 0755, NULL, 0, NULL},
 +    {"mobile/tmp", VDIR, 501, 501, 0700, NULL, 0, NULL},
