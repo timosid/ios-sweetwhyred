@@ -56,6 +56,16 @@ MARKERS = (
     "db/uuidtext/.migrated",
 )
 
+# Jobs that cannot run in this bring-up because the matching platform/data services
+# are not present. launchd reads these persistent overrides before submitting jobs.
+DISABLED_JOBS = {
+    "com.apple.ScreenTimeAgent": {"Disabled": True},
+    "com.apple.icloud.findmydeviced": {"Disabled": True},
+    "com.apple.installcoordinationd": {"Disabled": True},
+    "com.apple.installcoordination_proxy": {"Disabled": True},
+}
+DISABLED_JOBS_PATH = "db/com.apple.xpc.launchd/disabled.plist"
+
 
 def checked_path(root, relative, follow_leaf=True):
     if Path(relative).is_absolute() or ".." in Path(relative).parts:
@@ -117,6 +127,11 @@ def main():
             path.touch()
             os.chown(path, 272, 272)
             os.chmod(path, 0o644)
+        disabled = checked_path(root, DISABLED_JOBS_PATH)
+        with disabled.open("wb") as stream:
+            plistlib.dump(DISABLED_JOBS, stream, fmt=plistlib.FMT_BINARY, sort_keys=True)
+        os.chown(disabled, 0, 0)
+        os.chmod(disabled, 0o644)
     for relative, (uid, gid, mode) in DIRECTORIES.items():
         path = checked_path(root, relative)
         if not path.is_dir():
@@ -143,8 +158,15 @@ def main():
         metadata(path, 272, 272, 0o644)
         if path.stat().st_size != 0:
             raise ValueError(f"logd migration marker is not empty: {relative}")
+    disabled = checked_path(root, DISABLED_JOBS_PATH)
+    metadata(disabled, 0, 0, 0o644)
+    with disabled.open("rb") as stream:
+        if plistlib.load(stream) != DISABLED_JOBS:
+            raise ValueError("launchd disabled-job overrides do not match the bring-up profile")
     print(json.dumps({"required_directories": len(DIRECTORIES), "keybag": "verified",
-                      "logd_migration_markers": len(MARKERS), "timezone_links": len(SYMLINKS), "bringup_preferences": len(PREFERENCES), "owners_and_modes": "verified"}))
+                      "logd_migration_markers": len(MARKERS), "timezone_links": len(SYMLINKS),
+                      "bringup_preferences": len(PREFERENCES), "disabled_launchd_jobs": len(DISABLED_JOBS),
+                      "owners_and_modes": "verified"}))
 
 
 if __name__ == "__main__":
