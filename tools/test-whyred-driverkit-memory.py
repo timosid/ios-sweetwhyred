@@ -22,6 +22,8 @@ typedef _Bool bool;
 #define PROC_NULL ((proc_t)0)
 #define TRUE 1
 #define FALSE 0
+#define NULL ((void *)0)
+#define KERN_SUCCESS 0
 #define MACRO_BEGIN do {
 #define MACRO_END } while (0)
 #define P_MEMSTAT_MEMLIMIT_ACTIVE_FATAL 1
@@ -36,6 +38,8 @@ typedef struct proc *proc_t;
 typedef struct proc *task_t;
 static int max_task_footprint_mb;
 static int boot_present, boot_value, log_count;
+static int memorystatus_highwater_enabled = 1;
+static int test_active, ledger_calls, ledger_request, ledger_active, ledger_fatal, lock_depth, bad_lock;
 static int strcmp(const char *a, const char *b) {
     while (*a && *a == *b) { ++a; ++b; }
     return (unsigned char)*a - (unsigned char)*b;
@@ -51,6 +55,16 @@ static int proc_getpid(proc_t p) { (void)p; return 67; }
 static task_t proc_task(proc_t p) { return p; }
 static uint64_t get_task_phys_footprint(task_t t) { (void)t; return 3456789ULL; }
 static kern_return_t task_get_phys_footprint_limit(task_t t, int *mb) { (void)t; *mb = 64; return 0; }
+static void proc_list_lock(void) { ++lock_depth; }
+static void proc_list_unlock(void) { --lock_depth; }
+static boolean_t proc_jetsam_state_is_active_locked(proc_t p) { (void)p; return test_active; }
+static kern_return_t task_set_phys_footprint_limit_internal(task_t task, int limit,
+    int *old, boolean_t active, boolean_t fatal) {
+    (void)task; (void)old;
+    if (lock_depth != 1) ++bad_lock;
+    ++ledger_calls; ledger_request = limit; ledger_active = active; ledger_fatal = fatal;
+    return KERN_SUCCESS;
+}
 '''
 
 WRAPPERS = r'''
@@ -125,6 +139,46 @@ EXPORT int test_event(int name, int warning, int fatal) {
 #endif
     return log_count;
 }
+EXPORT void test_proxy_exec(int boot, int system_mb, int final_name, int active, int inactive,
+    int fatalbits, int use_active, int highwater, int *out) {
+    max_task_footprint_mb = system_mb;
+    boot_present = 1; boot_value = boot; log_count = 0;
+    memorystatus_highwater_enabled = highwater;
+    test_active = use_active;
+    lock_depth = 0; bad_lock = 0; ledger_calls = 0;
+#if defined(ARM64_BOARD_CONFIG_SWEET)
+    whyred_driverkitd_mem_mb = 0;
+    whyred_driverkitd_boot_config();
+#endif
+    struct proc process;
+    proc_t p = &process;
+    p->p_name = "xpcproxy";
+    p->p_memstat_state = 0x80;
+    SET_ACTIVE_LIMITS_LOCKED(p, active, fatalbits & 1);
+    SET_INACTIVE_LIMITS_LOCKED(p, inactive, fatalbits & 2);
+    boolean_t is_fatal;
+    if (use_active) { CACHE_ACTIVE_LIMITS_LOCKED(p, is_fatal); }
+    else { CACHE_INACTIVE_LIMITS_LOCKED(p, is_fatal); }
+    out[0] = p->p_memstat_memlimit_active;
+    out[1] = p->p_memstat_memlimit_inactive;
+    ledger_request = p->p_memstat_memlimit > 0 ? p->p_memstat_memlimit : -1;
+    ledger_active = use_active; ledger_fatal = is_fatal;
+    /* Exec changes the actual image name. No second spawn SET occurs. */
+    p->p_name = name_for(final_name);
+#if defined(ARM64_BOARD_CONFIG_SWEET)
+    memorystatus_whyred_driverkitd_exec(p);
+#endif
+    out[2] = p->p_memstat_memlimit_active;
+    out[3] = p->p_memstat_memlimit_inactive;
+    out[4] = p->p_memstat_memlimit;
+    out[5] = p->p_memstat_state;
+    out[6] = ledger_calls;
+    out[7] = ledger_request;
+    out[8] = ledger_active;
+    out[9] = ledger_fatal;
+    out[10] = lock_depth;
+    out[11] = bad_lock;
+}
 '''
 
 
@@ -145,6 +199,8 @@ def run():
     macro_start = source.index('#define SET_ACTIVE_LIMITS_LOCKED')
     macro_end = source.index('\n/*', source.index('#define CACHE_INACTIVE_LIMITS_LOCKED'))
     macros = source[macro_start:macro_end]
+    exec_policy = source[source.index('/* WHYRED_DRIVERKITD_EXEC_BEGIN */'):
+                         source.index('/* WHYRED_DRIVERKITD_EXEC_END */')]
     cc = os.environ.get('CC') or shutil.which('clang') or 'cc'
     env = os.environ.copy()
     env.pop('SDKROOT', None)
@@ -152,11 +208,11 @@ def run():
     host_sdk = None
     if sys.platform == 'darwin':
         host_sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'],
-                                           text=True, env=env).strip()
+            text=True, env=env).strip()
     results = []
     for board in (False, True):
         wrapper = OUT / ('policy-sweet.c' if board else 'policy-other.c')
-        wrapper.write_text(PREAMBLE + policy + '\n' + macros + '\n' + WRAPPERS,
+        wrapper.write_text(PREAMBLE + policy + '\n' + macros + '\n' + exec_policy + '\n' + WRAPPERS,
                            encoding='utf-8', newline='\n')
         library = wrapper.with_suffix('.dll' if sys.platform == 'win32' else '.so')
         command = [cc, '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
@@ -176,6 +232,8 @@ def run():
         lib.test_budget.restype = None
         lib.test_event.argtypes = [C.c_int] * 3
         lib.test_event.restype = C.c_int
+        lib.test_proxy_exec.argtypes = [C.c_int] * 8 + [C.POINTER(C.c_int)]
+        lib.test_proxy_exec.restype = None
         checked = 0
 
         def check(boot, present, default, name, active, inactive, fatalbits, use_active):
@@ -219,8 +277,35 @@ def run():
             for warning in (0, 1):
                 for fatal in (0, 1):
                     assert lib.test_event(name, warning, fatal) == int(board and name == 0)
+        exec_cases = 0
+        for boot in (-1, 0, 1, 64, 512, 513):
+            floor = boot if board and 0 <= boot <= 512 else 0
+            for default in (0, 50, 128):
+                for active, inactive in ((-1, -1), (0, 0), (1, 2), (32, 128), (1024, 32)):
+                    for final_name in (0, 1, 2):
+                        for fatal in range(4):
+                            for use_active in (0, 1):
+                                for highwater in (0, 1):
+                                    def raised(limit):
+                                        effective = limit if limit > 0 else default
+                                        return floor if final_name == 0 and 0 < effective < floor else limit
+                                    out = (C.c_int * 12)()
+                                    lib.test_proxy_exec(boot, default, final_name, active, inactive,
+                                                        fatal, use_active, highwater, out)
+                                    a, i = raised(active), raised(inactive)
+                                    selected = a if use_active else i
+                                    old_selected = active if use_active else inactive
+                                    selected_fatal = int(bool(fatal & (1 if use_active else 2)))
+                                    runs = int(final_name == 0 and floor > 0)
+                                    writes = runs * highwater * int(selected != old_selected)
+                                    ledger_raw = selected if writes else old_selected
+                                    expected_out = [active, inactive, a, i, selected, 0x80 | fatal | (4 if selected_fatal else 0),
+                                        writes, ledger_raw if ledger_raw > 0 else -1, use_active, selected_fatal, 0, 0]
+                                    assert list(out) == expected_out, ('proxy-exec', board, boot, default, final_name,
+                                        active, inactive, fatal, use_active, highwater, list(out), expected_out)
+                                    exec_cases += 1
         results.append({'board': 'SWEET' if board else 'other', 'budget_cases': checked,
-                        'event_cases': 16, 'result': 'passed'})
+                        'event_cases': 16, 'proxy_exec_cases': exec_cases, 'result': 'passed'})
 
     # Integration checks tied to the real source, rather than host stubs.
     for name in ('memlimit_active', 'memlimit_inactive'):
@@ -230,7 +315,7 @@ def run():
     assert spawn.index('whyred_driverkitd_log_limits') < spawn.index('task_set_phys_footprint_limit_internal')
     setter = source[source.index('memorystatus_set_memlimit_properties_internal(proc_t p, memorystatus_memlimit_properties_t *p_entry)\n{'):]
     assert setter.index('whyred_driverkitd_log_limits') < setter.index('task_set_phys_footprint_limit_internal')
-    assert source.count('whyred_driverkitd_log_limits(p,') == 2
+    assert source.count('whyred_driverkitd_log_limits(p,') == 3
     assert source.count('whyred_driverkitd_log_footprint(p,') == 1
     original = None
     if args.baseline:
@@ -250,6 +335,16 @@ def run():
     success_name = exec_source.index('\tset_proc_name(imgp, p);\n', accounting)
     activator_end = exec_source.index('\n/*\n * exec_activate_image', success_name)
     assert imgact < accounting < success_name < activator_end < spawn_activation < spawn_update
+    common = exec_source[exec_source.index('proc_footprint_entitlement_hacks(proc_t p, task_t task)'):]
+    common = common[:common.index('\n}\n')]
+    assert 'memorystatus_whyred_driverkitd_exec(p);' in common and 'JETSAM_SET' not in common
+    assert exec_source.count('memorystatus_whyred_driverkitd_exec(p);') == 1
+    assert exec_source.count('proc_footprint_entitlement_hacks(p, new_task);') == 2
+    for activation in (spawn_activation, exec_source.index('\terror = exec_activate_image(imgp);', spawn_activation + 1)):
+        task_switch = exec_source.index('p = proc_exec_switch_task(', activation)
+        refloor = exec_source.index('proc_footprint_entitlement_hacks(p, new_task);', task_switch)
+        user_wait_release = exec_source.index('task_clear_return_wait(', refloor)
+        assert activation < task_switch < refloor < user_wait_release
 
     replay_result = 'not requested'
     if PATCH:
@@ -257,10 +352,17 @@ def run():
         replay = OUT / 'apply-check/xnu/bsd/kern'
         replay.mkdir(parents=True, exist_ok=True)
         (replay / 'kern_memorystatus.c').write_text(original, encoding='utf-8', newline='\n')
+        extra_files = ('bsd/kern/kern_exec.c', 'bsd/sys/kern_memorystatus.h')
+        for rel in extra_files:
+            dest = replay.parents[1] / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes((args.baseline / rel).read_bytes())
         git_apply = ['git', '-c', 'core.autocrlf=false', 'apply']
         subprocess.run(git_apply + ['--check', str(PATCH.resolve())], cwd=replay.parents[1], check=True)
         subprocess.run(git_apply + [str(PATCH.resolve())], cwd=replay.parents[1], check=True)
         assert (replay / 'kern_memorystatus.c').read_bytes() == SOURCE.read_bytes()
+        for rel in extra_files:
+            assert (replay.parents[1] / rel).read_bytes() == (args.source / rel).read_bytes()
         replay_result = 'passed'
     report = {'host_policy_and_macro_execution': results, 'integration_checks': 'passed',
         'patch_apply_check': replay_result,

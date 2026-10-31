@@ -32,7 +32,9 @@ def main():
     wrapper.write_text('#include "SweetFramebufferBlit.h"\n'
         '#ifdef _WIN32\n__declspec(dllexport)\n#endif\n'
         'void measure(const struct sweet_fb_image *i, struct sweet_fb_content *o) '
-        '{ *o = sweet_fb_measure(i); }\n',encoding='utf8')
+        '{ *o = sweet_fb_measure(i); }\n'
+        '#ifdef _WIN32\n__declspec(dllexport)\n#endif\n'
+        'int inspect(uint64_t n) { return sweet_fb_should_inspect(n); }\n',encoding='utf8')
     library=args.output/('content.dll' if sys.platform=='win32' else 'content.so')
     cc=os.environ.get('CC') or shutil.which('clang') or 'cc'
     command=[cc,'-std=c11','-O2','-ffreestanding','-fno-stack-protector','-shared',
@@ -93,6 +95,16 @@ def main():
     check('unsupported planar format rejected',fmt=0x34323066)
     check('null mapping rejected',null=True)
     check('empty image rejected',width=0)
+    lib.inspect.argtypes=[C.c_uint64]
+    lib.inspect.restype=C.c_int
+    actual=[n for n in range(1001) if lib.inspect(n)]
+    assert actual==list(range(1,9))+[300,600,900],actual
+    assert lib.inspect(2**64-1)==0
+    glue=(args.source/'iokit/Kernel/arm/SweetFramebuffer.cpp').read_text()
+    assert 'sweet_fb_should_inspect(++fPresentAttempts)' in glue
+    assert 'fPresentAttempts = 0;' in glue
+    assert glue.index('sweet_fb_should_inspect(++fPresentAttempts)') < glue.index('if (pixels == 0)')
+    names.append('failed presentations consume the diagnostic budget')
     report={'checks':len(names),'cases':names,'actual_kernel_scanner':True,
             'header_sha256':hashlib.sha256(header.read_bytes()).hexdigest(),
             'hardware_scene_tested':False}

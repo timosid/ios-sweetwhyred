@@ -45,7 +45,7 @@ retains its upstream behavior.
 
 ## Framebuffer content
 
-The first eight copied frames and every 300th copied frame report visible
+The first eight presentation attempts and every 300th attempt report visible
 source and panel pixel counts, nonzero RGB and alpha counts, and the bounding
 box of nonzero RGB. Row padding and allocation tails are excluded. Source
 surface identity, geometry and copy rectangles accompany the measurements.
@@ -64,7 +64,7 @@ same staged AES implementation, public known-answer vectors, integrity failures,
 malformed lengths, class separation and guarded buffers. It executes the exact
 memory-policy C helpers/macros for target and non-target processes and retains
 the upstream kill path. Framebuffer tests cover 275 copy cases and 11 content
-cases, including a nonblack pixel missed by the first and center samples.
+cases plus an attempt-budget check, including a nonblack pixel missed by the first and center samples.
 
 Full kernel compilation, binary instruction audits and matched buildtree sources
 are required before packaging. A hardware test remains necessary to establish
