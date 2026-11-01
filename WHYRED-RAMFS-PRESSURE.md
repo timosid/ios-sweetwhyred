@@ -8,12 +8,17 @@ main installed dyld cache UUID. The preserved System account table identifies
 UID272 as _logd. The following rank1/rank2/rank3 files total only7.52MiB; the
 previous inference from those three alone was incomplete.
 
+The user subsequently recovered the complete pressure record id16384. Its cause
+is data-quota: pages8192/limit8192, hash_pages8192 and added10657-freed2465=8192.
+Only4 resident pages are unlinked. Rank0 explicitly confirms the6199-page DSC
+file; the namespace scan selected4 entries without reaching its name budget.
+This independently confirms the quota/large-named-file interpretation.
+
 The same run records containermanagerd failing a556-byte atomic staging-metadata
 write with ENOSPC. Pkd repeats its earlier container-related SIGABRT stack.
 Fairplayd.H2 and bluetoothd instead exit normally with code0; suggestd exits2
 without a signal. Their early-exit causes and the fresh lsd class-metadata fault
-remain unresolved. The user cannot provide missing older UART lines; further
-requests for that lost capture are unnecessary.
+remain unresolved. No additional older UART is required.
 
 Patch0166 adds a development/debug opt-in `whyred-logd-file-mb=N`. Values1..64
 bound the logical size of each regular file owned by the confirmed UID272;
@@ -47,8 +52,11 @@ full-request EFBIG/residuals, rewrites at the bound, owner-transfer atomicity,
 combined truncate/chown, default-off behavior and an owner change after write
 preflight. All66 namespace/readdir/sync checks pass. ARM64 compilation, noLSE/PAN
 and exact patch replay pass. Disabling the size policy or its owner-transfer
-check fails functional assertions after successful compilation. Full CI and
-physical cache/container behavior remain to be checked.
+check fails functional assertions after successful compilation. Full CI41342210494
+passed all27 steps, including these1,120,166 checks with ASan+UBSan. Both ZIP
+provenance/digests/CRC, exact sources/fixtures and linked ISA/cache/idle/loader/
+layout guards passed. V87 boot was flashed and rebooted successfully; physical
+cache/container behavior remains to be checked with the new manual UART.
 
 --- Earlier diagnostic implementation and history ---
 

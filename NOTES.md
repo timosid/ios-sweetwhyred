@@ -1,4 +1,21 @@
-## Active v87 cache-bound fix (2026-11-01)
+## V87 boot flashed; hardware results pending (2026-11-01)
+
+- The user recovered the complete v85 pressure record: data-quota, 8192/8192
+  pages, hash8192 and added10657-freed2465=8192; only4 pages are unlinked.
+  Rank0 confirms the UID272 DSC file uses6199 pages. This supports the v87
+  resource policy; it does not establish a daemon or USB fix.
+- After the user said they were rebooting into Fastboot, the exact private
+  baseline device appeared. Fresh whyred/unlocked/boot64MiB/image/kernel/source/
+  version and v85 rollback checks passed. Boot send/write and reboot returned
+  OKAY at2026-11-01T19:54:28Z. Installed is now boot v87 / System v70.
+- Read-only Mac Ethernet observation and new manual UART are pending. No other
+  partition or host network configuration was changed. New USB snapshots,
+  logd-file-limit/pressure and pkd/lsd records are needed. UART stays manual.
+- Exact bluetoothd static analysis finds an exit0 path when its UART device
+  and both Bluetooth IOKit matches are absent; the runtime branch remains
+  unconfirmed. Do not equate clean exits with crashes or claim Bluetooth works.
+
+## V87 cache-bound implementation (2026-11-01)
 
 - New v85 UART recovers the damaged largest TOP row: logd's DSC cache is6199
   pages/96.86MiB,75.7% of128MiB. Its filename matches the main dyld cache UUID.
@@ -21,9 +38,9 @@
 - Actual service traces: fairplayd.H2/bluetoothd spawn succeeds then exit0;
   suggestd exit2/reason0; pkd SIGABRT same stack; lsd SIGSEGV still reproduces.
   Services remain enabled. No more lost old UART can be supplied. Installed
-  phone remains boot v85 / System v70; boot-only workflow, UART manual.
+  installed state is superseded by the v87 flash milestone above.
 
-## Verified v87 image, physical test pending (2026-11-01)
+## Verified v87 image (2026-11-01)
 
 - Build source `0e0895bd4709eb645dde32806d3876a969c86172`, workflow
   [41342210494](https://github.com/timosid/ios-sweetwhyred/actions/runs/41342210494),
@@ -35,12 +52,9 @@
 - Packaged v87 boot is 22,331,392 bytes, payload 21,520,912; SHA256
   `60a583a1c4a2f2d0f89cf436333406f9e970c30c38b5d6d2ab6c660060c66f9e`.
   It enables the 8 MiB per-file UID272 bound and retains USB snapshots, owner
-  tracing and idle/service changes. It has not been flashed. The user has been
-  asked for fresh Fastboot readiness with UART already open.
-- Installed remains boot v85 / System v70. Next: fresh identity/product/unlock/
-  boot-size/image/kernel/v85 rollback checks, then the authorized boot-only flash.
-  Physical USB enumeration, logd behavior, container creation and daemon/lsd
-  stability remain unverified. Do not request the irretrievable older UART.
+  tracing and idle/service changes. It was flashed as recorded above.
+- Physical USB enumeration, logd behavior, container creation and daemon/lsd
+  stability remain unverified. No further older UART is required.
 
 ## Active v86 USB connection diagnosis (2026-11-01)
 

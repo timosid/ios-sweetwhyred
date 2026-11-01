@@ -60,5 +60,18 @@ kernel stack execution. Full CI41329547329 subsequently passed all27 steps, incl
 checks, retained USB614/RAMFS1120134 and the complete ARM64 build. Downloaded
 artifacts match provenance, digest, length and CRC. Packaged linked cpu_idle
 contains the pending-IRQ/DSB/WFI wait with no DAIFClr; runtime sources match the
-reviewed files. The verified v85 image remains unflashed. Device wakeup, stability
-and service exit observations are the next required evidence.
+reviewed files. V85 was flashed and booted; v87 now retains this repair. The
+supplied later trace does not establish long-term idle stability.
+
+V85 lifecycle output records successful image activation followed by normal
+exit0 for fairplayd.H2 and bluetoothd. Suggestd exits2 without an OS reason or
+signal. Pkd receives SIGABRT with the previous container-related stack, while
+lsd still receives SIGSEGV in the Objective-C class-metadata retain path.
+Neither the suggestd status alone nor the other clean exits identifies a cause.
+
+Read-only analysis of the authenticated bluetoothd binary finds an early branch
+that checks /dev/uart.bluetooth, then marconi-bt and bluetooth IOKit matches.
+If none exists, that branch terminates through errx with status0. This is a
+specific explanation consistent with the trace, not confirmation that the
+device took that branch. Hardware transport support remains unverified. No
+dummy service, forced successful initialization or KeepAlive change was added.
