@@ -1,3 +1,12 @@
+## V85 boot flash milestone (2026-11-01)
+
+- User confirmed Fastboot readiness for the verified v85 test. Fresh private
+  identity, whyred product, unlocked state, 64MiB boot geometry, image/kernel and
+  v82 rollback hashes passed. Boot send/write and reboot returned OKAY.
+- Installed state is now boot v85 / System v70. No other partition was written.
+  Device boot progress, idle stability, USB enumeration and service exit causes
+  await user-supplied UART and host observation. UART capture remains manual.
+
 ## Active v85 follow-up (2026-11-01, idle panic and daemon exit causes)
 
 - Installed phone remains boot v82 / System v70. User supplied an actual kernel
