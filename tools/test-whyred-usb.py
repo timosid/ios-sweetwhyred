@@ -73,6 +73,10 @@ def main():
         start = text.index(marker)
         declarations.append(text[start:text.index(';', start) + 1])
     source = '\n\n'.join(functions.values())
+    hardware_text = hardware.read_text()
+    board_helpers = {n: function(hardware_text, n) for n in
+                     ['whyred_usb_hw_prepare', 'whyred_usb_hw_rollback',
+                      'whyred_usb_hw_select_utmi', 'whyred_usb_hw_release_test']}
     assembly = '__asm__ volatile ("dsb sy" ::: "memory");'
     adaptations = {'startup_dsb_replaced_with_host_barrier': source.count(assembly)}
     source = source.replace(assembly, 'host_barrier();')
@@ -104,6 +108,8 @@ def main():
               'source_sha256': {p.relative_to(args.source).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                                 for p in (driver, hardware, startup, ring)},
               'function_sha256': {n: hashlib.sha256(s.encode()).hexdigest() for n, s in functions.items()},
+              'board_helper_sha256': {n: hashlib.sha256(s.encode()).hexdigest() for n, s in board_helpers.items()},
+              'actual_board_helpers': len(board_helpers),
               'fixture_sha256': hashlib.sha256(fixture.read_bytes()).hexdigest(),
               'adaptations': adaptations, 'actual_kernel_functions': len(functions),
               'hardware_emulated': False, 'mmio_modeled': True,

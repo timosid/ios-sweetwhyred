@@ -1,4 +1,40 @@
-# Current RUN-without-enumeration follow-up
+# V88: release the observed UTMI non-drive test override
+
+V87 boot was flashed and rebooted successfully. Its manual UART snapshots10..22
+and27..32 show UTMI_CTRL1=0x35353535, UTMI_CTRL2=0x40404040, powered PHY, low-byte
+PLL lock and controller RUN. The event counter stays1 in those samples and the
+sampled bus-error addresses are zero. No exact-MAC Ethernet interface appeared
+during a90-second read-only Mac observation. One processed event does not prove
+a successful USB connection; its value was not supplied.
+
+The pinned MiCode QUSB driver defines CTRL2 bit6 as TEST_MUX and uses CTRL1's
+TERM_SELECT/FS/non-drive signature0x15 to override controller outputs during its
+charger high-Z path. V87's CTRL1 low five bits match that signature; bit6 is set
+in CTRL2. The authenticated stock DT binds this DWC3 to the major-rev1 PHY at
+0xc012000 and requests UTMI. The sampled interface-select bit is retained.
+
+Patch0167 clears only TEST_MUX after RUN_STOP is cleared and DEVCTRLHLT is
+acknowledged, before allocating or installing gadget DMA. CTRL1, interface-select
+and all other low-byte CTRL2 bits remain unchanged. Byte data is used for the
+major-rev1 register because word reads can replicate its byte. The helper checks
+the full low-byte result. On failure it restores only the owned mux bit and stops
+before DMA/thread creation, recording restoration success or failure. An active
+override with a different low-five-bit CTRL1 signature is rejected. Already
+automatic PHY state is left untouched; USB mode1 remains read-only. There are no
+additional power, PLL, tune, reset, PMIC, TCSR or SMMU writes.
+
+Local UBSan passes1299 checks using28 actual driver/ring functions and4 actual
+board helpers. Cases cover the observed replicated bytes, preservation of all128
+possible combinations of other CTRL2 bits, refused writes, unexpected readback,
+restoration, unfamiliar overrides, controller halt ordering and mode1. Two ARM64
+units, zeroLSE/PAN object audits and exact late-patch replay pass. Removing release
+or clobbering interface-select compiles but fails functional assertions. Full CI
+and physical USB enumeration still need verification. V87 RAMFS/idle/service
+changes are retained; their new device outcomes remain separate pending evidence.
+
+--- Earlier RUN-without-enumeration diagnostics ---
+
+# V86/V87 read-only snapshots
 
 User v85 UART reaches RUN after EP0 STARTTRANSFER returns command/result0x6 and
 resource0. A later ue0 rx0/tx0 heartbeat proves the event thread continues to run.

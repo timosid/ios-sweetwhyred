@@ -1,3 +1,20 @@
+## Active v88 USB override release candidate (2026-11-01)
+
+- V87 boot/System v70 is installed. New manual snapshots show UTMI1 low byte35,
+  UTMI2 low byte40: MiCode's FS/non-drive signature plus TEST_MUX. PLL low-byte
+  lock remains set; one event processed, raw value not supplied. No exact-MAC
+  Ethernet interface appeared in90 seconds. New RAMFS/daemon outcomes pending.
+- Patch0167 releases only TEST_MUX after controller halt and before DMA. It
+  preserves CTRL1/interface-select/other CTRL2 bits, verifies the byte and restores
+  the owned bit on failure. Unknown active override signatures stop safely.
+  No new PLL/tune/power/reset/PMIC/TCSR/SMMU writes. See WHYRED-USB.md.
+- Local1299 UBSan checks (28 driver/ring functions plus4 board helpers), two ARM64
+  units, noLSE/PAN and exact replay pass. Both no-release/interface-clobber negative
+  controls compile then fail functional assertions. Full CI/package/device test
+  next. Keep the v87 cache bound, idle repair and service trace in the candidate.
+- UART remains manual. Boot-only workflow authorized; obtain fresh physical
+  Fastboot readiness once the next image is verified. No other partition writes.
+
 ## V87 boot flashed; hardware results pending (2026-11-01)
 
 - The user recovered the complete v85 pressure record: data-quota, 8192/8192

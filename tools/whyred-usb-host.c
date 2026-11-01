@@ -79,6 +79,8 @@ static struct {
     bool reject_mux, stuck_command, command_error, missing_resource, stuck_stop, stuck_reset, stuck_run;
     bool fail_dma, fail_ifnet, fail_thread, fail_mbuf, log_enabled, dma_clean;
     bool replicate_phy_byte, stuck_phy_pll, reject_phy_power, phy_resume_active;
+    bool reject_test_release, corrupt_test_release;
+    unsigned test_writes, dma_allocations;
     unsigned phy_writes, phy_resume_at, phy_lock_delay;
     bool zero_control_resource, late_result_error, result_reactivates;
     unsigned delayed_index, index_reads_left[6], pending_index[6], start_reads[6];
@@ -141,6 +143,17 @@ static void hw_write(void *ctx,uintptr_t base,uint32_t off,uint32_t value) {
         return;
     }
     if (base==(uintptr_t)model.phy) {
+        if (off==WHYRED_USB_PHY_UTMI_CTRL2) {
+            assert(clocks_ready() && !(model.dwc[DCTL/4]&DCTL_RUN_STOP));
+            assert(model.dwc[DSTS/4]&DSTS_DEVCTRLHLT);
+            assert(!model.dma_allocations && !model.starts && !thread_calls);
+            assert(value<=0xffu);
+            model.test_writes++;
+            if (model.reject_test_release && !(value&WHYRED_USB_UTMI_TEST_MUX)) return;
+            if (model.corrupt_test_release && !(value&WHYRED_USB_UTMI_TEST_MUX)) value^=0x80u;
+            model.phy[off/4]=model.replicate_phy_byte?value*0x01010101u:value;
+            return;
+        }
         assert(clocks_ready() && off==WHYRED_USB_PHY_POWERDOWN && (value==0x22 || value==0x23));
         assert(!(model.gcc[WHYRED_USB_QUSB_BCR/4]&1) && !(model.gcc[WHYRED_USB_AHB2PHY_BCR/4]&1));
         model.phy_writes++;
@@ -236,6 +249,8 @@ static void clock_interval_to_deadline(unsigned interval,unsigned scale,uint64_t
 static void ud_sleep_ms(unsigned ms) { model.now+=(uint64_t)ms*1000000; if (++sleep_count>sleep_limit) longjmp(thread_exit,1); }
 static int kmem_alloc_contig(void *map,vm_offset_t *p,size_t n,uint64_t mask,int a,int b,int flags,int tag) {
     (void)map;(void)mask;(void)a;(void)b;(void)flags;(void)tag;assert(n==UD_SIZE);
+    assert(!(model.phy[WHYRED_USB_PHY_UTMI_CTRL2/4]&WHYRED_USB_UTMI_TEST_MUX));
+    model.dma_allocations++;
     if (model.fail_dma) return 3; *p=(uintptr_t)model.dma; memset(model.dma,0,sizeof(model.dma));model.dma_clean=false;return 0;
 }
 static ppnum_t pmap_find_phys(void *map,addr64_t address) { (void)map;assert(address==(uintptr_t)model.dma);return model.physical_page?model.physical_page:0xb0000000ULL>>14; }
@@ -328,6 +343,42 @@ static void ready(void) {setup(0,5,4,0,0);setup(0,9,1,0,0);setup(0x21,0x43,12,0,
 static void stop_driver(void) {if(ud.lock)ud_data_stop(true);assert(!mbufs&&!held);}
 int main(void) {
     struct whyred_usb_hw hw;
+    CHECK(WHYRED_USB_PHY_UTMI_CTRL1==0xc0 && WHYRED_USB_PHY_UTMI_CTRL2==0xc4);
+    CHECK(WHYRED_USB_UTMI_TEST_MUX==0x40 && WHYRED_USB_UTMI_NONDRIVE_FS==0x15);
+    reset_model();hw=(struct whyred_usb_hw){0};CHECK(!whyred_usb_hw_release_test(&usb_io,&hw));
+    CHECK(!model.reads&&!model.writes);
+    reset_model();CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_OK);
+    CHECK(!whyred_usb_hw_release_test(&usb_io,&hw));CHECK(!model.test_writes); /* Still RUN. */
+    model.dwc[DCTL/4]=0;CHECK(!whyred_usb_hw_release_test(&usb_io,&hw)); /* Halt not acknowledged. */
+    model.dwc[DSTS/4]=DSTS_DEVCTRLHLT;CHECK(whyred_usb_hw_release_test(&usb_io,&hw));
+    CHECK(!model.test_writes&&!hw.utmi_release_attempted);
+    for(unsigned bits=0;bits<256;bits++)if(bits&WHYRED_USB_UTMI_TEST_MUX) {
+        reset_model();model.replicate_phy_byte=true;
+        model.phy[0xc0/4]=0x35353535;model.phy[0xc4/4]=bits*0x01010101u;
+        start_driver();CHECK(!ud.failed&&model.test_writes==1&&model.dma_allocations==1);
+        CHECK(model.phy[0xc0/4]==0x35353535);
+        CHECK(model.phy[0xc4/4]==(bits&~WHYRED_USB_UTMI_TEST_MUX)*0x01010101u);
+        CHECK(usb_hw.utmi_release_attempted&&usb_hw.utmi_release_changed&&!usb_hw.utmi_release_restored);
+        CHECK(model.phy[WHYRED_USB_PHY_POWERDOWN/4]==0x22&&model.phy[WHYRED_USB_PHY_PLL_STATUS/4]==0x20);
+        stop_driver();
+    }
+    reset_model();model.phy[0xc0/4]=0x35;model.phy[0xc4/4]=0x40;
+    model.reject_test_release=true;start_driver();
+    CHECK(ud.failed&&model.test_writes==2&&!model.dma_allocations&&!model.starts&&!thread_calls);
+    CHECK(usb_hw.utmi_release_restored&&model.phy[0xc4/4]==0x40);
+    reset_model();model.phy[0xc0/4]=0x35;model.phy[0xc4/4]=0x40;
+    model.corrupt_test_release=true;start_driver();
+    CHECK(ud.failed&&model.test_writes==2&&!model.dma_allocations&&!thread_calls);
+    CHECK(!usb_hw.utmi_release_restored&&model.phy[0xc4/4]==0xc0); /* Retain non-owned sampled bits. */
+    const unsigned unknown_overrides[]={0,0x14,0x11,0x05,0x37,0x3d};
+    for(unsigned i=0;i<sizeof(unknown_overrides)/sizeof(unknown_overrides[0]);i++) {
+        reset_model();model.phy[0xc0/4]=unknown_overrides[i];model.phy[0xc4/4]=0x40;
+        start_driver();CHECK(ud.failed&&!model.test_writes&&!model.dma_allocations&&!thread_calls);
+    }
+    reset_model();model.boot_mode=1;model.phy[0xc0/4]=0x35;model.phy[0xc4/4]=0x40;
+    sweet_usb_probe();CHECK(!model.writes&&!model.test_writes&&!model.dma_allocations&&!thread_calls);
+    reset_model();model.stuck_stop=true;model.phy[0xc0/4]=0x35;model.phy[0xc4/4]=0x40;
+    start_driver();CHECK(ud.failed&&!model.test_writes&&!model.dma_allocations);
     CHECK(ud_phone_mac[0]==2&&ud_phone_mac[5]==2);
     CHECK(WHYRED_USB_GCC_PA==0x00100000&&WHYRED_USB_GDSCR==0xf004&&WHYRED_USB_BCR==0xf000);
     CHECK(WHYRED_USB_DWC_PA==0x0a800000&&WHYRED_USB_DWC_SIZE==0xd000);
