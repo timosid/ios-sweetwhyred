@@ -1,3 +1,20 @@
+## Active SSH userland preparation (2026-11-02)
+
+- User explicitly requested SSH if useful for diagnosis. Installed remains boot
+  v89 / System v70; USB Ethernet, ping and kernel UDP logging already work.
+  The persistent Mac receiver continues writing its private session log.
+- Preserved System has no sshd or /bin/sh. Preparing pinned Dropbear2026.94,
+  dash0.5.13.5 and whyredctl diagnostics plus a launchd job. No installation or
+  partition write has happened. See WHYRED-SSH.md for source/configuration facts.
+- Native Mac build passes correct/wrong-key authentication, command exit status,
+  exact1MiB binary round trip, dash builtins and diagnostic commands. The source
+  archive check covers all bytes/modes, including a canonical tree digest for
+  upstream Gitiles' varying archive metadata. iOS ARM64 CI is the next check.
+- The server will bind USB192.168.7.2:2222 and use a separate key. Password/PAM
+  and forwarding are omitted; production keys and Apple artifacts stay private.
+  The previous boot-only flash authorization does not identify a new System
+  candidate; finish and verify a concrete image before any installation decision.
+
 ## V89 USB Ethernet and live kernel logs verified on device (2026-11-01)
 
 - User confirmed Fastboot with UART open. Fresh single private-baseline device,
