@@ -34,6 +34,8 @@ on:
       - "tools/test-whyred-framebuffer-content.py"
       - "tools/test-whyred-aks-wrap.py"
       - "tools/test-whyred-driverkit-memory.py"
+      - "tools/test-whyred-container-trace.py"
+      - "tools/whyred-container-trace-host.c"
       - "tools/test-whyred-emmc-contract.py"
       - "tools/prepare-whyred-ramfs-io-check.py"
       - "tools/mkapfs-test-root.py"
@@ -188,6 +190,10 @@ jobs:
         run: |
           set -o pipefail
           bash build.sh 2>&1 | tee build.log
+
+      - name: Verify bounded container filesystem trace
+        run: |
+          python3 tools/test-whyred-container-trace.py dxb/xnu --output out/container-trace-host-check
 
       - name: Check bounded eMMC clock, batches and recovery
         run: |
