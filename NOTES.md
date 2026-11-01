@@ -1,5 +1,16 @@
 ## Active SSH userland preparation (2026-11-02)
 
+- Initial userland source95364e71919c5884b6b318ecc8f040ee2a274f2a, CI41349937032/
+  job124977733752 passed all9 steps. Artifact provenance/SHA/length/CRC and all
+  native/iOS binary digests passed. The exact16.5 cache export audit found one
+  missing import in sh: strchrnul. This candidate is not for installation.
+  The iOS configure cache now selects dash's portable version; rebuild and
+  repeat the import audit. Dropbear/scp/whyredctl imports all matched.
+- Dedicated client/host keys were generated privately on the Mac and host
+  identity pinned. No keys were uploaded. The original5.3GiB System v70 rollback
+  image matches its recorded SHA. A native reader built from the authenticated
+  v89 APFS sources is ready to validate the new offline image.
+
 - User explicitly requested SSH if useful for diagnosis. Installed remains boot
   v89 / System v70; USB Ethernet, ping and kernel UDP logging already work.
   The persistent Mac receiver continues writing its private session log.

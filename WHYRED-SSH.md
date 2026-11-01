@@ -33,3 +33,8 @@ The ARM64 build uses the official iPhoneOS SDK, minimum iOS16.4 and generic+cryp
 without outline atomics. CI verifies its Mach-O platform, code signatures,
 dependencies and absence of detected LSE instructions. Physical SSH login and
 the final installation image are not yet verified.
+
+The first iOS build passed CI but its shell imported strchrnul, absent from the
+exact installed16.5 cache. The iOS configure cache now selects dash's portable
+implementation. Every packaged binary must pass an export-trie comparison with
+that installed cache, bound to its binary SHA256, before image construction.

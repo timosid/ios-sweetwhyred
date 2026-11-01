@@ -125,6 +125,9 @@ def main():
             compile_args += ['-target', 'arm64-apple-ios16.4', '-isysroot', sdk,
                              '-mcpu=generic+crypto', '-mno-outline-atomics']
             cross = ['--build=x86_64-apple-darwin', '--host=aarch64-apple-darwin']
+            # SDK18 exports this newer function, but the exact installed16.5
+            # libSystem does not. Dash supplies its portable implementation.
+            target_env['ac_cv_func_strchrnul'] = 'no'
         import shlex
         target_env['CC'] = shlex.join(compile_args)
         with tarfile.open(archives['dropbear']) as tar:
