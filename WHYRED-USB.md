@@ -1,3 +1,45 @@
+# Current RUN-without-enumeration follow-up
+
+User v85 UART reaches RUN after EP0 STARTTRANSFER returns command/result0x6 and
+resource0. A later ue0 rx0/tx0 heartbeat proves the event thread continues to run.
+Cable reconnect produces no new USB lines; the Mac observes no gadget or exact-MAC
+Ethernet interface. No successful enumeration, data transfer or UDP logging is
+established. Service exit causes and the earlier idle panic remain separate
+open observations; no new service output has been supplied.
+
+Patch0165 adds read-only bounded register snapshots within explicit USB mode2.
+Stage0 precedes controller takeover; stage1 follows endpoint/VBUS configuration
+before event-thread creation; stage2 is the event thread's later sampling. Samples
+are read sequentially, not atomically. Runtime sampling uses a one-second deadline,
+with output only on change. DSTS frame/microframe bits alone do not trigger a
+record. After32 records the helper stops reading as well as printing. Each record
+has four lines and a shared ID. No new boot argument is required.
+
+The snapshots include DWC3 control/status/speed, event-ring address/size/raw count,
+endpoint commands, PHY power/PLL/test/UTMI control/line state, QSCRATCH mux/VBUS,
+NoC bus configuration/error addresses, reference timing and hardware parameters.
+Bus-error addresses can be historical; nonzero values alone do not prove a new
+DMA fault. The sampler does not acknowledge events, issue commands, synchronize
+DMA buffers or change clocks, resets, PMIC, PLL tuning, test controls or charger
+state. It runs before thread creation and then only on the event thread, avoiding
+concurrent mutation of its fixed previous-sample/output counters.
+
+The pinned MiCode PHY driver has a high-impedance charger-detection path that
+sets UTMI_CTRL1/2 to override controller outputs. PLL lock and controller RUN
+alone do not exclude such an override. UTMI1/UTMI2/LINE must be observed before
+claiming that as this phone's cause or changing those registers. Register sources
+are the pinned [QUSB driver](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/efbbb9cce47475c49f28d227b2a52eca6f0d02a7/drivers/usb/phy/phy-msm-qusb.c)
+and [DWC3 definitions](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/efbbb9cce47475c49f28d227b2a52eca6f0d02a7/drivers/usb/dwc3/core.h).
+
+Local UBSan passes637 checks executing28 actual driver/ring functions. New cases
+cover raw-field output, no event ACK or hardware writes, line/link/bus-error
+changes, frame-only suppression, stable-state suppression, saturation with no
+further MMIO reads, mode-off behavior and one-second scheduling. Both ARM64
+compiles, noLSE/PAN object audits and exact patch replay pass. Physical register
+values and the missing connection cause still require the next device run.
+
+--- Earlier implementation and hardware history ---
+
 # whyred USB Ethernet and console candidate
 
 Patch 0159 ports the existing polled DWC3 CDC-ECM gadget to whyred. The first

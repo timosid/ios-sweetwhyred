@@ -73,6 +73,8 @@ static jmp_buf thread_exit;
 static struct {
     uint32_t gcc[WHYRED_USB_GCC_SIZE/4], dwc[WHYRED_USB_DWC_SIZE/4], phy[WHYRED_USB_PHY_SIZE/4], qs[WHYRED_USB_QS_SIZE/4];
     _Alignas(128) unsigned char dma[UD_SIZE];
+    unsigned snapshot_lines, dwc_reads, dwc_writes, deadlines;
+    uint64_t now;
     unsigned maps, reads, writes, delays, fail_map, stuck_clock, clock_delay;
     bool reject_mux, stuck_command, command_error, missing_resource, stuck_stop, stuck_reset, stuck_run;
     bool fail_dma, fail_ifnet, fail_thread, fail_mbuf, log_enabled, dma_clean;
@@ -157,6 +159,7 @@ static void hw_delay(void *ctx,unsigned us) { (void)ctx; delay(us); }
 static const struct whyred_usb_io usb_io={.map=hw_map,.read=hw_read,.write=hw_write,.delay_us=hw_delay};
 static uint32_t usb_rd(vm_offset_t base,uint32_t off) { return hw_read(NULL,base,off); }
 static uint32_t dwc_rd(uint32_t off) {
+    model.dwc_reads++;
     assert(clocks_ready() && off<sizeof(model.dwc));
     if (off>=DEPCMD(0) && off<=DEPCMD(5) && ((off-DEPCMD(0))%16)==0) {
         unsigned ep=(off-DEPCMD(0))/16;
@@ -172,6 +175,7 @@ static uint32_t dwc_rd(uint32_t off) {
     return model.dwc[off/4];
 }
 static void dwc_wr(uint32_t off,uint32_t value) {
+    model.dwc_writes++;
     assert(clocks_ready() && off<sizeof(model.dwc));
     if (off==GEVNTADRLO) assert(model.dma_clean); /* KMA_ZERO dirties event-ring cache lines. */
     model.dwc[off/4]=value;
@@ -206,7 +210,16 @@ static void ud_sync(uint32_t off,uint32_t len) {
     if (!off && len==UD_SIZE) model.dma_clean=true;
 }
 static int host_printf(const char *fmt,...) __attribute__((format(printf,1,2)));
-static int host_printf(const char *fmt,...) { (void)fmt; return 0; }
+static char snapshot_output[4][512];
+static int host_printf(const char *fmt,...)
+{
+    if (!strncmp(fmt,"WHYRED USB: snapshot=",21)) {
+        va_list args; va_start(args,fmt);
+        int count=vsnprintf(snapshot_output[model.snapshot_lines%4],512,fmt,args);
+        va_end(args); assert(count>0 && count<512); model.snapshot_lines++;
+    }
+    return 0;
+}
 #define printf host_printf
 static void lck_mtx_lock(lck_mtx_t *p) { assert(p && held++==0); }
 static void lck_mtx_unlock(lck_mtx_t *p) { assert(p && held--==1); }
@@ -216,7 +229,11 @@ static int PE_parse_boot_argn(const char *name,void *p,int size) {
     if (!strcmp(name,"sweetusblog")) {*(int *)p=model.log_enabled;return 1;}
     return 0;
 }
-static void ud_sleep_ms(unsigned ms) { (void)ms; if (++sleep_count>sleep_limit) longjmp(thread_exit,1); }
+#define NSEC_PER_SEC 1000000000u
+static uint64_t mach_absolute_time(void) { return model.now; }
+static void clock_interval_to_deadline(unsigned interval,unsigned scale,uint64_t *out)
+{ assert(interval==1 && scale==NSEC_PER_SEC); model.deadlines++; *out=model.now+(uint64_t)interval*scale; }
+static void ud_sleep_ms(unsigned ms) { model.now+=(uint64_t)ms*1000000; if (++sleep_count>sleep_limit) longjmp(thread_exit,1); }
 static int kmem_alloc_contig(void *map,vm_offset_t *p,size_t n,uint64_t mask,int a,int b,int flags,int tag) {
     (void)map;(void)mask;(void)a;(void)b;(void)flags;(void)tag;assert(n==UD_SIZE);
     if (model.fail_dma) return 3; *p=(uintptr_t)model.dma; memset(model.dma,0,sizeof(model.dma));model.dma_clean=false;return 0;
@@ -449,5 +466,38 @@ int main(void) {
     CHECK(!memcmp(first_send,message,sizeof(message)-1)&&!memcmp(second_send,message,sizeof(message)-1));stop_driver();
     reset_model();start_driver();ready();static char long_log[80000];memset(long_log,0x31,sizeof(long_log));sweet_log_append(long_log,sizeof(long_log));
     sleep_limit=1;if(!setjmp(thread_exit))ud_log_thread(NULL,0);CHECK(sends==8);stop_driver();
+    reset_model();model.boot_mode=0;sweet_usb_probe();CHECK(!model.snapshot_lines&&!ud.snapshot_reports&&!model.maps);
+    reset_model();start_driver();CHECK(ud.snapshot_reports==2&&model.snapshot_lines==8);
+    unsigned old_writes=model.writes,old_dwc_writes=model.dwc_writes,old_commands=model.commands;
+    model.dwc[GEVNTCOUNT/4]=0x80000004;model.phy[0xc0/4]=0x15151515;model.phy[0xc4/4]=0xc0c0c0c0;
+    unsigned old_reads=model.reads+model.dwc_reads;
+    ud_snapshot(2);CHECK(ud.snapshot_reports==3&&model.snapshot_lines==12);
+    CHECK(model.reads+model.dwc_reads==old_reads+33);
+    CHECK(model.writes==old_writes&&model.dwc_writes==old_dwc_writes&&model.commands==old_commands);
+    CHECK(model.dwc[GEVNTCOUNT/4]==0x80000004); /* No event ACK during diagnosis. */
+    CHECK(strstr(snapshot_output[0],"snapshot=3 stage=2")!=NULL);
+    CHECK(strstr(snapshot_output[1],"COUNT=80000004")!=NULL);
+    CHECK(strstr(snapshot_output[2],"UTMI1=15151515 UTMI2=c0c0c0c0")!=NULL);
+    CHECK(strstr(snapshot_output[3],"BUSERR=")!=NULL);
+    ud_snapshot(2);CHECK(ud.snapshot_reports==3&&model.snapshot_lines==12);
+    model.dwc[DSTS/4]^=1u<<3;ud_snapshot(2);CHECK(ud.snapshot_reports==3); /* SOF frame only. */
+    model.dwc[DSTS/4]^=1u<<18;ud_snapshot(2);CHECK(ud.snapshot_reports==4);
+    model.phy[0xf4/4]=1;ud_snapshot(2);CHECK(ud.snapshot_reports==5);
+    CHECK(strstr(snapshot_output[2],"LINE=00000001")!=NULL);
+    model.dwc[0xc130/4]=0xa4f3c000;ud_snapshot(2);CHECK(ud.snapshot_reports==6);
+    CHECK(strstr(snapshot_output[3],"BUSERR=a4f3c000/")!=NULL);
+    for(unsigned i=0;i<80;i++){model.phy[0xc4/4]^=1u<<6;ud_snapshot(2);}
+    CHECK(ud.snapshot_reports==32&&model.snapshot_lines==128);
+    old_reads=model.reads+model.dwc_reads;
+    for(unsigned i=0;i<1000;i++){model.phy[0xf4/4]^=1;ud_snapshot(i%3);}
+    CHECK(ud.snapshot_reports==32&&model.snapshot_lines==128);
+    CHECK(model.reads+model.dwc_reads==old_reads); /* Exhausted budget avoids even MMIO reads. */
+    CHECK(model.writes==old_writes&&model.dwc_writes==old_dwc_writes&&model.commands==old_commands);
+    stop_driver();
+    reset_model();start_driver();sleep_limit=2500;
+    if(!setjmp(thread_exit))ud_thread(NULL,0);
+    CHECK(!ud.failed&&model.deadlines==3&&model.now==2501000000ULL);
+    CHECK(ud.snapshot_reports==3&&model.snapshot_lines==12); /* 1Hz reads, no stable-state log flood. */
+    stop_driver();
     CHECK(!mbufs&&!held);printf("PASS: %u actual USB board/core checks (modeled MMIO/kernel services)\n",checks);return 0;
 }

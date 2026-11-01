@@ -1,3 +1,23 @@
+## Active v86 USB connection diagnosis (2026-11-01)
+
+- Installed remains boot v85 / System v70. User reports no new USB lines on
+  cable connect/disconnect, but sees ue0 rx0/tx0 heartbeat. Thus the event thread
+  runs; no frame exchange, Mac gadget enumeration or Ethernet link is established.
+- Patch0165 adds read-only register snapshots before takeover, after endpoint/
+  VBUS setup and from the event thread at one-second intervals. Runtime output
+  requires a state change, ignoring DSTS frame-number-only differences. Maximum
+  32 four-line records, then no more sampler MMIO reads. No controller/PHY policy,
+  event ACK, DMA ownership, clock/reset/PMIC/PLL or charger-state changes.
+- Samples cover UTMI test/control/line state, DWC3 status/event-ring/endpoint
+  commands, QSCRATCH mux/VBUS, bus errors/timing and hardware parameters. MiCode's
+  PHY high-impedance override is a possible distinguishable state, not an observed
+  cause. See WHYRED-USB.md. Service causes remain pending separate UART output.
+- Local actual28-function USB suite passes637 UBSan checks, including timing,
+  raw output, change filtering, cap and read-only behavior. Both ARM64 units,
+  zeroLSE/PAN audits and exact patch replay pass. Both dedup/cap negative controls
+  fail their functional assertions after successful compilation. Full CI next; v86 retains v85's
+  idle repair, service tracing and RAMFS owners. No new image/flash yet.
+
 ## V85 USB hardware observation (2026-11-01)
 
 - User UART confirms powered-PHY wake and EP0 STARTTRANSFER command/result0x6

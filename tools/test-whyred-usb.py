@@ -49,13 +49,18 @@ def main():
         raise ValueError('USB must start after the networking stack and before root discovery')
     if re.search(r'\b(?:sweet_ufs_init|sweet_log_start|ufs_write_blocks)\s*\(', text):
         raise ValueError('USB must not initialize UFS or persistent logging')
-    names = ['sweet_usb_probe', 'ud_fail', 'ud_epcmd', 'ud_start_trb', 'ud_start',
+    names = ['sweet_usb_probe', 'ud_snapshot', 'ud_fail', 'ud_epcmd', 'ud_start_trb', 'ud_start',
              'ud_start_setup', 'ud_stall', 'ud_string', 'ud_configuration',
              'ud_notify_connected', 'ud_configure', 'ud_setup', 'ud_rx_arm',
              'ud_rx_done', 'ud_tx_kick_locked', 'ud_if_output', 'ud_link_event',
              'ud_data_stop', 'ud_link_ready', 'ud_control_reset', 'ud_event',
              'ud_thread', 'ud_log_thread', 'sweet_usb_gadget_start']
     functions = {n: function(text, n) for n in names}
+    if re.search(r'\b(?:dwc_wr|whyred_usb_write|ud_epcmd|ud_sync|delay)\s*\(', functions['ud_snapshot']):
+        raise ValueError('Snapshots must not write/acknowledge hardware, issue commands or change DMA ownership')
+    if ('ud_snapshot(0);' not in text or 'ud_snapshot(1);' not in text or
+            'clock_interval_to_deadline(1, NSEC_PER_SEC, &next_snapshot)' not in functions['ud_thread']):
+        raise ValueError('Missing startup snapshots or one-second event-thread sampling')
     for n in ['sweet_log_append', 'sweet_log_copy', 'sweet_log_position']:
         functions[n] = function(ring_text, n)
     definitions = '\n'.join(s for s in text.splitlines() if re.match(r'^#define\s+\w', s))
