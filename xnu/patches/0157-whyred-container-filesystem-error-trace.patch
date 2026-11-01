@@ -32,7 +32,7 @@
  	uthread->uu_flag &= ~UT_NOTCANCELPT;
 --- /dev/null
 +++ b/bsd/dev/arm/whyred_container_trace.h
-@@ -0,0 +1,277 @@
+@@ -0,0 +1,278 @@
 +/* Opt-in, bounded diagnostics for the volatile /var bring-up. Never changes errno. */
 +#ifndef WHYRED_CONTAINER_TRACE_H
 +#define WHYRED_CONTAINER_TRACE_H
@@ -287,7 +287,8 @@
 +	memcpy(args, &uthread->uu_arg[0], nargs * sizeof(args[0]));
 +	/* Split records so each normal line fits the existing small console buffers. */
 +	printf("WHYRED FSERR: id=%u pid=%d proc=%s op=%s code=%u errno=%d pc=0x%llx\n",
-+	    id, proc_pid(proc), name, call.name, code, error, get_saved_state_pc(state));
++	    id, proc_pid(proc), name, call.name, code, error,
++	    (unsigned long long)get_saved_state_pc(state));
 +	if (error == 0) {
 +		printf("WHYRED FSERR: id=%u reason=short-write requested=%llu returned=%llu\n",
 +		    id, requested, written);
