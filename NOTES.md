@@ -7,10 +7,13 @@
 - Startup runs after network initialization, independently of UFS. The existing
   in-memory console ring feeds bounded nonblocking UDP to 192.168.7.1:5140.
   No System image changes or persistent storage writes are added.
-- Local UBSan passes 565 checks executing 27 actual kernel functions with
+- Local UBSan passes 566 checks executing 27 actual kernel functions with
   modeled MMIO/kernel services. The two changed ARM64 units compile, with zero
   LSE/PAN instructions. Exact late-patch replay matches all three reviewed files;
   the UFS source remains unchanged. The macOS interface helper self-test passes.
+- Initial DMA cache publication is checked before event-ring installation or
+  STARTTRANSFER. The strengthened harness rejects the previous missing-clean
+  version; the corrected driver passes. Physical cache coherence remains untested.
 - Full kernel CI now includes USB ASan+UBSan checks alongside all retained
   checks. The next milestone is a successful full build, authenticated artifacts
   and a guarded v81 boot package retaining the v80 diagnostics below.

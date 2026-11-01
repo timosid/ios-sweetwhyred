@@ -44,6 +44,7 @@ core. The snapshot includes the clock and PHY values. A failed warm handoff
 stops before gadget startup; setting the boot flag alone does not prove a link.
 
 The gadget halts the bootloader controller before installing its own DMA area.
+The whole zeroed DMA area is cache-cleaned before installing the event ring;
 TRBs and buffers use separate 128-byte cache-maintenance granules. Transfer
 ownership, command timeouts/status, resource indices, RX lengths and event-ring
 counts are checked. Failure stops the controller; DMA memory remains pinned
@@ -91,7 +92,8 @@ behavior, every clock and rollback, PHY/core rejection, cache-granule separation
 descriptors/control stages, FS/HS, data/filter gating, reset/reconnect, queue
 cleanup, stale DMA ownership, timeouts, bounded event counts and UDP cursor retry.
 The macOS interface parser has separate selection/ambiguity checks. Local UBSan
-passes 565 checks. Both changed ARM64 compilation units pass with zero LSE/PAN
+passes 566 checks. The initial DMA-clean check rejects the previous missing-clean
+version before any event ring or transfer is installed. Both changed ARM64 compilation units pass with zero LSE/PAN
 instructions. Exact patch replay matches all three reviewed files. Full CI requires ASan+UBSan and
 all retained kernel checks. No physical enumeration, ping, USB console delivery,
 cache coherence, SMMU behavior or host-driver compatibility is established yet.

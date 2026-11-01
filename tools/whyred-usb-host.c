@@ -75,7 +75,7 @@ static struct {
     _Alignas(128) unsigned char dma[UD_SIZE];
     unsigned maps, reads, writes, delays, fail_map, stuck_clock, clock_delay;
     bool reject_mux, stuck_command, command_error, missing_resource, stuck_stop, stuck_reset, stuck_run;
-    bool fail_dma, fail_ifnet, fail_thread, fail_mbuf, log_enabled;
+    bool fail_dma, fail_ifnet, fail_thread, fail_mbuf, log_enabled, dma_clean;
     uint64_t physical_page;
     int boot_mode, lock;
     unsigned commands, starts, ends;
@@ -138,6 +138,7 @@ static uint32_t usb_rd(vm_offset_t base,uint32_t off) { return hw_read(NULL,base
 static uint32_t dwc_rd(uint32_t off) { assert(clocks_ready() && off<sizeof(model.dwc)); return model.dwc[off/4]; }
 static void dwc_wr(uint32_t off,uint32_t value) {
     assert(clocks_ready() && off<sizeof(model.dwc));
+    if (off==GEVNTADRLO) assert(model.dma_clean); /* KMA_ZERO dirties event-ring cache lines. */
     model.dwc[off/4]=value;
     if (off==DCTL) {
         if (value&DCTL_CSFTRST) { if (!model.stuck_reset) model.dwc[off/4]&=~DCTL_CSFTRST; }
@@ -151,6 +152,7 @@ static void dwc_wr(uint32_t off,uint32_t value) {
         model.dwc[off/4]=value & ~DEPCMD_CMDACT;
         if (model.command_error) model.dwc[off/4]|=1u<<12;
         if (cmd==DEPCMD_STARTTRANSFER) {
+            assert(model.dma_clean);
             model.starts++;
             model.dwc[off/4]=(model.dwc[off/4]&0xffffu)|((model.missing_resource?0:ep+1)<<16);
         }
@@ -158,7 +160,10 @@ static void dwc_wr(uint32_t off,uint32_t value) {
     }
     if (off==GEVNTCOUNT) model.dwc[off/4]=0;
 }
-static void ud_sync(uint32_t off,uint32_t len) { assert(off<=UD_SIZE && len<=UD_SIZE-off); }
+static void ud_sync(uint32_t off,uint32_t len) {
+    assert(off<=UD_SIZE && len<=UD_SIZE-off);
+    if (!off && len==UD_SIZE) model.dma_clean=true;
+}
 static int host_printf(const char *fmt,...) __attribute__((format(printf,1,2)));
 static int host_printf(const char *fmt,...) { (void)fmt; return 0; }
 #define printf host_printf
@@ -173,7 +178,7 @@ static int PE_parse_boot_argn(const char *name,void *p,int size) {
 static void ud_sleep_ms(unsigned ms) { (void)ms; if (++sleep_count>sleep_limit) longjmp(thread_exit,1); }
 static int kmem_alloc_contig(void *map,vm_offset_t *p,size_t n,uint64_t mask,int a,int b,int flags,int tag) {
     (void)map;(void)mask;(void)a;(void)b;(void)flags;(void)tag;assert(n==UD_SIZE);
-    if (model.fail_dma) return 3; *p=(uintptr_t)model.dma; memset(model.dma,0,sizeof(model.dma));return 0;
+    if (model.fail_dma) return 3; *p=(uintptr_t)model.dma; memset(model.dma,0,sizeof(model.dma));model.dma_clean=false;return 0;
 }
 static ppnum_t pmap_find_phys(void *map,addr64_t address) { (void)map;assert(address==(uintptr_t)model.dma);return model.physical_page?model.physical_page:0xb0000000ULL>>14; }
 #define ptoa_64(n) ((uint64_t)(n)<<14)
@@ -297,6 +302,7 @@ int main(void) {
     reset_model();sweet_usb_probe();CHECK(!model.maps&&!thread_calls);
     reset_model();model.boot_mode=1;sweet_usb_probe();CHECK(!model.writes&&!thread_calls);unsigned maps=model.maps;sweet_usb_probe();CHECK(model.maps==maps);
     reset_model();start_driver();CHECK(!ud.failed&&thread_calls==2&&ud.resource[0]&&ud.state==EP0_SETUP);CHECK((dwc_rd(GCTL)&(3u<<12))==(2u<<12));
+    CHECK(model.dma_clean);
     CHECK(!(dwc_rd(0xc200)&((1u<<6)|(1u<<8)))&&(dwc_rd(DCTL)&DCTL_RUN_STOP));
     setup(0x80,6,0x100,0,65535);CHECK(model.dma[UD_DATA]==18&&model.dma[UD_DATA+1]==1);
     setup(0x80,6,0x200,0,80);CHECK(model.dma[UD_DATA]==9&&model.dma[UD_DATA+2]==80);
