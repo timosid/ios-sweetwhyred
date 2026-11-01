@@ -10,7 +10,7 @@
   owner transfer. No global quota increase, file deletion or job policy change.
   Physical logd behavior and unified-log symbol availability need testing.
 - Local UBSan1120166/25 actual functions,66 namespace checks, ARM64/noLSE/PAN,
-  exact replay and functional limit/owner negative controls pass. Full CI next.
+  exact replay and functional limit/owner negative controls pass.
   See WHYRED-RAMFS-PRESSURE.md. This is a candidate resource fix; daemon exit
   causes/lsd faults and successful container creation remain open.
 - V86 USB snapshot source1ebb9427e50bf5ff0cbd5e641849b7baa38beea7, CI41338911774
@@ -22,6 +22,25 @@
   suggestd exit2/reason0; pkd SIGABRT same stack; lsd SIGSEGV still reproduces.
   Services remain enabled. No more lost old UART can be supplied. Installed
   phone remains boot v85 / System v70; boot-only workflow, UART manual.
+
+## Verified v87 image, physical test pending (2026-11-01)
+
+- Build source `0e0895bd4709eb645dde32806d3876a969c86172`, workflow
+  [41342210494](https://github.com/timosid/ios-sweetwhyred/actions/runs/41342210494),
+  job `124954436881`: all 27 steps passed. RAMFS 1,120,166 checks across 25
+  actual functions, USB 637 and idle/service 799 passed ASan+UBSan.
+- Both final ZIPs passed source/run provenance, SHA256, byte length and CRC.
+  Exact reviewed runtime sources/fixtures, linked ISA/cache/idle instructions,
+  trusted loader/ADT/stock DTB, reserved layout and size checks passed.
+- Packaged v87 boot is 22,331,392 bytes, payload 21,520,912; SHA256
+  `60a583a1c4a2f2d0f89cf436333406f9e970c30c38b5d6d2ab6c660060c66f9e`.
+  It enables the 8 MiB per-file UID272 bound and retains USB snapshots, owner
+  tracing and idle/service changes. It has not been flashed. The user has been
+  asked for fresh Fastboot readiness with UART already open.
+- Installed remains boot v85 / System v70. Next: fresh identity/product/unlock/
+  boot-size/image/kernel/v85 rollback checks, then the authorized boot-only flash.
+  Physical USB enumeration, logd behavior, container creation and daemon/lsd
+  stability remain unverified. Do not request the irretrievable older UART.
 
 ## Active v86 USB connection diagnosis (2026-11-01)
 
