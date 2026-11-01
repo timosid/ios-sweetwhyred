@@ -34,9 +34,11 @@ board helpers. Cases cover the observed replicated bytes, preservation of all128
 possible combinations of other CTRL2 bits, refused writes, unexpected readback,
 restoration, unfamiliar overrides, controller halt ordering and mode1. Two ARM64
 units, zeroLSE/PAN object audits and exact late-patch replay pass. Removing release
-or clobbering interface-select compiles but fails functional assertions. Full CI
-and physical USB enumeration still need verification. V87 RAMFS/idle/service
-changes are retained; their new device outcomes remain separate pending evidence.
+or clobbering interface-select compiles but fails functional assertions. The
+combined v89 workflow41346137446 passed all27 steps, including USB1299 with
+ASan+UBSan and4 exact board-helper bodies. Authenticated packaging retains the
+root DSC correction and idle/service changes. Physical enumeration remains
+pending; the verified v89 boot image has not yet been flashed.
 
 --- Earlier RUN-without-enumeration diagnostics ---
 

@@ -30,7 +30,10 @@ Local UBSan passes1,120,194 checks across28 actual functions. Namespace tests pa
 unrelated directories, prepopulated moves, chown, classification during uiomove,
 default-off and trace-off behavior are covered. ARM64, noLSE/PAN and exact replay
 pass. Removing root recognition or swap classification compiles then fails a
-functional check. Full CI and real logd/container behavior remain pending.
+functional check. Full workflow41346137446 passed all27 steps, including these
+1,120,194 ASan+UBSan checks and75 namespace checks. The pinned legacy0145 test
+also passed66 checks. Authenticated v89 packaging retains USB1299 and idle799;
+real logd/container behavior remains pending the next boot-partition test.
 
 --- Earlier UID-only implementation and evidence ---
 

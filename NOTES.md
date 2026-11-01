@@ -1,4 +1,29 @@
-## Active v89 root DSC cache correction plus USB (2026-11-01)
+## Verified v89 boot ready; device test pending (2026-11-01)
+
+- Final build source `f375a2f8cc2b9b29b08f19357dfdd5606969fcca`, full workflow
+  [41346137446](https://github.com/timosid/ios-sweetwhyred/actions/runs/41346137446),
+  job124966434206: all27 steps passed. RAMFS1,120,194/28 functions, USB1299/28
+  driver functions plus4 board helpers, idle/service799 passed ASan+UBSan.
+  Current namespace suite passed75 checks. Legacy0145 regression41346137417/
+  job124966245310 passed66 checks/all8 steps after test-generator compatibility
+  was retained. Earlier side41346036895 failed before compile on a missing new
+  helper in its pinned old source; this was corrected without kernel changes.
+- Both final ZIP provenance/SHA256/length/CRC, exact reviewed sources/fixtures/
+  board helper bodies, linked ISA/cache/idle instructions and trusted loader/
+  ADT/stock-DTB/layout/size guards passed. Combined0167+0168 replay also matches
+  the authenticated v87 buildtree. Superseded v88 run41344572473 was cancelled;
+  earlier v89 source036f6ad/run41346036804 supplies no candidate artifacts.
+- V89 boot:22,331,392 bytes, payload21,520,992; image SHA256
+  `668b16beddb2be2765b01ae6137b6bfc6b907072bca66d83a07ab65cf1becea1`.
+  It retains the8MiB opt-in, USB snapshots and idle/service diagnostics. It has
+  not been flashed. Fresh physical Fastboot readiness with manual UART was
+  requested; installed remains boot v87 / System v70.
+- Next: fresh identity/product/unlock/boot64MiB/image/kernel/v87 rollback guards,
+  authorized boot-only flash, then new UTMI release/readback/USB events and
+  dsc=1 file-limit/pressure/container/service evidence. Real USB enumeration and
+  logd/cache/container behavior remain unverified. No other partition writes.
+
+## V89 root DSC cache correction plus USB (2026-11-01)
 
 - New v87 UART proves patch0166's UID-only bound is insufficient at early boot:
   DSC main6199pages plus temporary1970pages are owned by root, total8169 of8192.
