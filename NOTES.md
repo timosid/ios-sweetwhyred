@@ -14,12 +14,34 @@
 - Initial DMA cache publication is checked before event-ring installation or
   STARTTRANSFER. The strengthened harness rejects the previous missing-clean
   version; the corrected driver passes. Physical cache coherence remains untested.
-- Full kernel CI now includes USB ASan+UBSan checks alongside all retained
-  checks. The next milestone is a successful full build, authenticated artifacts
-  and a guarded v81 boot package retaining the v80 diagnostics below.
-- No physical USB enumeration, ping or console delivery is confirmed. Cold PHY
-  power-up is unsupported; DMA visibility and host compatibility need a device
-  test. No phone command, flash or reboot has occurred on the current host.
+- Source `7ccdf8dda98cdc2ead91f171c51607ddcae29890`, full workflow
+  [41319898167](https://github.com/timosid/ios-sweetwhyred/actions/runs/41319898167),
+  job `124888314335`: all 26 steps succeeded, including 566 USB checks with
+  ASan+UBSan, the full linked ARM64 kernel and all retained checks. Earlier USB
+  run 41319155786 was superseded and cancelled; it supplies no candidate artifacts.
+- Both final ZIPs match GitHub SHA256/length and pass CRC. All four USB/ring/init
+  sources match the reviewed buildtree and test report. Linked-code audit found
+  zero LSE/PAN instructions; the linked cache-maintenance path includes physical
+  translation, `dc civac` and `dsb sy`. Loader/ADT/stock DTB, layout and size guards
+  passed. Boot v81 retains the v80 diagnostics below and installed System v70.
+- Boot v81: 22,315,008 bytes, payload 21,504,080 bytes, 496-byte command line with
+  `whyred-usb=2`; image SHA256
+  `8b1300ed5f5c9524bc5b61722479a5f363b8df4391b8b71b06a10130f1706b41`.
+- Temporary `fastboot boot` returned OKAY, but the phone remained in Fastboot;
+  the user confirmed this command does not work on this handset. The user then
+  explicitly authorized flashing boot. Identity/product/unlocked/64-MiB partition,
+  v81 SHA256 and the preserved v79 rollback image passed fresh checks.
+- Sending/writing boot v81 and reboot each returned OKAY. The installed baseline
+  is now boot v81 / System v70; System was not written. Fastboot disappeared after
+  reboot. No CDC Ethernet interface or UDP console bytes have yet been observed;
+  enumeration, ping and actual delivery remain unconfirmed.
+- Cold PHY power-up is unsupported; powered handoff, DMA visibility and host
+  compatibility remain physical assumptions. Next: obtain the user's UART
+  `WHYRED USB:` snapshot/stopped reason and screen observation, then diagnose that
+  evidence. Do not infer a register/power fix from host tests alone.
+- macOS 26 exposes USB via IOService IOUSBHostDevice / SPUSBHostDataType. The
+  legacy IOUSB-plane/SPUSBDataType query returned empty even with Fastboot present;
+  use the current inventory. Raw UART/serials remain private and user-supplied.
 
 ## Retained v80 RAMFS diagnostics
 

@@ -94,6 +94,16 @@ cleanup, stale DMA ownership, timeouts, bounded event counts and UDP cursor retr
 The macOS interface parser has separate selection/ambiguity checks. Local UBSan
 passes 566 checks. The initial DMA-clean check rejects the previous missing-clean
 version before any event ring or transfer is installed. Both changed ARM64 compilation units pass with zero LSE/PAN
-instructions. Exact patch replay matches all three reviewed files. Full CI requires ASan+UBSan and
-all retained kernel checks. No physical enumeration, ping, USB console delivery,
-cache coherence, SMMU behavior or host-driver compatibility is established yet.
+instructions. Exact patch replay matches all three reviewed files.
+Full [CI 41319898167](https://github.com/timosid/ios-sweetwhyred/actions/runs/41319898167)
+for source `7ccdf8dda98cdc2ead91f171c51607ddcae29890` passed all 26 steps, including
+566 USB ASan+UBSan checks and all retained checks. Both ZIPs matched GitHub
+digests; exact built sources, linked cache instructions, LSE/PAN, reserved memory
+layout and trusted loader/ADT/stock-DTB checks passed. Boot v81 is 22,315,008 bytes;
+SHA256 `8b1300ed5f5c9524bc5b61722479a5f363b8df4391b8b71b06a10130f1706b41`.
+The user authorized a boot-partition flash after temporary `fastboot boot`
+returned OKAY but left this handset in Fastboot. Sending/writing boot v81 and
+reboot returned OKAY; System v70 was preserved. Fastboot disappeared afterward,
+but no CDC network interface or UDP bytes have been observed. UART/screen evidence
+is needed to locate the failure. No physical Ethernet enumeration, ping, console
+delivery, cache coherence, SMMU behavior or host-driver compatibility is established yet.
