@@ -9,8 +9,8 @@ This change diagnoses filesystem compatibility and does not claim to fix UI
 rendering or the daemon abort.
 
 Patch 0157 adds `whyred-container-trace=1`. It is disabled by default and
-observes only filesystem syscall errors from the exact process names
-`containermanagerd` and `pkd`. The ARM64 normal and continuation return paths
+observes filesystem syscall errors and successful short writes from the exact
+process names `containermanagerd`, `pkd` and `calaccessd`. The ARM64 normal and continuation return paths
 call it before preparing user return registers. It never substitutes a return
 value, changes filesystem permissions or accepts unsupported operations.
 
@@ -22,6 +22,15 @@ value, changes filesystem permissions or accepts unsupported operations.
   copy/path lookup error. Paths are copied after the syscall, so another thread
   can have changed them. Relative paths retain the directory descriptors in the
   argument record. Truncation is explicit; control characters are sanitized.
+
+Successful short `write`/`pwrite` calls carry `errno=0` and a separate
+`reason=short-write` record with requested/returned byte counts. Normal short
+reads (including EOF) and full writes are not reported. A quota-limited write
+can legitimately return a partial success; this trace preserves it and does
+not manufacture an errno. Calendar's supplied crash follows a NULL timezone
+name read from its occurrence-cache database property. Its relationship to
+the container failure is unconfirmed; its file failures are included so the
+next capture can investigate both paths.
 
 There are at most 256 records per boot, with separate 64-record lookup-miss and
 192-record other-error budgets and separate key-table halves. Each process /

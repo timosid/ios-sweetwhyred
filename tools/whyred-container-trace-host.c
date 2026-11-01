@@ -35,7 +35,7 @@ static char *strstr(const char *a,const char *b) { size_t n=strlen(b); for(;*a;a
 #include "syscall-defines.h"
 typedef uint64_t user_addr_t;
 struct proc { char p_name[33], p_comm[17]; int pid; };
-struct uthread { uint64_t uu_arg[8]; };
+struct uthread { uint64_t uu_arg[8]; int32_t uu_rval[2]; };
 struct arm_saved_state { int is64; uint64_t pc; };
 struct { unsigned int sy_narg; } sysent[1024];
 struct fileproc { int value; };
@@ -126,7 +126,7 @@ API int whyred_container_host_checks(void) {
     struct proc manager = { "containermanagerd", "containermanager", 67 };
     struct proc pkd = { "pkd", "pkd", 264 };
     struct proc unrelated = { "SpringBoard", "SpringBoard", 45 };
-    struct uthread u = { { (uint64_t)(uintptr_t)"/private/var/metadata", 0x1234, 3, 4, 5, 6, 7, 8 } };
+    struct uthread u = { { (uint64_t)(uintptr_t)"/private/var/metadata", 0x1234, 3, 4, 5, 6, 7, 8 }, { 0, 0 } };
     reset(); option = 0; call(&manager, SYS_open, EIO, &u);
     CHECK(used == 0 && copy_calls == 0 && fd_gets == 0 && parse_calls == 1);
     call(&manager, SYS_open, EIO, &u); CHECK(parse_calls == 1 && used == 0);
@@ -176,6 +176,18 @@ API int whyred_container_host_checks(void) {
     reset(); whyred_ct_budget.lock = 1;
     CHECK(whyred_ct_reserve(1, SYS_open, EIO) == 0 && whyred_ct_budget.lock == 1);
     reset(); whyred_ct_enabled = 1; call(&manager, SYS_open, EIO, &u); CHECK(used == 0);
+    reset(); u.uu_arg[0] = 7; u.uu_arg[2] = 10; u.uu_rval[0] = 4;
+    call(&pkd, SYS_write, 0, &u);
+    CHECK(strstr(output, "errno=0") != NULL && strstr(output, "reason=short-write requested=10 returned=4") != NULL);
+    CHECK(fd_drops == 1 && vnode_puts == 1);
+    reset(); u.uu_rval[0] = 10; call(&pkd, SYS_write_nocancel, 0, &u); CHECK(used == 0);
+    reset(); u.uu_arg[2] = 0; u.uu_rval[0] = 0; call(&pkd, SYS_pwrite, 0, &u); CHECK(used == 0);
+    reset(); u.uu_arg[2] = 10; u.uu_rval[0] = 0; call(&pkd, SYS_read, 0, &u); CHECK(used == 0);
+    reset(); u.uu_arg[2] = UINT64_C(0x100000006); u.uu_rval[0] = 4; u.uu_rval[1] = 1;
+    call(&pkd, SYS_pwrite_nocancel, 0, &u);
+    CHECK(strstr(output, "requested=4294967302 returned=4294967300") != NULL);
+    reset(); u.uu_arg[2] = 10; u.uu_rval[0] = 4; u.uu_rval[1] = 0; option = 0;
+    call(&manager, SYS_write, 0, &u); CHECK(used == 0 && fd_gets == 0);
     reset(); for (unsigned int i = 0; i < 128; i++) {
         (void)whyred_ct_reserve(1, (unsigned short)i, ENOENT);
     }
@@ -191,6 +203,7 @@ API int whyred_container_host_checks(void) {
     reset(); whyred_ct_budget.keys[WHYRED_CT_KEYS / 2] = (struct whyred_ct_key){ SYS_open, EIO, 1, UINT_MAX };
     CHECK(whyred_ct_reserve(1, SYS_open, EIO) == 0 && whyred_ct_budget.keys[WHYRED_CT_KEYS / 2].count == UINT_MAX);
     CHECK(whyred_ct_target("containermanager") == 0 && whyred_ct_target("pkd-other") == 0);
+    CHECK(whyred_ct_target("calaccessd") == 3);
     return failure_line;
 }
 API unsigned int whyred_container_check_count(void) { return tests; }

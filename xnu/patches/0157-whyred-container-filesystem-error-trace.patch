@@ -32,7 +32,7 @@
  	uthread->uu_flag &= ~UT_NOTCANCELPT;
 --- /dev/null
 +++ b/bsd/dev/arm/whyred_container_trace.h
-@@ -0,0 +1,257 @@
+@@ -0,0 +1,277 @@
 +/* Opt-in, bounded diagnostics for the volatile /var bring-up. Never changes errno. */
 +#ifndef WHYRED_CONTAINER_TRACE_H
 +#define WHYRED_CONTAINER_TRACE_H
@@ -153,7 +153,15 @@
 +{
 +	if (strcmp(name, "containermanagerd") == 0) return 1;
 +	if (strcmp(name, "pkd") == 0) return 2;
++	if (strcmp(name, "calaccessd") == 0) return 3;
 +	return 0;
++}
++
++static bool
++whyred_ct_is_write(unsigned short code)
++{
++	return code == SYS_write || code == SYS_write_nocancel ||
++	       code == SYS_pwrite || code == SYS_pwrite_nocancel;
 +}
 +
 +struct whyred_ct_key {
@@ -244,7 +252,9 @@
 +whyred_container_trace_error(struct proc *proc, struct uthread *uthread,
 +    struct arm_saved_state *state, unsigned short code, int error)
 +{
-+	if (error <= 0 || !is_saved_state64(state)) return;
++	if (error < 0 || !is_saved_state64(state)) return;
++	/* A partial ENOSPC write can correctly return success and a short count. */
++	if (error == 0 && !whyred_ct_is_write(code)) return;
 +	unsigned int enabled = __atomic_load_n(&whyred_ct_enabled, __ATOMIC_ACQUIRE);
 +	if (enabled == 0) {
 +		unsigned int expected = 0;
@@ -263,6 +273,12 @@
 +	if (!target || error > UINT16_MAX) return;
 +	struct whyred_ct_call call = whyred_ct_call_for(code);
 +	if (call.name == NULL) return;
++	uint64_t written = 0, requested = 0;
++	if (error == 0) {
++		memcpy(&written, &uthread->uu_rval[0], sizeof(written));
++		requested = (uint64_t)uthread->uu_arg[2];
++		if (written >= requested) return;
++	}
 +	unsigned int id = whyred_ct_reserve(target, code, (unsigned int)error);
 +	if (!id) return;
 +	uint64_t args[7] = { 0 };
@@ -272,6 +288,10 @@
 +	/* Split records so each normal line fits the existing small console buffers. */
 +	printf("WHYRED FSERR: id=%u pid=%d proc=%s op=%s code=%u errno=%d pc=0x%llx\n",
 +	    id, proc_pid(proc), name, call.name, code, error, get_saved_state_pc(state));
++	if (error == 0) {
++		printf("WHYRED FSERR: id=%u reason=short-write requested=%llu returned=%llu\n",
++		    id, requested, written);
++	}
 +	printf("WHYRED FSERR: id=%u args=%llx,%llx,%llx,%llx,%llx,%llx,%llx\n",
 +	    id, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
 +	char path[WHYRED_CT_PATH_BYTES];
