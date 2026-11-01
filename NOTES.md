@@ -1,3 +1,15 @@
+## V85 USB hardware observation (2026-11-01)
+
+- User UART confirms powered-PHY wake and EP0 STARTTRANSFER command/result0x6
+  with resource0. The driver passes its former guard, applies VBUS override
+  and reaches controller RUN. No reset/connect/event lines were supplied yet.
+- The Mac found no matching Ethernet interface during a 90-second observation;
+  its USB device inventory also had no phone gadget at the sampled time. No
+  host network changes were made. Controller RUN does not establish USB
+  enumeration, working Ethernet or console delivery. Cable-reconnect feedback
+  and further manual UART are pending; no subsequent register change is justified
+  by this excerpt alone. Service exit causes and idle stability remain open.
+
 ## V85 boot flash milestone (2026-11-01)
 
 - User confirmed Fastboot readiness for the verified v85 test. Fresh private
