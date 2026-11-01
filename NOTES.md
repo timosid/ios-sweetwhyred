@@ -1,9 +1,29 @@
-## Current whyred work (2026-11-01, RAMFS pressure candidate)
+## Current whyred work (2026-11-01, USB Ethernet/live console candidate)
+
+- The user resumed USB work and selected Ethernet plus live logs first. SSH is
+  outside this candidate. Patch 0159 ports the existing CDC-ECM driver to the
+  whyred SDM660 registers and powered bootloader handoff; see `WHYRED-USB.md`.
+  `whyred-usb=2` explicitly enables the gadget; the default remains off.
+- Startup runs after network initialization, independently of UFS. The existing
+  in-memory console ring feeds bounded nonblocking UDP to 192.168.7.1:5140.
+  No System image changes or persistent storage writes are added.
+- Local UBSan passes 565 checks executing 27 actual kernel functions with
+  modeled MMIO/kernel services. The two changed ARM64 units compile, with zero
+  LSE/PAN instructions. Exact late-patch replay matches all three reviewed files;
+  the UFS source remains unchanged. The macOS interface helper self-test passes.
+- Full kernel CI now includes USB ASan+UBSan checks alongside all retained
+  checks. The next milestone is a successful full build, authenticated artifacts
+  and a guarded v81 boot package retaining the v80 diagnostics below.
+- No physical USB enumeration, ping or console delivery is confirmed. Cold PHY
+  power-up is unsupported; DMA visibility and host compatibility need a device
+  test. No phone command, flash or reboot has occurred on the current host.
+
+## Retained v80 RAMFS diagnostics
 
 - Boot v79 and System v70 are the inherited hardware baseline. Filesystem
   tracing reproduced container metadata write ENOSPC; the quota versus
   allocation/reclamation cause is unresolved. A working graphical scene is
-  unconfirmed. USB Ethernet/SSH work remains deferred.
+  unconfirmed. USB Ethernet/live console work is active as described above.
 - Patch 0158 adds default-off development diagnostics for data quota, missing
   data pages, nonwaiting page-array allocations and attribute snapshot failures.
   It retains the existing quotas, allocation flags, operation results and storage

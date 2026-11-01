@@ -1,0 +1,350 @@
+/* Kernel service adapters. Exact driver functions are inserted by the generator. */
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdatomic.h>
+#include <setjmp.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include "whyred_usb_hw.h"
+#ifndef __unused
+#define __unused __attribute__((unused))
+#endif
+#define PAGE_MASK 0x3fffULL
+#define KERN_SUCCESS 0
+#define KMA_DATA 1
+#define KMA_ZERO 2
+#define KMA_PERMANENT 4
+#define VM_KERN_MEMORY_IOKIT 1
+#define ETHER_HDR_LEN 14u
+#define ETHER_MAX_LEN 1518u
+#define ETHER_CRC_LEN 4u
+#define ETHER_ADDR_LEN 6u
+#define MBUF_DONTWAIT 0
+#define MBUF_TYPE_DATA 0
+#define MBUF_EXT 1
+#ifndef KEV_DL_SUBCLASS
+#define KEV_DL_SUBCLASS 2
+#define KEV_DL_LINK_ON 13
+#define KEV_DL_LINK_OFF 12
+#endif
+#define FALSE false
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#ifndef bzero
+#define bzero(p,n) memset(p,0,n)
+#endif
+typedef uintptr_t vm_offset_t;
+typedef uint64_t ppnum_t;
+typedef uint64_t addr64_t;
+typedef int wait_result_t;
+typedef uintptr_t thread_t;
+typedef void (*thread_continue_t)(void *, wait_result_t);
+typedef int lck_mtx_t;
+typedef void *ifnet_t;
+typedef int errno_t;
+struct host_mbuf { unsigned char bytes[2048]; size_t offset, len, packet; unsigned flags; };
+typedef struct host_mbuf *mbuf_t;
+typedef void *socket_t;
+struct ifnet_stat_increment_param { uint64_t packets_in, bytes_in; };
+/* ACTUAL CONSTANTS */
+/* ACTUAL DECLARATIONS */
+static void ud_rx_arm(void);
+static void ud_tx_kick_locked(void);
+static void ud_link_event(bool);
+static void ud_data_stop(bool);
+static void sweet_usb_gadget_start(vm_offset_t);
+static uint32_t sweet_log_copy(uint64_t *, char *, uint32_t);
+static uint64_t sweet_log_position(void);
+#define SWEET_LOG_SIZE (4u << 20)
+static char sweet_log_ring[SWEET_LOG_SIZE];
+static _Atomic uint64_t sweet_log_total;
+static unsigned checks, held, mbufs, received, links_up, links_down, sleep_count, sleep_limit;
+static unsigned sends, send_failures, sent_lengths[32], thread_calls, setup_stalls;
+static char first_send[1400], second_send[1400];
+static jmp_buf thread_exit;
+static struct {
+    uint32_t gcc[WHYRED_USB_GCC_SIZE/4], dwc[WHYRED_USB_DWC_SIZE/4], phy[WHYRED_USB_PHY_SIZE/4], qs[WHYRED_USB_QS_SIZE/4];
+    _Alignas(128) unsigned char dma[UD_SIZE];
+    unsigned maps, reads, writes, delays, fail_map, stuck_clock, clock_delay;
+    bool reject_mux, stuck_command, command_error, missing_resource, stuck_stop, stuck_reset, stuck_run;
+    bool fail_dma, fail_ifnet, fail_thread, fail_mbuf, log_enabled;
+    uint64_t physical_page;
+    int boot_mode, lock;
+    unsigned commands, starts, ends;
+} model;
+static struct whyred_usb_hw usb_hw;
+static uint32_t usb_attempted;
+static void *kernel_map, *kernel_pmap;
+static bool cmpxchg(uint32_t *p,uint32_t old,uint32_t value) { if (*p!=old) return false; *p=value; return true; }
+#define os_atomic_cmpxchg(p,o,n,order) cmpxchg(p,o,n)
+#define os_atomic_load(p,order) (*(p))
+#define os_atomic_add_orig(p,n,order) atomic_fetch_add(p,n)
+static void host_barrier(void) {}
+static bool clocks_ready(void) {
+    if (!(model.gcc[WHYRED_USB_GDSCR/4] & (1u<<31)) || (model.gcc[WHYRED_USB_BCR/4]&1)) return false;
+    for (unsigned i=0;i<WHYRED_USB_CLOCKS;i++) if (model.gcc[whyred_usb_clocks[i]/4] & WHYRED_USB_CLK_OFF) return false;
+    return true;
+}
+static uintptr_t hw_map(void *ctx,uintptr_t pa,size_t size) {
+    (void)ctx; model.maps++;
+    if (pa==model.fail_map) return 0;
+    if (pa==WHYRED_USB_GCC_PA) {assert(size==sizeof(model.gcc)); return (uintptr_t)model.gcc;}
+    assert(clocks_ready());
+    if (pa==WHYRED_USB_PHY_PA) {assert(size==sizeof(model.phy)); return (uintptr_t)model.phy;}
+    if (pa==WHYRED_USB_DWC_PA) {assert(size==sizeof(model.dwc)); return (uintptr_t)model.dwc;}
+    if (pa==WHYRED_USB_QS_PA) {assert(size==sizeof(model.qs)); return (uintptr_t)model.qs;}
+    abort();
+}
+static uint32_t hw_read(void *ctx,uintptr_t base,uint32_t off) {
+    (void)ctx; model.reads++; assert(!(off&3));
+    if (base==(uintptr_t)model.gcc) {
+        assert(off<sizeof(model.gcc));
+        for (unsigned i=0;i<WHYRED_USB_CLOCKS;i++) if (off==whyred_usb_clocks[i] && (model.gcc[off/4]&1)) {
+            if (model.stuck_clock!=i+1 && !model.clock_delay) model.gcc[off/4]&=~WHYRED_USB_CLK_OFF;
+            else if (model.clock_delay) model.clock_delay--;
+        }
+        return model.gcc[off/4];
+    }
+    assert(clocks_ready());
+    if (base==(uintptr_t)model.phy) {assert(off<sizeof(model.phy)); return model.phy[off/4];}
+    if (base==(uintptr_t)model.qs) {assert(off<sizeof(model.qs)); return model.qs[off/4];}
+    if (base==(uintptr_t)model.dwc) {assert(off<sizeof(model.dwc)); return model.dwc[off/4];}
+    abort();
+}
+static void hw_write(void *ctx,uintptr_t base,uint32_t off,uint32_t value) {
+    (void)ctx; model.writes++;
+    if (base==(uintptr_t)model.gcc) {
+        bool known=false; for (unsigned i=0;i<WHYRED_USB_CLOCKS;i++) known|=off==whyred_usb_clocks[i];
+        assert(known); /* No reset, source/PLL, GDSC, PHY, PMIC or SMMU writes. */
+        model.gcc[off/4]=value;
+        if (!(value&1)) model.gcc[off/4]|=WHYRED_USB_CLK_OFF;
+        return;
+    }
+    assert(base==(uintptr_t)model.qs && off==8 && clocks_ready());
+    model.qs[off/4]=model.reject_mux ? value & ~1u : value;
+}
+static void delay(unsigned us) { model.delays+=us; }
+static void hw_delay(void *ctx,unsigned us) { (void)ctx; delay(us); }
+static const struct whyred_usb_io usb_io={.map=hw_map,.read=hw_read,.write=hw_write,.delay_us=hw_delay};
+static uint32_t usb_rd(vm_offset_t base,uint32_t off) { return hw_read(NULL,base,off); }
+static uint32_t dwc_rd(uint32_t off) { assert(clocks_ready() && off<sizeof(model.dwc)); return model.dwc[off/4]; }
+static void dwc_wr(uint32_t off,uint32_t value) {
+    assert(clocks_ready() && off<sizeof(model.dwc));
+    model.dwc[off/4]=value;
+    if (off==DCTL) {
+        if (value&DCTL_CSFTRST) { if (!model.stuck_reset) model.dwc[off/4]&=~DCTL_CSFTRST; }
+        if (value&DCTL_RUN_STOP) {if (!model.stuck_run) model.dwc[DSTS/4]&=~DSTS_DEVCTRLHLT;}
+        else if (!model.stuck_stop) model.dwc[DSTS/4]|=DSTS_DEVCTRLHLT;
+    }
+    if (off>=DEPCMD(0) && off<=DEPCMD(5) && ((off-DEPCMD(0))%16)==0) {
+        unsigned ep=(off-DEPCMD(0))/16,cmd=value&15; model.commands++;
+        if (cmd==DEPCMD_SETSTALL) setup_stalls++;
+        if (model.stuck_command) return;
+        model.dwc[off/4]=value & ~DEPCMD_CMDACT;
+        if (model.command_error) model.dwc[off/4]|=1u<<12;
+        if (cmd==DEPCMD_STARTTRANSFER) {
+            model.starts++;
+            model.dwc[off/4]=(model.dwc[off/4]&0xffffu)|((model.missing_resource?0:ep+1)<<16);
+        }
+        if (cmd==DEPCMD_ENDTRANSFER) model.ends++;
+    }
+    if (off==GEVNTCOUNT) model.dwc[off/4]=0;
+}
+static void ud_sync(uint32_t off,uint32_t len) { assert(off<=UD_SIZE && len<=UD_SIZE-off); }
+static int host_printf(const char *fmt,...) __attribute__((format(printf,1,2)));
+static int host_printf(const char *fmt,...) { (void)fmt; return 0; }
+#define printf host_printf
+static void lck_mtx_lock(lck_mtx_t *p) { assert(p && held++==0); }
+static void lck_mtx_unlock(lck_mtx_t *p) { assert(p && held--==1); }
+static int PE_parse_boot_argn(const char *name,void *p,int size) {
+    assert(size==sizeof(int));
+    if (!strcmp(name,"whyred-usb")) {*(int *)p=model.boot_mode;return 1;}
+    if (!strcmp(name,"sweetusblog")) {*(int *)p=model.log_enabled;return 1;}
+    return 0;
+}
+static void ud_sleep_ms(unsigned ms) { (void)ms; if (++sleep_count>sleep_limit) longjmp(thread_exit,1); }
+static int kmem_alloc_contig(void *map,vm_offset_t *p,size_t n,uint64_t mask,int a,int b,int flags,int tag) {
+    (void)map;(void)mask;(void)a;(void)b;(void)flags;(void)tag;assert(n==UD_SIZE);
+    if (model.fail_dma) return 3; *p=(uintptr_t)model.dma; memset(model.dma,0,sizeof(model.dma));return 0;
+}
+static ppnum_t pmap_find_phys(void *map,addr64_t address) { (void)map;assert(address==(uintptr_t)model.dma);return model.physical_page?model.physical_page:0xb0000000ULL>>14; }
+#define ptoa_64(n) ((uint64_t)(n)<<14)
+static int ud_if_create(void) { if(model.fail_ifnet)return -1;ud.ifp=(void *)1;ud.lock=&model.lock;return 0; }
+static int kernel_thread_start(thread_continue_t f,void *arg,thread_t *thread) {
+    (void)f;(void)arg;thread_calls++;*thread=1;return model.fail_thread?3:0;
+}
+static void thread_deallocate(thread_t thread) { assert(thread==1); }
+static void ifnet_set_baudrate(ifnet_t ifp,uint64_t rate) {(void)ifp;assert(rate==12000000||rate==480000000);}
+static int mbuf_gethdr(int wait,int type,mbuf_t *m) {
+    (void)wait;(void)type;if(model.fail_mbuf)return 12;*m=calloc(1,sizeof(**m));mbufs++;return 0;
+}
+static int mbuf_mclget(int wait,int type,mbuf_t *m) {(void)wait;(void)type;(*m)->flags|=MBUF_EXT;return 0;}
+static unsigned mbuf_flags(mbuf_t m) {return m->flags;}
+static size_t mbuf_maxlen(mbuf_t m) {(void)m;return 2048;}
+static void *mbuf_data(mbuf_t m) {return m->bytes+m->offset;}
+static void mbuf_setlen(mbuf_t m,size_t n) {m->len=n;}
+static void mbuf_pkthdr_setlen(mbuf_t m,size_t n) {m->packet=n;}
+static void mbuf_pkthdr_setrcvif(mbuf_t m,ifnet_t ifp) {(void)m;(void)ifp;}
+static void mbuf_pkthdr_setheader(mbuf_t m,void *p) {(void)m;(void)p;}
+static void mbuf_pkthdr_adjustlen(mbuf_t m,int n) {m->packet=(size_t)((int64_t)m->packet+n);}
+static size_t mbuf_len(mbuf_t m) {return m->len;}
+static size_t mbuf_pkthdr_len(mbuf_t m) {return m->packet;}
+static int mbuf_setdata(mbuf_t m,void *data,size_t len) {m->offset=(unsigned char *)data-m->bytes;m->len=len;return 0;}
+static void mbuf_freem(mbuf_t m) {assert(mbufs);mbufs--;free(m);}
+static int mbuf_copydata(mbuf_t m,size_t off,size_t n,void *out) {
+    if(off>m->len||n>m->len-off)return 22;memcpy(out,m->bytes+m->offset+off,n);return 0;
+}
+static int ifnet_input(ifnet_t ifp,mbuf_t m,struct ifnet_stat_increment_param *s) {
+    (void)ifp;assert(m->offset==14 && m->len==m->packet && s->packets_in==1);received++;mbuf_freem(m);return 0;
+}
+static void ifnet_stat_increment_out(ifnet_t ifp,uint64_t packets,uint64_t bytes,uint64_t errors) {(void)ifp;(void)packets;(void)bytes;(void)errors;}
+static int dlil_post_msg(ifnet_t ifp,int cls,int ev,void *data,int len,bool locked) {
+    (void)ifp;(void)cls;(void)data;(void)len;(void)locked;assert(!held);if(ev==KEV_DL_LINK_ON)links_up++;else links_down++;return 0;
+}
+static int sock_socket(int family,int type,int protocol,void *a,void *b,socket_t *so) {
+    (void)a;(void)b;assert(family==PF_INET&&type==SOCK_DGRAM&&protocol==IPPROTO_UDP);*so=(void *)1;return 0;
+}
+static void sock_close(socket_t so) {assert(so);}
+static int sock_send(socket_t so,struct msghdr *msg,int flags,size_t *sent) {
+    assert(so && flags==MSG_DONTWAIT && msg->msg_iovlen==1);assert(!held);
+    struct sockaddr_in *to=msg->msg_name;assert(to->sin_addr.s_addr==htonl(0xc0a80701)&&to->sin_port==htons(5140));
+    size_t n=msg->msg_iov[0].iov_len;assert(n<=1400);
+    if(sends<32)sent_lengths[sends]=(unsigned)n;
+    if(sends==0)memcpy(first_send,msg->msg_iov[0].iov_base,n);
+    if(sends==1)memcpy(second_send,msg->msg_iov[0].iov_base,n);
+    sends++;if(send_failures){send_failures--;*sent=0;return 55;}*sent=n;return 0;
+}
+/* ACTUAL FUNCTIONS */
+#undef printf
+#define CHECK(c) do {checks++;if(!(c)){fprintf(stderr,"FAIL line %d: %s\n",__LINE__,#c);return 1;}}while(0)
+static void reset_model(void) {
+    assert(!mbufs && !held);memset(&model,0,sizeof(model));memset(&ud,0,sizeof(ud));usb_attempted=0;
+    model.gcc[WHYRED_USB_GDSCR/4]=1u<<31;model.phy[WHYRED_USB_PHY_POWERDOWN/4]=0x22;
+    model.phy[WHYRED_USB_PHY_PLL_STATUS/4]=WHYRED_USB_PLL_LOCK;
+    model.dwc[0xc120/4]=0x5533250a;model.dwc[GCTL/4]=0x2400;model.dwc[DCTL/4]=DCTL_RUN_STOP;
+    model.qs[8/4]=0x100040;model.log_enabled=true;
+    for(unsigned i=0;i<WHYRED_USB_CLOCKS;i++)model.gcc[whyred_usb_clocks[i]/4]=0x200001;
+    links_up=links_down=received=setup_stalls=thread_calls=sleep_count=sends=send_failures=0;
+    sweet_log_total=0;
+}
+static void start_driver(void) {model.boot_mode=2;sweet_usb_probe();}
+static uint32_t trb_for(unsigned ep) {return ep==0?UD_TRB_OUT:ep==1?UD_TRB_IN:ep==EP_RX?UD_TRB_RX:ep==EP_TX?UD_TRB_TX:UD_TRB_INT;}
+static void complete(unsigned ep,uint32_t residual) {
+    uint32_t *trb=(uint32_t *)(model.dma+trb_for(ep));trb[2]=residual;trb[3]&=~TRB_HWO;
+    ud_event((ep<<1)|(1u<<6));
+}
+static void setup(uint8_t type,uint8_t req,uint16_t value,uint16_t index,uint16_t length) {
+    assert(ud.state==EP0_SETUP && ud.resource[0]);
+    uint8_t *p=model.dma+UD_SETUP;p[0]=type;p[1]=req;p[2]=(uint8_t)value;p[3]=(uint8_t)(value>>8);
+    p[4]=(uint8_t)index;p[5]=(uint8_t)(index>>8);p[6]=(uint8_t)length;p[7]=(uint8_t)(length>>8);
+    complete(0,0);
+    if(ud.failed||ud.state==EP0_SETUP)return;
+    if(ud.state==EP0_DATA)complete(1,0);
+    assert(ud.state==EP0_WAIT_STATUS2||ud.state==EP0_WAIT_STATUS3);
+    unsigned ep=ud.data_in?0:1;ud_event((ep<<1)|(3u<<6)|(2u<<12));complete(ep,0);
+    assert(ud.state==EP0_SETUP);
+}
+static mbuf_t packet(size_t n,unsigned char value) {
+    mbuf_t m=NULL;assert(mbuf_gethdr(0,0,&m)==0);memset(m->bytes,value,MIN(n,sizeof(m->bytes)));m->len=m->packet=n;return m;
+}
+static void ready(void) {setup(0,5,4,0,0);setup(0,9,1,0,0);setup(0x21,0x43,12,0,0);setup(1,11,1,1,0);}
+static void stop_driver(void) {if(ud.lock)ud_data_stop(true);assert(!mbufs&&!held);}
+int main(void) {
+    struct whyred_usb_hw hw;
+    CHECK(ud_phone_mac[0]==2&&ud_phone_mac[5]==2);
+    CHECK(WHYRED_USB_GCC_PA==0x00100000&&WHYRED_USB_GDSCR==0xf004&&WHYRED_USB_BCR==0xf000);
+    CHECK(WHYRED_USB_DWC_PA==0x0a800000&&WHYRED_USB_DWC_SIZE==0xd000);
+    CHECK(WHYRED_USB_PHY_PA==0x0c012000&&WHYRED_USB_PHY_SIZE==0x180);
+    CHECK(WHYRED_USB_QS_PA==0x0a8f8800&&WHYRED_USB_QS_SIZE==0x100);
+    CHECK(WHYRED_USB_PHY_POWERDOWN==0xb4&&WHYRED_USB_PHY_PLL_STATUS==0x38&&WHYRED_USB_PLL_LOCK==0x20);
+    const uint32_t expected_clocks[]={0xf008,0xf00c,0xf010,0x5018,0xf03c,0x6a004};
+    CHECK(sizeof(expected_clocks)==sizeof(whyred_usb_clocks));
+    for(unsigned i=0;i<WHYRED_USB_CLOCKS;i++)CHECK(whyred_usb_clocks[i]==expected_clocks[i]);
+    for(int mode=-1;mode<=3;mode++)if(mode!=1&&mode!=2){reset_model();CHECK(whyred_usb_hw_prepare(&usb_io,mode,&hw)==WHYRED_USB_HW_OFF);CHECK(!model.maps&&!model.reads&&!model.writes);}
+    reset_model();model.gcc[WHYRED_USB_GDSCR/4]=0;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_POWER);CHECK(model.maps==1&&!model.writes);
+    reset_model();model.gcc[WHYRED_USB_BCR/4]=1;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_RESET);CHECK(model.maps==1&&!model.writes);
+    const uintptr_t regions[]={WHYRED_USB_GCC_PA,WHYRED_USB_PHY_PA,WHYRED_USB_DWC_PA,WHYRED_USB_QS_PA};
+    for(unsigned i=0;i<4;i++){reset_model();model.fail_map=(unsigned)regions[i];CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_MAP);}
+    for(unsigned i=0;i<WHYRED_USB_CLOCKS;i++){
+        reset_model();model.gcc[whyred_usb_clocks[i]/4]=0x80200000;
+        CHECK(whyred_usb_hw_prepare(&usb_io,1,&hw)==WHYRED_USB_HW_CLOCK);CHECK(!model.writes&&model.maps==1);
+        CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_OK);CHECK(model.writes==1&&hw.changed_clocks==(1u<<i));
+        whyred_usb_hw_rollback(&usb_io,&hw);CHECK(model.gcc[whyred_usb_clocks[i]/4]==0x80200000);
+        reset_model();for(unsigned j=0;j<=i;j++)model.gcc[whyred_usb_clocks[j]/4]=0x80200000;
+        model.stuck_clock=i+1;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_CLOCK);
+        CHECK(model.delays==WHYRED_USB_CLOCK_POLLS&&model.maps==1);
+        for(unsigned j=0;j<=i;j++)CHECK(model.gcc[whyred_usb_clocks[j]/4]==0x80200000);
+    }
+    for(unsigned power=0;power<64;power++)if((power&0x23)!=0x22){reset_model();model.phy[WHYRED_USB_PHY_POWERDOWN/4]=power;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_PHY);CHECK(model.maps==2&&!model.writes);}
+    reset_model();model.phy[WHYRED_USB_PHY_PLL_STATUS/4]=0;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_PHY);
+    reset_model();model.dwc[0xc120/4]=0xffffffff;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_CORE);
+    reset_model();model.dwc[GCTL/4]|=1u<<11;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_CORE);
+    reset_model();model.dwc[0xc200/4]|=1u<<31;CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_CORE);
+    reset_model();CHECK(whyred_usb_hw_prepare(&usb_io,1,&hw)==WHYRED_USB_HW_OK);CHECK(!model.writes);
+    CHECK(whyred_usb_hw_select_utmi(&usb_io,&hw));CHECK(model.qs[2]==0x100049&&model.delays==10);
+    reset_model();CHECK(whyred_usb_hw_prepare(&usb_io,2,&hw)==WHYRED_USB_HW_OK);model.reject_mux=true;CHECK(!whyred_usb_hw_select_utmi(&usb_io,&hw));CHECK(model.qs[2]==0x100040);
+    const unsigned offsets[]={UD_TRB_OUT,UD_TRB_IN,UD_TRB_RX,UD_TRB_TX,UD_TRB_INT,UD_SETUP,UD_DATA,UD_NOTIFY,UD_RX,UD_TX};
+    const unsigned sizes[]={16,16,16,16,16,8,512,16,UD_FRAME_MAX,UD_FRAME_MAX};
+    for(unsigned i=0;i<10;i++){CHECK(!(offsets[i]&127)&&offsets[i]+sizes[i]<=UD_SIZE);for(unsigned j=i+1;j<10;j++){unsigned end=(offsets[i]+sizes[i]+127)&~127u;CHECK(end<=offsets[j]||offsets[j]+sizes[j]<=offsets[i]);}}
+    reset_model();sweet_usb_probe();CHECK(!model.maps&&!thread_calls);
+    reset_model();model.boot_mode=1;sweet_usb_probe();CHECK(!model.writes&&!thread_calls);unsigned maps=model.maps;sweet_usb_probe();CHECK(model.maps==maps);
+    reset_model();start_driver();CHECK(!ud.failed&&thread_calls==2&&ud.resource[0]&&ud.state==EP0_SETUP);CHECK((dwc_rd(GCTL)&(3u<<12))==(2u<<12));
+    CHECK(!(dwc_rd(0xc200)&((1u<<6)|(1u<<8)))&&(dwc_rd(DCTL)&DCTL_RUN_STOP));
+    setup(0x80,6,0x100,0,65535);CHECK(model.dma[UD_DATA]==18&&model.dma[UD_DATA+1]==1);
+    setup(0x80,6,0x200,0,80);CHECK(model.dma[UD_DATA]==9&&model.dma[UD_DATA+2]==80);
+    setup(0x80,6,0x600,0,10);CHECK(model.dma[UD_DATA]==10&&model.dma[UD_DATA+1]==6);
+    setup(0x80,6,0x700,0,80);CHECK(model.dma[UD_DATA+1]==7);
+    unsigned stalls=setup_stalls;setup(0x21,0x99,0,0,0);CHECK(setup_stalls==stalls+1&&!ud.failed);
+    for(unsigned req=12;req<256;req++){stalls=setup_stalls;setup(0,req,0xffff,0xffff,0xffff);CHECK(setup_stalls==stalls+1&&!ud.failed);}
+    setup(0,5,127,0,0);CHECK((dwc_rd(DCFG)&(0x7fu<<3))==(127u<<3));
+    setup(0,9,1,0,0);CHECK(ud.configured&&!ud.data_alt&&!ud.resource[EP_RX]);
+    CHECK(ud_if_output(ud.ifp,packet(60,1))==0&&!mbufs);
+    setup(1,11,1,1,0);CHECK(ud.data_alt==1&&ud.resource[EP_RX]&&ud.resource[EP_INT]&&links_up==1);
+    CHECK(!ud_link_ready());setup(0x21,0x43,12,0,0);CHECK(ud_link_ready());
+    ud_if_output(ud.ifp,packet(512,0xab));CHECK(ud.tx_busy&&ud.resource[EP_TX]);CHECK(((uint32_t *)(model.dma+UD_TRB_TX))[2]==513&&model.dma[UD_TX+512]==0);complete(EP_TX,0);
+    memset(model.dma+UD_RX,0x11,60);complete(EP_RX,UD_FRAME_MAX-60);CHECK(received==1&&ud.resource[EP_RX]&&!mbufs);
+    ud_if_output(ud.ifp,packet(60,0xa5));ud_if_output(ud.ifp,packet(60,0x5a));CHECK(mbufs==1);
+    ud_event(1u);CHECK(!ud.configured&&!ud.data_alt&&!ud.tx_busy&&!mbufs&&model.ends>=2&&links_down>0);
+    ready();CHECK(ud_link_ready());setup(1,11,0,1,0);CHECK(ud.configured&&!ud.data_alt&&!ud.packet_filter&&!ud.resource[EP_RX]);
+    setup(1,11,1,1,0);setup(0x21,0x43,12,0,0);CHECK(ud_link_ready());
+    ud_event(1u);model.dwc[DSTS/4]=1;ud_event((2u<<8)|1u);CHECK(ud.max_packet==64);
+    setup(0x80,6,0x200,0,80);for(unsigned at=0;at<80;at+=model.dma[UD_DATA+at])if(model.dma[UD_DATA+at+1]==5&&model.dma[UD_DATA+at+3]==2)CHECK(model.dma[UD_DATA+at+4]==64&&model.dma[UD_DATA+at+5]==0);
+    ready();ud_if_output(ud.ifp,packet(64,0xab));CHECK(((uint32_t *)(model.dma+UD_TRB_TX))[2]==65);complete(EP_TX,0);stop_driver();
+    reset_model();start_driver();ready();ud_if_output(ud.ifp,packet(60,0xa5));ud_if_output(ud.ifp,packet(60,0x5a));
+    ud_event((EP_TX<<1)|(1u<<6));CHECK(ud.failed&&model.dma[UD_TX]==0xa5);stop_driver();
+    reset_model();start_driver();ready();complete(EP_RX,UD_FRAME_MAX+1);CHECK(ud.failed&&!received);stop_driver();
+    reset_model();start_driver();ready();complete(EP_RX,2u<<28);CHECK(ud.failed&&!received);stop_driver();
+    reset_model();start_driver();ready();ud_event((EP_RX<<1)|(1u<<6)|(1u<<12));CHECK(ud.failed&&!received);stop_driver();
+    reset_model();start_driver();uint8_t *pending=model.dma+UD_SETUP;pending[0]=0x80;pending[1]=6;pending[3]=1;pending[6]=18;
+    complete(0,0);CHECK(ud.state==EP0_DATA&&ud.resource[1]);ud_event(1u);
+    CHECK(!ud.failed&&ud.state==EP0_SETUP&&ud.resource[0]&&!ud.resource[1]);stop_driver();
+    reset_model();model.stuck_command=true;start_driver();CHECK(ud.failed&&model.delays>=1000&&!(dwc_rd(DCTL)&DCTL_RUN_STOP));stop_driver();
+    reset_model();model.command_error=true;start_driver();CHECK(ud.failed);stop_driver();
+    reset_model();model.missing_resource=true;start_driver();CHECK(ud.failed);stop_driver();
+    reset_model();model.stuck_stop=true;start_driver();CHECK(ud.failed&&model.starts==0&&model.delays==500010);
+    reset_model();model.stuck_reset=true;start_driver();CHECK(ud.failed&&model.starts==0);stop_driver();
+    reset_model();model.stuck_run=true;start_driver();CHECK(ud.failed);stop_driver();
+    reset_model();model.fail_thread=true;start_driver();CHECK(ud.failed);stop_driver();
+    reset_model();model.fail_dma=true;start_driver();CHECK(ud.failed&&!model.starts&&!thread_calls);
+    reset_model();model.physical_page=0x100000000ULL>>14;start_driver();CHECK(ud.failed&&!model.starts&&!thread_calls);
+    reset_model();model.fail_ifnet=true;start_driver();CHECK(ud.failed&&!model.starts&&!thread_calls);
+    reset_model();model.log_enabled=false;start_driver();CHECK(!ud.failed&&thread_calls==1);stop_driver();
+    reset_model();start_driver();ready();model.dwc[GEVNTCOUNT/4]=UD_EVT_SIZE+4;ud_thread(NULL,0);CHECK(ud.failed);stop_driver();
+    reset_model();start_driver();ready();model.dwc[GEVNTCOUNT/4]=3;ud_thread(NULL,0);CHECK(ud.failed);stop_driver();
+    reset_model();start_driver();ready();ud_event((11u<<8)|1u);CHECK(ud.failed);stop_driver();
+    reset_model();start_driver();ready();const char message[]="whyred UART bytes\n";sweet_log_append(message,(int)sizeof(message)-1);
+    send_failures=1;sleep_limit=3;if(!setjmp(thread_exit))ud_log_thread(NULL,0);
+    CHECK(sends==2&&sent_lengths[0]==sizeof(message)-1&&sent_lengths[1]==sizeof(message)-1);
+    CHECK(!memcmp(first_send,message,sizeof(message)-1)&&!memcmp(second_send,message,sizeof(message)-1));stop_driver();
+    reset_model();start_driver();ready();static char long_log[80000];memset(long_log,0x31,sizeof(long_log));sweet_log_append(long_log,sizeof(long_log));
+    sleep_limit=1;if(!setjmp(thread_exit))ud_log_thread(NULL,0);CHECK(sends==8);stop_driver();
+    CHECK(!mbufs&&!held);printf("PASS: %u actual USB board/core checks (modeled MMIO/kernel services)\n",checks);return 0;
+}
