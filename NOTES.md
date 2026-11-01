@@ -12,11 +12,23 @@
   residuals, open-unlinked and named-vnode reclamation, 1.1 million failures for
   the output budget and 10,000 allocation/reclaim lifetimes. Existing 66 namespace,
   readdir64 and sync checks pass on the candidate. The changed C unit compiles to
-  ARM64 using the authenticated v79 generated headers. Full CI is pending.
+  ARM64 using the authenticated v79 generated headers.
 - Local AddressSanitizer cannot run in the current host environment: even a
   standalone hello-world sanitizer binary exits with SIGILL before main. This
-  is not a passing ASan result. The full CI check requires ASan and UBSan on the
-  supported runner. No candidate image has been flashed or hardware-tested.
-- Next: complete full CI and authenticated boot-only packaging, then obtain the
-  new RAMFS pressure records during an explicitly authorized hardware test.
-  Private artifacts, UART and transfer verification remain outside this repo.
+  is not a passing local ASan result. Both ASan and UBSan passed on the CI runner.
+- Source `2e17298133f5639668ce5366f99b7334bdc01e11`, full workflow
+  [41314180439](https://github.com/timosid/ios-sweetwhyred/actions/runs/41314180439),
+  job `124870632893`: all 25 steps succeeded. This includes the full linked ARM64
+  kernel, the new pressure suite and all retained storage/graphics/AKS checks.
+- Both downloaded CI ZIPs matched their GitHub SHA256 digests. Exact RAMFS source
+  and all retained reviewed runtime files match the buildtree. Linked-code audit
+  found zero LSE/PAN instructions. Boot v80 was packaged with the proven loader,
+  ADT and stock DTB tail; layout and payload guards passed.
+- Boot v80: 22,310,912 bytes, payload 21,503,680 bytes; image SHA256
+  `a52274cdec6a8afbb0f2f7564ac6a1548925edc4137165fd202e3de63664367a`.
+  It enables `whyred-ramfs-trace=1`. No phone command, flash or v80 hardware test
+  has occurred; the inherited installed System v70 remains required.
+- Next: obtain RAMFS pressure records during an explicitly authorized boot-only
+  test. The observed ENOSPC cause and the relation to container crashes/empty
+  frames remain unresolved. Private manifests, UART, decompilation and transfer
+  verification remain outside this repository.
