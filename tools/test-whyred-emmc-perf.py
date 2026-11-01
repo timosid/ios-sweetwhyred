@@ -32,6 +32,11 @@ def main():
     driver_path = args.source / 'bsd/dev/whyred_emmc_pio_probe.c'
     perf_path = args.source / 'bsd/dev/whyred_emmc_perf.h'
     log_path = args.source / 'bsd/sys/whyred_boot_log.h'
+    exports_path = args.source / 'bsd/sys/Makefile'
+    exports = exports_path.read_text()
+    xnu_exports = exports[exports.index('XNU_ONLY_EXPORTS ='):exports.index('EXPORT_MI_LIST')]
+    if 'whyred_boot_log.h' not in xnu_exports.split():
+        raise SystemExit('Quiet helper is not exported to other XNU subsystems')
     driver = driver_path.read_text()
     perf = perf_path.read_text()
     constants = '\n'.join(re.findall(r'^#define (?:SDHCI_|WHYRED_)[^\n]+', driver, re.M))
@@ -77,12 +82,12 @@ def main():
     result = lib.whyred_perf_host_checks()
     if result:
         raise SystemExit('eMMC host check failed at fixture line ' + str(result))
-    count = lib.whyred_perf_check_count()
+    count = lib.whyred_perf_check_count() + 1  # private-header export guard above
     report = dict(passed=True, checks=count, actual_kernel_functions=True,
-                  hardware_emulated=False,
+                  hardware_emulated=False,private_header_export_guard=True,
                   source_sha256={p.relative_to(args.source).as_posix():
                       hashlib.sha256(p.read_bytes()).hexdigest()
-                      for p in (driver_path, perf_path, log_path)},
+                      for p in (driver_path, perf_path, log_path, exports_path)},
                   fixture_sha256=hashlib.sha256(fixture.read_bytes()).hexdigest(),
                   adaptations=adaptations,
                   coverage=['CMD23/CMD18 sizes 2..32 with guarded byte-exact data',

@@ -250,8 +250,8 @@ jobs:
           mkdir -p sdk-kernel-platform
           cp -R "$SDK/System/Library/Frameworks/Kernel.framework/Versions/A/PrivateHeaders/platform" sdk-kernel-platform/ || true
           tar_paths=(xnu)
-          [ -d build/xnu.obj ] && tar_paths+=(build/xnu.obj)
-          [ -d fakeroot/usr/local/include ] && tar_paths+=(fakeroot/usr/local/include)
+          [ -d dxb/build/xnu.obj ] && tar_paths+=(build/xnu.obj)
+          [ -d dxb/fakeroot/usr/local/include ] && tar_paths+=(fakeroot/usr/local/include)
           tar czf buildtree.tgz \
             --exclude='*.o' --exclude='*.cpo' --exclude='*.a' --exclude='*.dSYM' --exclude='*.unstripped' \
             --exclude='kernel.development.*' --exclude='.git' \

@@ -638,3 +638,14 @@ diff --git a/iokit/Kernel/arm/SweetKeyStore.cpp b/iokit/Kernel/arm/SweetKeyStore
  	return ret;
  }
  #endif /* SWEET */
+diff --git a/bsd/sys/Makefile b/bsd/sys/Makefile
+--- a/bsd/sys/Makefile
++++ b/bsd/sys/Makefile
+@@ -229,6 +229,7 @@
+ 	code_signing.h \
+ 
+ XNU_ONLY_EXPORTS = \
++	whyred_boot_log.h \
+ 	bsdtask_info.h \
+ 	file_internal.h \
+ 	filedesc.h \
