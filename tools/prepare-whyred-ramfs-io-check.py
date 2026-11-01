@@ -186,6 +186,7 @@ int main(void){
     CHECK(ramfs_rename_common(&root,&b,&tc,&foreign,NULL,&missing,0)==EXDEV);
     struct vnop_rename_args ordinary={&root,&b,&tc,&right,NULL,&missing};
     CHECK(ramfs_rename(&ordinary)==0 && find(&right,"missing")==&b);
+#ifdef RAMFS_LOGD_DSC
     /* Actual rename/rename-swap must retain root-created DSC classification. */
     struct ramfs_mount cache={.rm_logd_file_limit=8388608};
     struct ramfs_node cr,db,uuid,dsc,stage,source,target;
@@ -204,6 +205,7 @@ int main(void){
     CHECK(!replace.rn_logd_dsc);
     CHECK(ren(&stage,"atomic-temp",&dsc,"new-cache",0)==0&&replace.rn_logd_dsc);
     CHECK(find(&dsc,"new-cache")==&replace&&source.rn_logd_dsc&&!source.rn_nlink);
+#endif
     /* getdirentries64 records, next cookies, small buffers and classic ABI. */
     struct ramfs_node dir;init(&dir,&m,VDIR,20);dir.rn_parent=&root;
     init(&wide,&m,VREG,0x100000123ULL);add(&dir,"large-inode",&wide);
@@ -251,9 +253,13 @@ def main():
     args = ap.parse_args()
     s = args.source.read_text(encoding='utf-8')
     names = ['ramfs_dirent_alloc', 'ramfs_dirent_free', 'ramfs_dir_find',
-             'ramfs_logd_classify_locked', 'ramfs_dir_add', 'ramfs_dir_remove', 'ramfs_rename_cycle',
+             'ramfs_dir_add', 'ramfs_dir_remove', 'ramfs_rename_cycle',
              'ramfs_rename_common', 'ramfs_rename', 'ramfs_renamex',
              'ramfs_readdir', 'ramfs_sync_file', 'ramfs_fsync', 'ramfs_ioctl']
+    # The separate 0145 regression workflow intentionally checks its pinned old
+    # artifact. Execute the new classification only when present in the source.
+    if re.search(r'^ramfs_logd_classify_locked\(', s, re.M):
+        names.insert(names.index('ramfs_dir_add'), 'ramfs_logd_classify_locked')
     functions = {n: function(s, n) for n in names}
     assert '.opve_impl = (VOPFUNC)ramfs_renamex' in s
     assert '.opve_impl = (VOPFUNC)ramfs_fsync' in s
