@@ -126,6 +126,7 @@ static void uio_setoffset(struct uio *u, off_t o) { u->offset = o; }
 static void uio_setresid(struct uio *u, user_ssize_t r) { u->resid = r; }
 static int ramfs_setattr(struct vnop_setattr_args *ap);
 static struct vnop_setattr_args *owner_race;
+static void (*namespace_race)(void);
 static int uiomove(void *p, int n, struct uio *u) {
     assert(held == 0 && n >= 0 && n <= u->resid);
     if (u->input) memcpy(p,u->buf+u->cursor,(size_t)n);
@@ -134,6 +135,7 @@ static int uiomove(void *p, int n, struct uio *u) {
         struct vnop_setattr_args *ap=owner_race;owner_race=NULL;
         assert(ramfs_setattr(ap)==0);
     }
+    if (namespace_race && u->input) { void (*callback)(void)=namespace_race;namespace_race=NULL;callback(); }
     u->cursor += (size_t)n; u->offset += n; u->resid -= n; return 0;
 }
 static int ubc_setsize(vnode_t vp, off_t size) { assert(held == 0); vp->size = size; return 0; }
@@ -171,14 +173,15 @@ static void destroy_node(vnode_t vp) {
 /* Additional host fixtures for the actual kernel ownership snapshot. */
 static void add_name(struct ramfs_node *dir, struct ramfs_node *node, const char *name) {
     struct ramfs_dirent *de=calloc(1,sizeof(*de));
-    de->rd_node=node;de->rd_name=strdup(name);de->rd_namelen=(uint32_t)strlen(name);
-    TAILQ_INSERT_TAIL(&dir->rn_entries,de,rd_link);
+    de->rd_name=strdup(name);de->rd_namelen=(uint32_t)strlen(name);
+    host_lock(&dir->rn_mount->rm_lock);ramfs_dir_add(dir,de,node);host_unlock(&dir->rn_mount->rm_lock);
 }
 static void clear_names(struct ramfs_node *dir) {
     struct ramfs_dirent *de;
     while((de=TAILQ_FIRST(&dir->rn_entries))) {
         TAILQ_REMOVE(&dir->rn_entries,de,rd_link);free(de->rd_name);free(de);
     }
+    dir->rn_nentries=0;
 }
 static int owners_checks(void) {
     char short_name[4]={0}, untouched='x';
@@ -260,10 +263,10 @@ static int logd_limit_checks(void) {
     struct ramfs_mount rm; init_mount(&rm,true,8192);
     struct host_vnode v={.node=new_node(&rm,40)};
     v.node->rn_uid=272;
-    CHECK(ramfs_file_limit(&rm,272)==128*1024*1024ULL);
+    CHECK(ramfs_file_limit(&rm,v.node,272)==128*1024*1024ULL);
     rm.rm_logd_file_limit=ramfs_logd_limit_from_arg(8,rm.rm_max_pages);
-    CHECK(ramfs_file_limit(&rm,272)==8*1024*1024ULL);
-    CHECK(ramfs_file_limit(&rm,501)==128*1024*1024ULL);
+    CHECK(ramfs_file_limit(&rm,v.node,272)==8*1024*1024ULL);
+    CHECK(ramfs_file_limit(&rm,v.node,501)==128*1024*1024ULL);
     struct vnode_attr a={.va_active=bit_va_data_size,.va_data_size=101564195};
     struct vnop_setattr_args ap={.a_vp=&v,.a_vap=&a};
     reset_log(); CHECK(ramfs_setattr(&ap)==EFBIG);
@@ -303,7 +306,82 @@ static int logd_limit_checks(void) {
     return 0;
 }
 
+static struct ramfs_node *cache_race_dir,*cache_race_node;
+static void add_cache_alias_race(void) { add_name(cache_race_dir,cache_race_node,"raced-cache"); }
+static int root_dsc_checks(void) {
+    struct ramfs_mount rm;init_mount(&rm,true,8192);rm.rm_logd_file_limit=8*1024*1024ULL;
+    struct host_vnode dirs[6],files[4];
+    for(unsigned i=0;i<6;i++) {dirs[i]=(struct host_vnode){.node=new_node(&rm,200+i)};dirs[i].node->rn_type=VDIR;}
+    for(unsigned i=0;i<4;i++) files[i]=(struct host_vnode){.node=new_node(&rm,210+i)};
+    rm.rm_root=dirs[0].node;
+    add_name(dirs[0].node,dirs[1].node,"db");
+    add_name(dirs[1].node,dirs[2].node,"uuidtext");
+    add_name(dirs[2].node,dirs[3].node,"dsc");
+    add_name(dirs[0].node,dirs[4].node,"tmp");
+    add_name(dirs[4].node,dirs[5].node,"dsc");
+    add_name(dirs[3].node,files[0].node,"E5420DB330D033AA8B7E05B5038BB46D");
+    add_name(dirs[3].node,files[1].node,"E5420DB330D033AA8B7E05B5038BB46D.rXTE3kEg");
+    add_name(dirs[5].node,files[2].node,"ordinary-root-file");
+    add_name(dirs[2].node,files[3].node,"ordinary-uuidtext-file");
+    CHECK(files[0].node->rn_uid==0&&files[1].node->rn_uid==0);
+    CHECK(files[0].node->rn_logd_dsc&&files[1].node->rn_logd_dsc);
+    CHECK(!files[2].node->rn_logd_dsc&&!files[3].node->rn_logd_dsc);
+    CHECK(ramfs_file_limit(&rm,files[0].node,0)==8*1024*1024ULL);
+    CHECK(ramfs_file_limit(&rm,files[2].node,0)==128*1024*1024ULL);
+    struct vnode_attr a={.va_active=bit_va_data_size,.va_data_size=101564195};
+    struct vnop_setattr_args ap={.a_vp=&files[0],.a_vap=&a};
+    reset_log();CHECK(ramfs_setattr(&ap)==EFBIG&&!rm.rm_pages&&!files[0].node->rn_size);
+    CHECK(strstr(log_text,"cause=logd-file-limit")&&strstr(log_text,"uid=0")&&strstr(log_text,"dsc=1"));
+    ap.a_vp=&files[1];CHECK(ramfs_setattr(&ap)==EFBIG&&!rm.rm_pages&&!files[1].node->rn_size);
+    ap.a_vp=&files[2];CHECK(ramfs_setattr(&ap)==0&&files[2].node->rn_size==101564195&&!rm.rm_pages);
+    /* New hard-link/rename destination classifies the same inode, preserving data. */
+    add_name(dirs[3].node,files[2].node,"linked-cache");
+    CHECK(files[2].node->rn_logd_dsc&&files[2].node->rn_size==101564195);
+    CHECK(ramfs_file_limit(&rm,files[2].node,0)==8*1024*1024ULL);
+    /* Moving or replacing a name cannot remove a previously assigned class. */
+    clear_names(dirs[3].node);add_name(dirs[4].node,files[0].node,"moved-cache");
+    CHECK(files[0].node->rn_logd_dsc&&ramfs_file_limit(&rm,files[0].node,501)==8*1024*1024ULL);
+    ap.a_vp=&files[0];a=(struct vnode_attr){.va_active=bit_va_uid,.va_uid=501};
+    CHECK(ramfs_setattr(&ap)==0&&files[0].node->rn_uid==501);
+    a=(struct vnode_attr){.va_active=bit_va_data_size,.va_data_size=101564195};
+    CHECK(ramfs_setattr(&ap)==EFBIG&&!files[0].node->rn_size);
+    char bytes[3*PAGE_SIZE];memset(bytes,0x4d,sizeof(bytes));struct uio u;
+    rm.rm_logd_file_limit=2*PAGE_SIZE;
+    CHECK(write_bytes(&files[0],bytes,3*PAGE_SIZE,0,&u)==EFBIG&&u.resid==3*PAGE_SIZE&&!rm.rm_pages);
+    CHECK(write_bytes(&files[0],bytes,2*PAGE_SIZE,0,&u)==0&&rm.rm_pages==2);
+    /* Disabled policy preserves the old behavior even for tagged inodes. */
+    rm.rm_logd_file_limit=0;CHECK(write_bytes(&files[0],bytes,3*PAGE_SIZE,0,&u)==0&&rm.rm_pages==3);
+    /* Cache classification changes while uiomove runs without the mount lock. */
+    rm.rm_logd_file_limit=2*PAGE_SIZE;cache_race_dir=dirs[3].node;cache_race_node=files[3].node;
+    namespace_race=add_cache_alias_race;uint64_t pages_before=rm.rm_pages;
+    CHECK(write_bytes(&files[3],bytes,3*PAGE_SIZE,0,&u)==0);
+    CHECK(files[3].node->rn_uid==0&&files[3].node->rn_logd_dsc&&!namespace_race);
+    CHECK(u.offset==2*PAGE_SIZE&&u.resid==PAGE_SIZE&&rm.rm_pages==pages_before+2);
+    cache_race_dir=cache_race_node=NULL;
+    for(unsigned i=0;i<6;i++)clear_names(dirs[i].node);
+    for(unsigned i=0;i<4;i++)destroy_node(&files[i]);
+    for(unsigned i=0;i<6;i++)destroy_node(&dirs[i]);free(rm.rm_hash);
+    CHECK(!allocated_pages&&!ramfs_pages_in_use&&!held);
+
+    /* Recognize a prepopulated tree inserted at the canonical db location. */
+    init_mount(&rm,true,8192);rm.rm_logd_file_limit=8*1024*1024ULL;
+    for(unsigned i=0;i<4;i++){dirs[i]=(struct host_vnode){.node=new_node(&rm,230+i)};dirs[i].node->rn_type=VDIR;}
+    files[0]=(struct host_vnode){.node=new_node(&rm,240)};rm.rm_root=dirs[0].node;
+    add_name(dirs[3].node,files[0].node,"preexisting-cache");
+    add_name(dirs[2].node,dirs[3].node,"dsc");add_name(dirs[1].node,dirs[2].node,"uuidtext");
+    CHECK(!files[0].node->rn_logd_dsc);
+    add_name(dirs[0].node,dirs[1].node,"dbx");CHECK(!files[0].node->rn_logd_dsc);
+    add_name(dirs[0].node,dirs[1].node,"db");CHECK(files[0].node->rn_logd_dsc);
+    CHECK(ramfs_file_limit(&rm,files[0].node,0)==8*1024*1024ULL);
+    rm.rm_trace=false;rm.rm_logd_file_limit=2*PAGE_SIZE;reset_log();
+    CHECK(write_bytes(&files[0],bytes,3*PAGE_SIZE,0,&u)==EFBIG&&!log_lines&&!rm.rm_pages);
+    for(unsigned i=0;i<4;i++)clear_names(dirs[i].node);
+    destroy_node(&files[0]);for(unsigned i=0;i<4;i++)destroy_node(&dirs[i]);free(rm.rm_hash);
+    CHECK(!allocated_pages&&!ramfs_pages_in_use&&!held);return 0;
+}
+
 int main(void) {
+    CHECK(root_dsc_checks()==0);
     CHECK(logd_limit_checks()==0);
     struct ramfs_mount rm; struct uio u;
     CHECK(owners_checks()==0);

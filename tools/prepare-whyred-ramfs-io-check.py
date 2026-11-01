@@ -83,10 +83,10 @@ typedef unsigned int vfs_rename_flags_t;
 #define UBC_SYNC 8
 struct ramfs_node;
 struct ramfs_dirent {TAILQ_ENTRY(ramfs_dirent) rd_link;struct ramfs_node *rd_node;char *rd_name;uint32_t rd_namelen;};
-struct ramfs_mount {int rm_lock;struct ramfs_node *rm_root;};
+struct ramfs_mount {int rm_lock;struct ramfs_node *rm_root;uint64_t rm_logd_file_limit;};
 struct ramfs_node {struct ramfs_mount *rn_mount;uint64_t rn_ino;enum vtype rn_type;uint32_t rn_nlink;
     struct ramfs_node *rn_parent;TAILQ_HEAD(,ramfs_dirent) rn_entries;uint32_t rn_nentries;
-    bool rn_mapped_write;off_t host_size;struct ramfs_node *host_parent;char host_name[256];unsigned host_identity_updates;};
+    bool rn_mapped_write,rn_logd_dsc;uint8_t rn_logd_role;off_t host_size;struct ramfs_node *host_parent;char host_name[256];unsigned host_identity_updates;};
 typedef struct ramfs_node *vnode_t;
 #define RAMFS_NODE(vp) (vp)
 struct componentname {const char *cn_nameptr;int cn_namelen;uint32_t cn_hash;};
@@ -186,6 +186,24 @@ int main(void){
     CHECK(ramfs_rename_common(&root,&b,&tc,&foreign,NULL,&missing,0)==EXDEV);
     struct vnop_rename_args ordinary={&root,&b,&tc,&right,NULL,&missing};
     CHECK(ramfs_rename(&ordinary)==0 && find(&right,"missing")==&b);
+    /* Actual rename/rename-swap must retain root-created DSC classification. */
+    struct ramfs_mount cache={.rm_logd_file_limit=8388608};
+    struct ramfs_node cr,db,uuid,dsc,stage,source,target;
+    init(&cr,&cache,VDIR,100);cache.rm_root=&cr;cr.rn_parent=&cr;
+    init(&db,&cache,VDIR,101);init(&uuid,&cache,VDIR,102);init(&dsc,&cache,VDIR,103);
+    init(&stage,&cache,VDIR,104);init(&source,&cache,VREG,105);init(&target,&cache,VREG,106);
+    add(&cr,"db",&db);add(&db,"uuidtext",&uuid);add(&uuid,"dsc",&dsc);add(&cr,"stage",&stage);
+    add(&stage,"temp",&source);add(&dsc,"cache",&target);
+    CHECK(!source.rn_logd_dsc&&target.rn_logd_dsc);
+    CHECK(ren(&stage,"temp",&dsc,"cache",VFS_RENAME_SWAP)==0);
+    CHECK(source.rn_logd_dsc&&target.rn_logd_dsc&&find(&dsc,"cache")==&source);
+    CHECK(ren(&dsc,"cache",&stage,"outside",0)==0&&source.rn_logd_dsc);
+    CHECK(ren(&cr,"db",&cr,"renamed-db",0)==0&&dsc.rn_logd_role==RAMFS_LOGD_DSC);
+    CHECK(ren(&stage,"outside",&dsc,"new-cache",0)==0&&source.rn_logd_dsc);
+    struct ramfs_node replace;init(&replace,&cache,VREG,107);add(&stage,"atomic-temp",&replace);
+    CHECK(!replace.rn_logd_dsc);
+    CHECK(ren(&stage,"atomic-temp",&dsc,"new-cache",0)==0&&replace.rn_logd_dsc);
+    CHECK(find(&dsc,"new-cache")==&replace&&source.rn_logd_dsc&&!source.rn_nlink);
     /* getdirentries64 records, next cookies, small buffers and classic ABI. */
     struct ramfs_node dir;init(&dir,&m,VDIR,20);dir.rn_parent=&root;
     init(&wide,&m,VREG,0x100000123ULL);add(&dir,"large-inode",&wide);
@@ -233,14 +251,15 @@ def main():
     args = ap.parse_args()
     s = args.source.read_text(encoding='utf-8')
     names = ['ramfs_dirent_alloc', 'ramfs_dirent_free', 'ramfs_dir_find',
-             'ramfs_dir_add', 'ramfs_dir_remove', 'ramfs_rename_cycle',
+             'ramfs_logd_classify_locked', 'ramfs_dir_add', 'ramfs_dir_remove', 'ramfs_rename_cycle',
              'ramfs_rename_common', 'ramfs_rename', 'ramfs_renamex',
              'ramfs_readdir', 'ramfs_sync_file', 'ramfs_fsync', 'ramfs_ioctl']
     functions = {n: function(s, n) for n in names}
     assert '.opve_impl = (VOPFUNC)ramfs_renamex' in s
     assert '.opve_impl = (VOPFUNC)ramfs_fsync' in s
     args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / 'ramfs-io.c').write_text(ADAPTERS+'\n\n'.join(functions.values())+CHECKS,
+    constants = '\n'.join(re.findall(r'^#define RAMFS_LOGD_.*$', s, re.M)) + '\n'
+    (args.output / 'ramfs-io.c').write_text(ADAPTERS+constants+'\n\n'.join(functions.values())+CHECKS,
                                            encoding='utf-8', newline='\n')
     (args.output / 'source-proof.json').write_text(json.dumps(dict(
         source_sha256=hashlib.sha256(args.source.read_bytes()).hexdigest(),

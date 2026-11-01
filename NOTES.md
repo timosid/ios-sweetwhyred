@@ -1,4 +1,26 @@
-## Active v88 USB override release candidate (2026-11-01)
+## Active v89 root DSC cache correction plus USB (2026-11-01)
+
+- New v87 UART proves patch0166's UID-only bound is insufficient at early boot:
+  DSC main6199pages plus temporary1970pages are owned by root, total8169 of8192.
+  Pressure is data-quota, uid0 and file_limit_hits0. Later UID272 ownership had
+  hidden this initialization phase. No pkd/lsd crash is present in this excerpt;
+  its early cutoff does not establish service stability. The repeated attachment
+  has identical bytes and adds no further outcome evidence.
+- Patch0168 classifies /db/uuidtext/dsc entries inside the /var RAMFS, independent
+  of owner, at insertion and replacement/swap rename. Classification remains with
+  inodes and cache directory identities across moves/aliases/UID changes. Existing
+  data is not evicted; the opt-in8MiB per-file bound and UID272 bound both apply.
+  Unrelated root files and the global128MiB quota retain their limits.
+- Local1,120,194 UBSan checks/28 actual functions plus75 namespace/rename checks
+  pass, including root-created cache/temp, unrelated files, owner/namespace races,
+  prepopulated directory insertion and actual replacement/swap renames. ARM64,
+  noLSE/PAN and exact replay pass. Removing root or swap classification compiles
+  then fails functional checks. See WHYRED-RAMFS-PRESSURE.md.
+- V89 combines0168 with v88 USB0167, retained idle repair and lifecycle trace.
+  Full CI/package/device results pending. Do not flash the USB-only v88 as a
+  combined resource fix. Installed remains boot v87 / System v70, UART manual.
+
+## V88 USB override release implementation (2026-11-01)
 
 - V87 boot/System v70 is installed. New manual snapshots show UTMI1 low byte35,
   UTMI2 low byte40: MiCode's FS/non-drive signature plus TEST_MUX. PLL low-byte

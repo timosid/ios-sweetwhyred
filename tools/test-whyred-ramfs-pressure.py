@@ -30,13 +30,22 @@ def main():
     args = parser.parse_args()
     source = args.source / 'bsd/miscfs/whyred_ramfs/ramfs.c'
     text = source.read_text()
-    names = ['ramfs_logd_limit_from_arg', 'ramfs_file_limit', 'ramfs_pressure_name', 'ramfs_pressure_record_locked', 'ramfs_pressure_take_locked', 'ramfs_pressure_emit',
+    names = ['ramfs_dir_find', 'ramfs_logd_classify_locked', 'ramfs_dir_add', 'ramfs_logd_limit_from_arg', 'ramfs_file_limit', 'ramfs_pressure_name', 'ramfs_pressure_record_locked', 'ramfs_pressure_take_locked', 'ramfs_pressure_emit',
              'ramfs_page_alloc', 'ramfs_page_free', 'ramfs_reserve_slots', 'ramfs_free_pages',
              'ramfs_xattr_free', 'ramfs_hash_insert', 'ramfs_hash_remove', 'ramfs_node_free',
              'ramfs_grow_slots', 'ramfs_store', 'ramfs_fetch', 'ramfs_resize', 'ramfs_setattr', 'ramfs_write',
              'ramfs_inactive', 'ramfs_reclaim', 'ramfs_xattr_find', 'ramfs_getxattr', 'ramfs_listxattr']
     extracted = {name: function(text, name) for name in names}
-    declarations = []
+    for name in ['ramfs_make', 'ramfs_link', 'ramfs_rename_common', 'whyred_ramfs_seed_one']:
+        if 'ramfs_dir_add(' not in function(text, name):
+            raise ValueError('Namespace path bypasses classified insertion: ' + name)
+    if 'ramfs_logd_classify_locked(dir, de, node)' not in extracted['ramfs_dir_add']:
+        raise ValueError('Missing common cache-classification hook')
+    rename = function(text, 'ramfs_rename_common')
+    if (rename.count('ramfs_logd_classify_locked(tdir, tde, node)') != 2 or
+            'ramfs_logd_classify_locked(fdir, fde, victim)' not in rename):
+        raise ValueError('Replacement/swap rename bypasses cache classification')
+    declarations = re.findall(r'^#define RAMFS_LOGD_.*$', text, re.M)
     for kind, name in [('struct', 'ramfs_dirent'), ('struct', 'ramfs_xattr'),
                        ('struct', 'ramfs_node'), ('enum', 'ramfs_pressure_reason'),
                        ('struct', 'ramfs_pressure_event'), ('struct', 'ramfs_mount')]:

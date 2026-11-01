@@ -1,3 +1,39 @@
+# V89: classify root-created DSC cache entries
+
+The subsequent v87 capture shows the same6199-page main DSC file and a1970-page
+temporary copy owned by UID0 during early boot. The global8192-page quota is
+full, zero pages are unlinked, and file_limit_hits is0. The earlier UID272-only
+policy therefore fails to cover the phase before ownership changes. No pkd/lsd
+crash appears in this early excerpt; it does not establish their stability.
+
+Patch0168 retains the existing opt-in per-file limit and additionally recognizes
+regular entries in /db/uuidtext/dsc within the /var RAMFS. The canonical three
+directory levels receive sticky role bits at namespace insertion. Classification
+propagates through a prepopulated tree moved into that location, follows at most
+three canonical levels and scans direct DSC entries only. File classification
+persists for the inode's lifetime across hard links, moves and UID changes.
+Replacement and swap rename paths classify their changed entries under the same
+mount lock. No regular-file parent pointer or unbounded full-filesystem scan is
+needed. Directory identity keeps its role after a move.
+
+The existing locked store/setattr/write guards now use the inode classification
+or UID272. Thus root-created main and temporary DSC files get the same8MiB bound
+before data allocation, while unrelated root-owned files retain the global
+limit. Namespace classification during an unlocked user copy is rechecked by
+the store path. Existing oversized files moved into the cache retain their data;
+they are never deleted or silently truncated. This remains a per-file bound,
+not an aggregate cache reservation. Missing/invalid configuration disables it.
+Pressure records add dsc=1 for a classified inode; all previous budgets remain.
+
+Local UBSan passes1,120,194 checks across28 actual functions. Namespace tests pass
+75 checks, including actual swap/replacement renames. Root ownership, temp files,
+unrelated directories, prepopulated moves, chown, classification during uiomove,
+default-off and trace-off behavior are covered. ARM64, noLSE/PAN and exact replay
+pass. Removing root recognition or swap classification compiles then fails a
+functional check. Full CI and real logd/container behavior remain pending.
+
+--- Earlier UID-only implementation and evidence ---
+
 # V87: bound the observed logd cache file
 
 The later v85 UART includes a damaged prefix of the actual largest TOP row:

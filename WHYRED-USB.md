@@ -1,5 +1,11 @@
 # V88: release the observed UTMI non-drive test override
 
+The same USB change is retained in the combined v89 candidate. New v87 RAMFS
+evidence requires a separate root-created DSC correction before the next combined
+test; v88 alone does not contain it. An early capture also supplies event0x00000101
+decoded as bus reset, confirming one event-ring delivery. Successful enumeration
+and data transfers remain unconfirmed.
+
 V87 boot was flashed and rebooted successfully. Its manual UART snapshots10..22
 and27..32 show UTMI_CTRL1=0x35353535, UTMI_CTRL2=0x40404040, powered PHY, low-byte
 PLL lock and controller RUN. The event counter stays1 in those samples and the
