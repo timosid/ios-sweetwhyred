@@ -1,4 +1,19 @@
-# V88: release the observed UTMI non-drive test override
+# V89 physical USB result
+
+The verified v89 boot was flashed and rebooted successfully. Its UART records
+TESTMUX release from CTRL2=0x40404040 to0, release1/changed1, followed by connect,
+setup and ECM configuration. The Mac detects the1209:0001 gadget and exact host
+MAC02:00:5e:77:ee:01 on en1. After assigning192.168.7.1/24 only to that interface,
+ping to192.168.7.2 succeeds5/5 with zero loss,2.118..10.564ms. Actual new kernel
+WHYRED IO and exec log bytes arrive at the Mac on UDP5140. This verifies the
+requested Ethernet and live kernel-console transport on this boot.
+
+The earlier no-enumeration state is resolved in this test after releasing the
+observed override. Reconnect, sustained throughput and long-term idle behavior
+have not been tested. Container/daemon fixes remain separate pending runtime
+evidence; SSH is not included. UART capture remains manual. Raw logs stay private.
+
+# V88/V89: release the observed UTMI non-drive test override
 
 The same USB change is retained in the combined v89 candidate. New v87 RAMFS
 evidence requires a separate root-created DSC correction before the next combined
@@ -37,8 +52,8 @@ units, zeroLSE/PAN object audits and exact late-patch replay pass. Removing rele
 or clobbering interface-select compiles but fails functional assertions. The
 combined v89 workflow41346137446 passed all27 steps, including USB1299 with
 ASan+UBSan and4 exact board-helper bodies. Authenticated packaging retains the
-root DSC correction and idle/service changes. Physical enumeration remains
-pending; the verified v89 boot image has not yet been flashed.
+root DSC correction and idle/service changes. Physical enumeration is now
+verified as recorded above.
 
 --- Earlier RUN-without-enumeration diagnostics ---
 

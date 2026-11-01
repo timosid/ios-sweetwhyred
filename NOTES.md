@@ -1,4 +1,24 @@
-## Verified v89 boot ready; device test pending (2026-11-01)
+## V89 USB Ethernet and live kernel logs verified on device (2026-11-01)
+
+- User confirmed Fastboot with UART open. Fresh single private-baseline device,
+  whyred/unlocked/boot64MiB and image/kernel/source/version/v87 rollback checks
+  passed. Boot send/write and reboot returned OKAY at2026-11-01T20:38:05Z.
+  Installed is now boot v89 / System v70; only boot was written.
+- UART confirms UTMI TESTMUX release: before35353535/40404040, after00000000,
+  release1/changed1. DWC3 receives connect/setup traffic and configures ECM.
+  Mac found the exact host MAC02:00:5e:77:ee:01 on en1 after10.078 seconds;
+  its USB inventory identifies the1209:0001 whyred Ethernet gadget.
+- After OS administrator authentication, the guarded helper added192.168.7.1/24
+  as an alias only on that exact interface, retaining its link-local address.
+  Ping to192.168.7.2 passed5/5, zero loss,2.118..10.564ms (average5.154ms).
+  The Mac receives actual phone kernel WHYRED IO/exec bytes on UDP5140. Thus
+  enumeration, bidirectional IP and live kernel-log transport are established.
+  SSH is outside this image. Reconnect/long-run throughput remain untested.
+- Continued live capture is checking root DSC limits, container creation and
+  service exits. Those outcomes are still pending; USB success does not establish
+  pkd/lsd/daemon stability. UART remains manual; device dumps/serials/logs private.
+
+## Verified v89 build and package (2026-11-01)
 
 - Final build source `f375a2f8cc2b9b29b08f19357dfdd5606969fcca`, full workflow
   [41346137446](https://github.com/timosid/ios-sweetwhyred/actions/runs/41346137446),
@@ -15,13 +35,10 @@
   earlier v89 source036f6ad/run41346036804 supplies no candidate artifacts.
 - V89 boot:22,331,392 bytes, payload21,520,992; image SHA256
   `668b16beddb2be2765b01ae6137b6bfc6b907072bca66d83a07ab65cf1becea1`.
-  It retains the8MiB opt-in, USB snapshots and idle/service diagnostics. It has
-  not been flashed. Fresh physical Fastboot readiness with manual UART was
-  requested; installed remains boot v87 / System v70.
-- Next: fresh identity/product/unlock/boot64MiB/image/kernel/v87 rollback guards,
-  authorized boot-only flash, then new UTMI release/readback/USB events and
-  dsc=1 file-limit/pressure/container/service evidence. Real USB enumeration and
-  logd/cache/container behavior remain unverified. No other partition writes.
+  It retains the8MiB opt-in, USB snapshots and idle/service diagnostics and was
+  flashed as recorded above.
+- Next: dsc=1 file-limit/pressure/container/service evidence from continued live
+  capture and manual UART. Logd/cache/container behavior remains unverified.
 
 ## V89 root DSC cache correction plus USB (2026-11-01)
 
