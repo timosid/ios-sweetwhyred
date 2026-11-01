@@ -149,8 +149,91 @@ static void destroy_node(vnode_t vp) {
     struct vnop_inactive_args inactive = {.a_vp=vp}; ramfs_inactive(&inactive);
     struct vnop_reclaim_args reclaim = {.a_vp=vp}; ramfs_reclaim(&reclaim);
 }
+/* Additional host fixtures for the actual kernel ownership snapshot. */
+static void add_name(struct ramfs_node *dir, struct ramfs_node *node, const char *name) {
+    struct ramfs_dirent *de=calloc(1,sizeof(*de));
+    de->rd_node=node;de->rd_name=strdup(name);de->rd_namelen=(uint32_t)strlen(name);
+    TAILQ_INSERT_TAIL(&dir->rn_entries,de,rd_link);
+}
+static void clear_names(struct ramfs_node *dir) {
+    struct ramfs_dirent *de;
+    while((de=TAILQ_FIRST(&dir->rn_entries))) {
+        TAILQ_REMOVE(&dir->rn_entries,de,rd_link);free(de->rd_name);free(de);
+    }
+}
+static int owners_checks(void) {
+    char short_name[4]={0}, untouched='x';
+    ramfs_pressure_name(short_name,sizeof(short_name),"abcdef",6);
+    CHECK(!strcmp(short_name,"abc"));
+    ramfs_pressure_name(&untouched,0,NULL,100);CHECK(untouched=='x');
+    ramfs_pressure_name(short_name,sizeof(short_name),"\n\"\\",3);CHECK(!strcmp(short_name,"???"));
+    CHECK(sizeof(struct ramfs_pressure_event)<=1024);
+    struct ramfs_mount rm;struct uio u;
+    char *payload=calloc(6,PAGE_SIZE);memset(payload,0x5a,6*PAGE_SIZE);
+    init_mount(&rm,true,16);rm.rm_trace_top=true;
+    struct host_vnode root={.node=new_node(&rm,2)},dir={.node=new_node(&rm,10)};
+    root.node->rn_type=dir.node->rn_type=VDIR;rm.rm_root=root.node;
+    root.node->rn_parent=root.node;dir.node->rn_parent=root.node;
+    add_name(root.node,dir.node,"Logs");
+    const uint64_t inos[]={4,4100,5,6,7};const unsigned pages[]={5,5,3,2,1};
+    struct host_vnode files[5];
+    for(unsigned i=0;i<5;i++) {
+        files[i]=(struct host_vnode){.node=new_node(&rm,inos[i])};
+        CHECK(write_bytes(&files[i],payload,pages[i]*PAGE_SIZE,0,&u)==0);
+    }
+    files[0].node->rn_nlink=0;
+    files[1].node->rn_uid=501;files[1].node->rn_mapped_write=true;
+    add_name(dir.node,files[1].node,"bad\"\n\\name");
+    char long_name[90];memset(long_name,'L',sizeof(long_name)-1);long_name[sizeof(long_name)-1]=0;
+    add_name(dir.node,files[2].node,long_name);add_name(root.node,files[3].node,"cache.db");
+    add_name(dir.node,files[4].node,"small");
+    struct host_vnode probe={.node=new_node(&rm,8)};
+    reset_log();CHECK(write_bytes(&probe,payload,15400,0,&u)==ENOSPC);
+    struct ramfs_pressure_event event=rm.rm_event;event.valid=true;
+    CHECK(event.top_enabled&&event.top_count==4&&event.hash_pages==16&&event.unlinked_pages==5);
+    CHECK(event.top[0].ino==4&&event.top[1].ino==4100&&event.top[2].ino==5&&event.top[3].ino==6);
+    CHECK(event.top[0].pages==5&&!event.top[0].nlink&&!event.top[0].parent&&!event.top[0].name[0]);
+    CHECK(event.top[1].uid==501&&event.top[1].mapped_write&&event.top[1].size==5*PAGE_SIZE);
+    CHECK(!strcmp(event.top[1].name,"bad???name")&&!strcmp(event.top[1].directory,"Logs"));
+    CHECK(event.top[1].parent==10&&!event.top[1].name_truncated);
+    CHECK(event.top[2].name_truncated&&strlen(event.top[2].name)==47&&!event.top[2].dir_truncated);
+    CHECK(event.top[3].parent==2&&!strcmp(event.top[3].directory,"/"));
+    CHECK(!event.names_limited&&event.name_entries<=65536&&log_lines==8&&strstr(log_text,"WHYRED RAMFS TOP"));
+    clear_names(root.node);clear_names(dir.node);
+    for(unsigned i=0;i<5;i++)destroy_node(&files[i]);
+    destroy_node(&probe);destroy_node(&dir);destroy_node(&root);free(rm.rm_hash);
+    CHECK(!allocated_pages&&!ramfs_pages_in_use);
+    reset_log();ramfs_pressure_emit(&event);
+    CHECK(log_lines==8&&strstr(log_text,"bad???name")&&strstr(log_text,"pages=5"));
+
+    /* Bounded name traversal, even with an oversized hard-link-heavy directory. */
+    init_mount(&rm,true,1);rm.rm_trace_top=true;
+    root=(struct host_vnode){.node=new_node(&rm,2)};root.node->rn_type=VDIR;rm.rm_root=root.node;
+    root.node->rn_parent=root.node;
+    struct host_vnode target={.node=new_node(&rm,9000)},other={.node=new_node(&rm,3)};
+    probe=(struct host_vnode){.node=new_node(&rm,4)};
+    CHECK(write_bytes(&target,payload,200,0,&u)==0);
+    for(unsigned i=0;i<65537;i++)add_name(root.node,other.node,"skip");
+    add_name(root.node,target.node,"beyond-budget");
+    reset_log();CHECK(write_bytes(&probe,payload,200,0,&u)==ENOSPC);
+    CHECK(rm.rm_event.top_count==1&&rm.rm_event.top[0].ino==9000&&rm.rm_event.names_limited);
+    CHECK(rm.rm_event.name_entries==65536&&!rm.rm_event.top[0].parent&&!rm.rm_event.top[0].name[0]);
+    clear_names(root.node);destroy_node(&target);destroy_node(&other);destroy_node(&probe);destroy_node(&root);free(rm.rm_hash);
+    CHECK(!allocated_pages&&!ramfs_pages_in_use);
+
+    init_mount(&rm,true,1);rm.rm_trace_top=true;probe=(struct host_vnode){.node=new_node(&rm,2)};
+    fail_page=1;reset_log();CHECK(write_bytes(&probe,payload,200,0,&u)==ENOSPC);
+    CHECK(rm.rm_event.reason==RAMFS_PRESSURE_PAGE&&!rm.rm_event.top_enabled&&log_lines==3);
+    rm.rm_trace=false;rm.rm_failure_seq=0;reset_log();fail_page=1;
+    CHECK(write_bytes(&probe,payload,200,0,&u)==ENOSPC&&rm.rm_failure_seq==0&&!log_lines);
+    destroy_node(&probe);free(rm.rm_hash);free(payload);
+    CHECK(!allocated_pages&&!ramfs_pages_in_use&&!held);
+    reset_log();return 0;
+}
+
 int main(void) {
     struct ramfs_mount rm; struct uio u;
+    CHECK(owners_checks()==0);
     char *data = malloc(PAGE_SIZE*4); memset(data,0x5a,PAGE_SIZE*4);
     init_mount(&rm,false,1);
     struct host_vnode a = {.node=new_node(&rm,10)}, b = {.node=new_node(&rm,11)};

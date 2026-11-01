@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
     source = args.source / 'bsd/miscfs/whyred_ramfs/ramfs.c'
     text = source.read_text()
-    names = ['ramfs_pressure_record_locked', 'ramfs_pressure_take_locked', 'ramfs_pressure_emit',
+    names = ['ramfs_pressure_name', 'ramfs_pressure_record_locked', 'ramfs_pressure_take_locked', 'ramfs_pressure_emit',
              'ramfs_page_alloc', 'ramfs_page_free', 'ramfs_reserve_slots', 'ramfs_free_pages',
              'ramfs_xattr_free', 'ramfs_hash_insert', 'ramfs_hash_remove', 'ramfs_node_free',
              'ramfs_grow_slots', 'ramfs_store', 'ramfs_fetch', 'ramfs_resize', 'ramfs_write',
@@ -49,6 +49,8 @@ def main():
         raise ValueError('Unexpected data quota change')
     if 'MIN(max_mem / 4, WHYRED_RAMFS_DATA_LIMIT) / PAGE_SIZE' not in text:
         raise ValueError('Unexpected mount quota policy')
+    if 'rm->rm_trace && PE_parse_boot_argn("whyred-ramfs-top", &top, sizeof(top)) && top == 1' not in text:
+        raise ValueError('Missing separate default-off owner gate')
     seed = function(text, 'whyred_ramfs_seed_one')
     pageout = function(text, 'ramfs_pageout')
     for name, body in [('seed', seed), ('pageout', pageout)]:

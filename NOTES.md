@@ -1,4 +1,24 @@
-## Active whyred USB follow-up (2026-11-01, v82 PHY shutdown resume)
+## Active whyred follow-up (2026-11-01, RAMFS ownership diagnostics)
+
+- Patch 0161 adds default-off `whyred-ramfs-top=1`, requiring the existing trace
+  flag, to diagnose the observed 128 MiB quota exhaustion. On sampled quota
+  failures it selects the four largest resident file-page owners and snapshots
+  inode/pages/logical size/link count/UID/mapped-write state plus one bounded name
+  and parent-directory name. It does not identify a last-writer process.
+- Selection reuses the coherent locked hash walk; namespace searches share a
+  65,536-entry budget. Fixed metadata/name arrays are copied under the mount lock
+  and printed after unlocking, with no node pointers escaping. Names are bounded,
+  printable and explicitly marked when truncated; a missing alias stays unknown.
+  Existing 32-record sampling limits and quota/error/allocation policy are retained.
+- Local UBSan passes 1,120,134 checks, including ordering/ties, linked/unlinked
+  owners, name truncation/control-byte filtering, snapshot lifetime, the name-walk
+  budget and default-off behavior. Disabling collection fails the new cases.
+  The retained 66 namespace/readdir/sync checks pass. ARM64 compilation passes
+  without a >4 KiB frame warning; object LSE/PAN audit is zero. Full CI is next.
+- USB candidate v82 below is already packaged and waiting for physical Fastboot
+  readiness. Current installed phone is still boot v81 / System v70.
+
+## Verified v82 USB PHY shutdown-resume candidate
 
 - User-supplied v81 UART identifies handoff status 6 before any DWC3 register
   access. Domain/clocks passed, while the legacy PHY POWER_DOWN bit remained set
@@ -17,8 +37,25 @@
   missing reference gate, held resets, wrong PHY states and ordered rollback.
   Disabling the new wake branch is rejected by the strengthened tests. Exact
   patch replay and both ARM64 compiles pass; LSE/PAN object audits find zero.
-- Next: full CI including USB ASan+UBSan, authenticate artifacts and package v82
-  with all v81 retained guards. No v82 image has been flashed or hardware-tested.
+- Source `c6826995ba8de977d97f4e53e1d908d18f664ca1`, full workflow
+  [41323121100](https://github.com/timosid/ios-sweetwhyred/actions/runs/41323121100),
+  job `124897356634`: all 26 steps succeeded, including 601 USB ASan+UBSan checks.
+  Final ZIP provenance/digests/length/CRC, exact sources, linked ISA/cache path,
+  trusted loader/ADT/DTB, layout and size guards passed.
+- Boot v82 is 22,315,008 bytes, payload 21,504,080 bytes; SHA256
+  `55c6a5471135fd1594d9fcc96a9ca94b6246d8e50f268ba5932aeb06f913fb9c`.
+  No v82 hardware test yet. Current installed phone remains v81/System v70.
+- The user's v81 photograph now identifies the RAMFS failure as `data-quota`:
+  8192/8192 pages, matching the hash sum and additions minus frees, i.e. 128 MiB.
+  Zero-link pages are only 67. See `WHYRED-RAMFS-PRESSURE.md`; largest file owners
+  remain unknown. Preparing bounded ownership diagnostics; quotas are unchanged.
+- The user also observes repeated `exec bluetoothd` / `exec fairplayd.H2`.
+  Each name already has 11+16 occurrences in the preserved v79 fragments.
+  Authenticated System v70 config has fairplayd KeepAlive=true and bluetoothd
+  KeepAlive SuccessfulExit=false; neither redirects stdout/stderr to console.
+  The kernel's exec line precedes completion and has no PID/result. No target
+  termination cause is recorded, so failed exec, self-exit and crash/kill remain
+  unresolved. No services or restart policies were changed.
 
 ## Verified v81 USB baseline and hardware observation
 
