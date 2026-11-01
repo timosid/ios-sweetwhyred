@@ -1,3 +1,29 @@
+## Active v85 follow-up (2026-11-01, idle panic and daemon exit causes)
+
+- Installed phone remains boot v82 / System v70. User supplied an actual kernel
+  panic: kernel_task tid102, preemption count1 in ARM64 user return; exact v82
+  UUID/symbols verified. This differs from the separate lsd userspace SIGSEGV.
+- Found an unsafe interrupt-stack path introduced by patch0120: proximate timer
+  wait unmasks IRQs after Idle_context switches to CPU_ISTACKPTR, while the IRQ
+  handler resets SP to that same top. Patch0163 uses masked pending-IRQ/WFI wait
+  instead. This repairs a concrete overlap defect consistent with the panic;
+  physical wakeup/panic absence still need testing. The assertion stays enabled.
+- Patch0164 adds default-off whyred-service-trace=1: bounded PID, exec/spawn errno,
+  activation state, exit wait status and OS reason for bluetoothd, fairplayd.H2,
+  suggestd, lsd and pkd. No daemon cause/fix is yet proven. No jobs disabled.
+  See WHYRED-IDLE-SERVICES.md for semantics, limits and evidence.
+- Local UBSan799 checks pass, including 8000 concurrent report attempts. Changed
+  cpu.c/kern_exec.c/kern_exit.c compile for ARM64; zero LSE/PAN audit, exact replay
+  and both negative controls pass. Full CI will retain all v84 tests and add this
+  suite. Next boot candidate v85 combines these with USB and RAMFS owner tracing.
+- V84 source d4ba66b3b00832f7610a6bd24887f2396d0694d8, CI41327819130/job124911379642:
+  all26 steps pass, USB614 and RAMFS1120134 ASan+UBSan. Authenticated/package
+  image SHA12e1b309a8f7af21fc4f079541943efb42faf603aef577fdf32595150305e8f8.
+  It is unflashed and lacks the new idle fix/daemon trace; prefer v85 next.
+- Full UART's first data-quota failure precedes first pkd attempt; Bluetooth/
+  FairPlay restart attempts already precede quota exhaustion. Largest RAMFS owners
+  remain unknown until TOP output. Preserve quotas and installed System v70.
+
 ## Active whyred follow-up (2026-11-01, EP0 activity plus RAMFS owners)
 
 - V82 boot flash/reboot succeeded after the user's Fastboot-ready answer.

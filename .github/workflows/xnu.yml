@@ -40,6 +40,8 @@ on:
       - "tools/prepare-whyred-ramfs-io-check.py"
       - "tools/test-whyred-ramfs-pressure.py"
       - "tools/whyred-ramfs-pressure-host.c"
+      - "tools/test-whyred-idle-services.py"
+      - "tools/whyred-idle-services-host.c"
       - "tools/test-whyred-usb.py"
       - "tools/whyred-usb-host.c"
       - "tools/whyred-usbnet.py"
@@ -243,6 +245,10 @@ jobs:
         run: |
           python3 tools/test-whyred-usb.py dxb/xnu --output out/usb-host-check --sanitize address,undefined
           python3 tools/whyred-usbnet.py --self-test
+
+      - name: Check idle stack safety and service lifecycle trace
+        run: |
+          python3 tools/test-whyred-idle-services.py dxb/xnu --output out/idle-services-host-check --sanitize address,undefined
 
       - name: Build minimal mockfs PID 1
         run: |
