@@ -4,9 +4,20 @@ Patch 0159 ports the existing polled DWC3 CDC-ECM gadget to whyred. The first
 candidate includes Ethernet and a best-effort kernel console stream. It does
 not install SSH or require changes to the installed System v70 image.
 
-Patch 0160 is the v82 follow-up to the v81 PHY-preflight failure. It adds a narrow
-powered-shutdown resume path and more explicit diagnostics; full CI and a new
-device test are pending. The v81 build/hardware results below remain the baseline.
+Patch 0160 adds the v82 powered-shutdown PHY resume. V82 full CI passed all 26
+steps and 601 USB ASan+UBSan checks. After an authorized boot flash, the user's
+UART confirmed PLL lock, a readable DWC3 ID and ue0 IP setup. Startup then stopped
+at the strict missing-transfer-resource check, before USB RUN.
+
+Patch 0162 is the next EP0 follow-up. The pinned Linux
+[EP0 code](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/efbbb9cce47475c49f28d227b2a52eca6f0d02a7/drivers/usb/dwc3/ep0.c)
+tracks BUSY independently and does not reject a successful control start solely
+for index zero. The driver now separates activity from index, retains HWO checks,
+reads the resource result separately with bounded polling, and still rejects
+missing data-endpoint resources. Raw initial control command/results are logged
+within a fixed budget. An active unindexed control transfer cannot be safely
+retired by this implementation during a mid-control reset, so that path stops
+the controller with DMA retained. Full v84 CI/hardware validation is pending.
 
 The driver is off by default. `whyred-usb=1` takes a read-only handoff snapshot;
 `whyred-usb=2` attempts the gadget. Startup runs once after `net_init_run`, before
@@ -100,10 +111,16 @@ failure before the gadget starts still needs another capture path.
 
 ## Validation status
 
+V84 local UBSan passes 614 USB checks, including CDC setup with zero EP0 indices,
+delayed result indices, result errors/reactivation and safe rejection of active
+DMA reuse or missing bulk resources. Both negative controls fail. ARM64 compile,
+exact late-patch replay and zero LSE/PAN object audits pass. V83 ownership
+diagnostics are retained; full v84 CI and physical enumeration remain pending.
+
 v82 local UBSan passes 601 checks including the PHY shutdown case, delayed and
 failed lock, rejected writes, reference/reset guards and ordered rollback.
 The wake-disabled negative control fails. ARM64 compiles, exact incremental patch
-replay and zero LSE/PAN object audits pass. Full v82 CI/hardware results are pending.
+replay and zero LSE/PAN object audits pass. V82 hardware wake passed as above.
 
 Local checks execute 27 actual kernel functions plus the board helper, with
 modeled MMIO, mbufs, sockets and thread waits. They cover default-off/read-only

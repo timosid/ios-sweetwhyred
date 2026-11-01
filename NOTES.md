@@ -1,4 +1,26 @@
-## Active whyred follow-up (2026-11-01, RAMFS ownership diagnostics)
+## Active whyred follow-up (2026-11-01, EP0 activity plus RAMFS owners)
+
+- V82 boot flash/reboot succeeded after the user's Fastboot-ready answer.
+  Installed phone is now boot v82 / System v70. User UART confirms PHY wake,
+  PLL lock, DWC3 ID 0x5533300a and ue0 address setup. Startup then stopped at the
+  driver's strict missing-transfer-index guard before USB RUN; no host link yet.
+- Patch 0162 follows Linux EP0's separate BUSY/activity tracking: successful
+  EP0 STARTTRANSFER is not rejected solely for a zero resource index. Activity
+  and HWO guard DMA reuse; data endpoints still require a nonzero resource.
+  The resource result is read separately, with a bounded settle window and
+  status/active checks. First control starts and failures log raw command results.
+- A mid-control reset with active EP0 and no retirement index stops the controller
+  and retains DMA rather than reusing it. This conservative limitation still
+  needs device testing; it is not a full USB compliance claim.
+- Local UBSan passes 614 actual USB checks. The model completes CDC setup with
+  zero control indices, rejects active DMA reuse and missing data resources,
+  and covers late result errors/reactivation. Restoring the old zero-index guard
+  or removing the new activity guard fails the respective negative control.
+  Both ARM64 compiles, exact patch replay and zero LSE/PAN object audits pass.
+- Next full candidate v84 retains the v83 ownership diagnostics below. No v84
+  image has been flashed. USB Ethernet and console delivery remain unconfirmed.
+
+## Verified v83 RAMFS ownership diagnostic candidate
 
 - Patch 0161 adds default-off `whyred-ramfs-top=1`, requiring the existing trace
   flag, to diagnose the observed 128 MiB quota exhaustion. On sampled quota
@@ -14,9 +36,16 @@
   owners, name truncation/control-byte filtering, snapshot lifetime, the name-walk
   budget and default-off behavior. Disabling collection fails the new cases.
   The retained 66 namespace/readdir/sync checks pass. ARM64 compilation passes
-  without a >4 KiB frame warning; object LSE/PAN audit is zero. Full CI is next.
-- USB candidate v82 below is already packaged and waiting for physical Fastboot
-  readiness. Current installed phone is still boot v81 / System v70.
+  without a >4 KiB frame warning; object LSE/PAN audit is zero.
+- Source `f3c036f56057ea4e162d2aeb975e717c2fa7ba69`, workflow
+  [41325125813](https://github.com/timosid/ios-sweetwhyred/actions/runs/41325125813),
+  job `124903349713`: all 26 steps succeeded, including 1,120,134 pressure/owner
+  ASan+UBSan checks and 601 retained USB checks. ZIP provenance/digests/CRC,
+  reviewed sources, linked ISA/cache path, loader and layout guards passed.
+- Packaged v83 image SHA256
+  `90bb7b1a1871c1d1e91a7da83be0b7f2351509a9631f3063758f3ce88982685d`.
+  It has not been flashed and retains the old EP0 check; v84 supersedes it for
+  the next combined USB/ownership test. Physical owner output is still pending.
 
 ## Verified v82 USB PHY shutdown-resume candidate
 
@@ -44,7 +73,7 @@
   trusted loader/ADT/DTB, layout and size guards passed.
 - Boot v82 is 22,315,008 bytes, payload 21,504,080 bytes; SHA256
   `55c6a5471135fd1594d9fcc96a9ca94b6246d8e50f268ba5932aeb06f913fb9c`.
-  No v82 hardware test yet. Current installed phone remains v81/System v70.
+  V82 was subsequently flashed as recorded above; installed state is v82/System v70.
 - The user's v81 photograph now identifies the RAMFS failure as `data-quota`:
   8192/8192 pages, matching the hash sum and additions minus frees, i.e. 128 MiB.
   Zero-link pages are only 67. See `WHYRED-RAMFS-PRESSURE.md`; largest file owners

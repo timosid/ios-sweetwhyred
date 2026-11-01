@@ -78,6 +78,8 @@ static struct {
     bool fail_dma, fail_ifnet, fail_thread, fail_mbuf, log_enabled, dma_clean;
     bool replicate_phy_byte, stuck_phy_pll, reject_phy_power, phy_resume_active;
     unsigned phy_writes, phy_resume_at, phy_lock_delay;
+    bool zero_control_resource, late_result_error, result_reactivates;
+    unsigned delayed_index, index_reads_left[6], pending_index[6], start_reads[6];
     uint64_t physical_page;
     int boot_mode, lock;
     unsigned commands, starts, ends;
@@ -154,7 +156,21 @@ static void delay(unsigned us) { model.delays+=us; }
 static void hw_delay(void *ctx,unsigned us) { (void)ctx; delay(us); }
 static const struct whyred_usb_io usb_io={.map=hw_map,.read=hw_read,.write=hw_write,.delay_us=hw_delay};
 static uint32_t usb_rd(vm_offset_t base,uint32_t off) { return hw_read(NULL,base,off); }
-static uint32_t dwc_rd(uint32_t off) { assert(clocks_ready() && off<sizeof(model.dwc)); return model.dwc[off/4]; }
+static uint32_t dwc_rd(uint32_t off) {
+    assert(clocks_ready() && off<sizeof(model.dwc));
+    if (off>=DEPCMD(0) && off<=DEPCMD(5) && ((off-DEPCMD(0))%16)==0) {
+        unsigned ep=(off-DEPCMD(0))/16;
+        if ((model.dwc[off/4]&15)==DEPCMD_STARTTRANSFER) {
+            if (model.index_reads_left[ep] && !--model.index_reads_left[ep])
+                model.dwc[off/4]|=model.pending_index[ep]<<16;
+            if (++model.start_reads[ep]>=2) {
+                if (model.late_result_error) model.dwc[off/4]|=1u<<12;
+                if (model.result_reactivates) model.dwc[off/4]|=DEPCMD_CMDACT;
+            }
+        }
+    }
+    return model.dwc[off/4];
+}
 static void dwc_wr(uint32_t off,uint32_t value) {
     assert(clocks_ready() && off<sizeof(model.dwc));
     if (off==GEVNTADRLO) assert(model.dma_clean); /* KMA_ZERO dirties event-ring cache lines. */
@@ -166,6 +182,7 @@ static void dwc_wr(uint32_t off,uint32_t value) {
     }
     if (off>=DEPCMD(0) && off<=DEPCMD(5) && ((off-DEPCMD(0))%16)==0) {
         unsigned ep=(off-DEPCMD(0))/16,cmd=value&15; model.commands++;
+        model.start_reads[ep]=model.index_reads_left[ep]=model.pending_index[ep]=0;
         if (cmd==DEPCMD_SETSTALL) setup_stalls++;
         if (model.stuck_command) return;
         model.dwc[off/4]=value & ~DEPCMD_CMDACT;
@@ -173,7 +190,12 @@ static void dwc_wr(uint32_t off,uint32_t value) {
         if (cmd==DEPCMD_STARTTRANSFER) {
             assert(model.dma_clean);
             model.starts++;
-            model.dwc[off/4]=(model.dwc[off/4]&0xffffu)|((model.missing_resource?0:ep+1)<<16);
+            unsigned index=model.missing_resource || (model.zero_control_resource && ep<2) ? 0 : ep+1;
+            model.dwc[off/4]=(model.dwc[off/4]&0xffffu)|(index<<16);
+            if (index && model.delayed_index) {
+                model.pending_index[ep]=index;model.index_reads_left[ep]=model.delayed_index;
+                model.dwc[off/4]&=0xffffu;
+            }
         }
         if (cmd==DEPCMD_ENDTRANSFER) model.ends++;
     }
@@ -272,7 +294,7 @@ static void complete(unsigned ep,uint32_t residual) {
     ud_event((ep<<1)|(1u<<6));
 }
 static void setup(uint8_t type,uint8_t req,uint16_t value,uint16_t index,uint16_t length) {
-    assert(ud.state==EP0_SETUP && ud.resource[0]);
+    assert(ud.state==EP0_SETUP && ud.active[0]);
     uint8_t *p=model.dma+UD_SETUP;p[0]=type;p[1]=req;p[2]=(uint8_t)value;p[3]=(uint8_t)(value>>8);
     p[4]=(uint8_t)index;p[5]=(uint8_t)(index>>8);p[6]=(uint8_t)length;p[7]=(uint8_t)(length>>8);
     complete(0,0);
@@ -391,7 +413,25 @@ int main(void) {
     CHECK(!ud.failed&&ud.state==EP0_SETUP&&ud.resource[0]&&!ud.resource[1]);stop_driver();
     reset_model();model.stuck_command=true;start_driver();CHECK(ud.failed&&model.delays>=1000&&!(dwc_rd(DCTL)&DCTL_RUN_STOP));stop_driver();
     reset_model();model.command_error=true;start_driver();CHECK(ud.failed);stop_driver();
-    reset_model();model.missing_resource=true;start_driver();CHECK(ud.failed);stop_driver();
+    reset_model();model.missing_resource=true;start_driver();CHECK(!ud.failed&&ud.active[0]);
+    ready();CHECK(ud.failed);stop_driver();
+    reset_model();model.zero_control_resource=true;start_driver();
+    CHECK(!ud.failed&&ud.active[0]&&!ud.resource[0]&&thread_calls==2);
+    CHECK(((uint32_t *)(model.dma+UD_TRB_OUT))[3]&TRB_HWO);
+    setup(0x80,6,0x100,0,18);CHECK(!ud.failed&&ud.active[0]&&!ud.resource[0]);
+    ready();CHECK(ud_link_ready()&&ud.active[EP_RX]&&ud.resource[EP_RX]);
+    ud_if_output(ud.ifp,packet(60,0x51));CHECK(ud.active[EP_TX]);complete(EP_TX,0);
+    CHECK(!ud.active[EP_TX]&&!ud.resource[EP_TX]&&!ud.tx_busy);stop_driver();
+    reset_model();model.zero_control_resource=true;start_driver();
+    unsigned starts_before=model.starts;((uint32_t *)(model.dma+UD_TRB_OUT))[3]&=~TRB_HWO;
+    CHECK(ud_start(0,UD_SETUP,8,TRBCTL_SETUP)==-1&&ud.failed&&model.starts==starts_before);stop_driver();
+    reset_model();model.zero_control_resource=true;start_driver();
+    uint8_t *control=model.dma+UD_SETUP;control[0]=0x80;control[1]=6;control[3]=1;control[6]=18;
+    complete(0,0);CHECK(ud.state==EP0_DATA&&ud.active[1]&&!ud.resource[1]);
+    ud_event((1u<<8)|1u);CHECK(ud.failed&&(((uint32_t *)(model.dma+UD_TRB_IN))[3]&TRB_HWO));stop_driver();
+    reset_model();model.delayed_index=8;start_driver();CHECK(!ud.failed&&ud.resource[0]==1&&ud.active[0]);stop_driver();
+    reset_model();model.late_result_error=true;start_driver();CHECK(ud.failed&&!thread_calls);stop_driver();
+    reset_model();model.result_reactivates=true;start_driver();CHECK(ud.failed&&!thread_calls&&model.delays<2000);stop_driver();
     reset_model();model.stuck_stop=true;start_driver();CHECK(ud.failed&&model.starts==0&&model.delays==500010);
     reset_model();model.stuck_reset=true;start_driver();CHECK(ud.failed&&model.starts==0);stop_driver();
     reset_model();model.stuck_run=true;start_driver();CHECK(ud.failed);stop_driver();

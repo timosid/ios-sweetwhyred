@@ -87,5 +87,7 @@ Local UBSan passes 1,120,134 checks; the wake-independent namespace suite retain
 all 66 passing cases. Ownership tests cover ties, unlinked retention, truncated
 and control-byte names, printing after node reclamation, the entry-walk budget
 and default-off/other-failure behavior. The disabled-collector negative control
-fails. Full CI and physical owner output remain pending. No quota, allocation,
+fails. Full [CI 41325125813](https://github.com/timosid/ios-sweetwhyred/actions/runs/41325125813)
+passed all 26 steps, including these 1,120,134 checks with ASan+UBSan. Physical
+owner output remains pending. No quota, allocation,
 error-return, namespace or service-restart policy changes are included.
