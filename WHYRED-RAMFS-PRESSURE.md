@@ -1,3 +1,57 @@
+# V87: bound the observed logd cache file
+
+The later v85 UART includes a damaged prefix of the actual largest TOP row:
+6199 resident pages, logical size101,564,195 bytes, UID272, directory dsc. TOP
+ranks start at zero; the initially supplied rank1 was the second-largest file.
+That largest file consumes96.86MiB,75.7% of the128MiB quota. Its name matches the
+main installed dyld cache UUID. The preserved System account table identifies
+UID272 as _logd. The following rank1/rank2/rank3 files total only7.52MiB; the
+previous inference from those three alone was incomplete.
+
+The same run records containermanagerd failing a556-byte atomic staging-metadata
+write with ENOSPC. Pkd repeats its earlier container-related SIGABRT stack.
+Fairplayd.H2 and bluetoothd instead exit normally with code0; suggestd exits2
+without a signal. Their early-exit causes and the fresh lsd class-metadata fault
+remain unresolved. The user cannot provide missing older UART lines; further
+requests for that lost capture are unnecessary.
+
+Patch0166 adds a development/debug opt-in `whyred-logd-file-mb=N`. Values1..64
+bound the logical size of each regular file owned by the confirmed UID272;
+invalid/missing values disable it. The effective bound also respects the mount's
+existing limit. V87 will try8MiB: the observed97MiB DSC-format cache cannot be
+materialized, while the observed4.6MiB individual UUID file fits. The global
+128MiB quota and its quarter-of-memory guard stay unchanged. This is a per-file
+policy, not an aggregate UID reservation, deletion policy or job restart change.
+
+Buffered writes reject a request crossing that file-size bound with EFBIG before
+copying data or allocating pages. The locked store path rechecks the owner/limit
+for pageout and concurrent owner changes. A partial write committed before an
+owner change returns its actual byte count. Truncate and combined UID/size
+changes check the final state before mutating attributes; transferring an already
+oversized file to UID272 fails, while truncating it into range and transferring
+ownership together succeeds. Existing files are never evicted or silently
+truncated. Other owners retain the previous limits.
+
+`logd-file-limit` pressure records identify EFBIG from this policy and show UID,
+file_limit bytes and file_limit_hits. The existing sampling/output budget and
+outside-lock printer are retained. Default-off behavior is tested. The real
+logd response to a refused DSC cache must be checked on the phone; this may
+reduce symbol information available to unified-log readers and does not claim
+that logd handles every failure gracefully. Kernel UART/UDP console capture uses
+its existing independent ring. V86 USB diagnostics and v85 idle/service changes
+are retained in the next candidate.
+
+Local UBSan passes1,120,166 checks across25 actual functions, including configured
+bounds/invalid values, rejecting the101MiB truncate without page allocation,
+full-request EFBIG/residuals, rewrites at the bound, owner-transfer atomicity,
+combined truncate/chown, default-off behavior and an owner change after write
+preflight. All66 namespace/readdir/sync checks pass. ARM64 compilation, noLSE/PAN
+and exact patch replay pass. Disabling the size policy or its owner-transfer
+check fails functional assertions after successful compilation. Full CI and
+physical cache/container behavior remain to be checked.
+
+--- Earlier diagnostic implementation and history ---
+
 # Volatile RAMFS pressure diagnostics
 
 Patch 0158 adds `whyred-ramfs-trace=1` to development/debug kernels. It is off by

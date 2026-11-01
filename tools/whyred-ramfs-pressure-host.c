@@ -47,6 +47,19 @@ struct vnop_inactive_args { vnode_t a_vp; };
 struct vnop_reclaim_args { vnode_t a_vp; };
 struct vnop_getxattr_args { vnode_t a_vp; const char *a_name; struct uio *a_uio; size_t *a_size; };
 struct vnop_listxattr_args { vnode_t a_vp; struct uio *a_uio; size_t *a_size; };
+#define WHYRED_RAMFS_LOGD_UID 272u
+#define ALLPERMS 07777
+#define VATTR_IS_ACTIVE(v, f) (((v)->va_active & bit_##f) != 0)
+#define VATTR_SET_SUPPORTED(v, f) ((v)->va_supported |= bit_##f)
+enum { bit_va_data_size=1, bit_va_mode=2, bit_va_uid=4, bit_va_gid=8,
+       bit_va_dataprotect_class=16, bit_va_flags=32, bit_va_create_time=64,
+       bit_va_access_time=128, bit_va_modify_time=256, bit_va_change_time=512 };
+struct vnode_attr {
+    uint64_t va_active, va_supported, va_data_size;
+    uid_t va_uid; gid_t va_gid; unsigned va_mode, va_dataprotect_class, va_flags;
+    struct timespec va_create_time,va_access_time,va_modify_time,va_change_time;
+};
+struct vnop_setattr_args { vnode_t a_vp; struct vnode_attr *a_vap; };
 static unsigned vm_page_free_count = 123, vm_page_wire_count = 456;
 static _Atomic uint64_t ramfs_pages_in_use;
 static void *kernel_map;
@@ -111,10 +124,16 @@ static user_ssize_t uio_resid(struct uio *u) { return u->resid; }
 static off_t uio_offset(struct uio *u) { return u->offset; }
 static void uio_setoffset(struct uio *u, off_t o) { u->offset = o; }
 static void uio_setresid(struct uio *u, user_ssize_t r) { u->resid = r; }
+static int ramfs_setattr(struct vnop_setattr_args *ap);
+static struct vnop_setattr_args *owner_race;
 static int uiomove(void *p, int n, struct uio *u) {
     assert(held == 0 && n >= 0 && n <= u->resid);
     if (u->input) memcpy(p,u->buf+u->cursor,(size_t)n);
     else memcpy(u->buf+u->cursor,p,(size_t)n);
+    if (owner_race && u->input) {
+        struct vnop_setattr_args *ap=owner_race;owner_race=NULL;
+        assert(ramfs_setattr(ap)==0);
+    }
     u->cursor += (size_t)n; u->offset += n; u->resid -= n; return 0;
 }
 static int ubc_setsize(vnode_t vp, off_t size) { assert(held == 0); vp->size = size; return 0; }
@@ -231,7 +250,61 @@ static int owners_checks(void) {
     reset_log();return 0;
 }
 
+static int logd_limit_checks(void) {
+    CHECK(ramfs_logd_limit_from_arg(0,8192)==0);
+    CHECK(ramfs_logd_limit_from_arg(65,8192)==0);
+    CHECK(ramfs_logd_limit_from_arg(UINT32_MAX,8192)==0);
+    CHECK(ramfs_logd_limit_from_arg(8,8192)==8*1024*1024ULL);
+    CHECK(ramfs_logd_limit_from_arg(64,7)==7*PAGE_SIZE);
+    CHECK(ramfs_logd_limit_from_arg(64,UINT64_MAX)==64*1024*1024ULL);
+    struct ramfs_mount rm; init_mount(&rm,true,8192);
+    struct host_vnode v={.node=new_node(&rm,40)};
+    v.node->rn_uid=272;
+    CHECK(ramfs_file_limit(&rm,272)==128*1024*1024ULL);
+    rm.rm_logd_file_limit=ramfs_logd_limit_from_arg(8,rm.rm_max_pages);
+    CHECK(ramfs_file_limit(&rm,272)==8*1024*1024ULL);
+    CHECK(ramfs_file_limit(&rm,501)==128*1024*1024ULL);
+    struct vnode_attr a={.va_active=bit_va_data_size,.va_data_size=101564195};
+    struct vnop_setattr_args ap={.a_vp=&v,.a_vap=&a};
+    reset_log(); CHECK(ramfs_setattr(&ap)==EFBIG);
+    CHECK(v.node->rn_size==0&&rm.rm_pages==0&&!allocated_pages);
+    CHECK(strstr(log_text,"cause=logd-file-limit")&&strstr(log_text,"file_limit=8388608"));
+    char bytes[3*PAGE_SIZE];memset(bytes,0x62,sizeof(bytes));struct uio u;
+    rm.rm_logd_file_limit=2*PAGE_SIZE;
+    CHECK(write_bytes(&v,bytes,2*PAGE_SIZE+10,0,&u)==EFBIG);
+    CHECK(u.resid==(user_ssize_t)(2*PAGE_SIZE+10)&&u.offset==0&&rm.rm_pages==0&&v.node->rn_size==0);
+    CHECK(write_bytes(&v,bytes,2*PAGE_SIZE,0,&u)==0&&rm.rm_pages==2&&v.node->rn_size==2*PAGE_SIZE);
+    CHECK(write_bytes(&v,bytes,1,2*PAGE_SIZE,&u)==EFBIG&&u.resid==1&&u.offset==2*PAGE_SIZE);
+    CHECK(write_bytes(&v,bytes,1,2*PAGE_SIZE-1,&u)==0&&rm.rm_pages==2);
+    a=(struct vnode_attr){.va_active=bit_va_data_size|bit_va_mode,.va_data_size=2*PAGE_SIZE+1,.va_mode=0777};
+    unsigned oldmode=v.node->rn_mode; CHECK(ramfs_setattr(&ap)==EFBIG);
+    CHECK(v.node->rn_size==2*PAGE_SIZE&&v.node->rn_mode==oldmode&&!a.va_supported);
+    a=(struct vnode_attr){.va_active=bit_va_data_size,.va_data_size=PAGE_SIZE};
+    CHECK(ramfs_setattr(&ap)==0&&rm.rm_pages==1&&v.node->rn_size==PAGE_SIZE&&v.size==(off_t)PAGE_SIZE);
+    a=(struct vnode_attr){.va_active=bit_va_uid,.va_uid=0};
+    CHECK(ramfs_setattr(&ap)==0&&v.node->rn_uid==0);
+    CHECK(write_bytes(&v,bytes,3*PAGE_SIZE,0,&u)==0&&rm.rm_pages==3);
+    a=(struct vnode_attr){.va_active=bit_va_uid|bit_va_mode,.va_uid=272,.va_mode=0777};
+    CHECK(ramfs_setattr(&ap)==EFBIG&&v.node->rn_uid==0&&v.node->rn_mode==oldmode&&!a.va_supported);
+    a=(struct vnode_attr){.va_active=bit_va_uid|bit_va_data_size,.va_uid=272,.va_data_size=PAGE_SIZE};
+    CHECK(ramfs_setattr(&ap)==0&&v.node->rn_uid==272&&rm.rm_pages==1);
+    rm.rm_logd_file_limit=0;
+    CHECK(write_bytes(&v,bytes,3*PAGE_SIZE,0,&u)==0&&rm.rm_pages==3); /* Default-off policy. */
+    destroy_node(&v);free(rm.rm_hash);CHECK(!rm.rm_pages&&!allocated_pages&&!held);
+    init_mount(&rm,true,8192);rm.rm_logd_file_limit=2*PAGE_SIZE;
+    v=(struct host_vnode){.node=new_node(&rm,41)};
+    a=(struct vnode_attr){.va_active=bit_va_uid,.va_uid=272};
+    ap=(struct vnop_setattr_args){.a_vp=&v,.a_vap=&a};owner_race=&ap;
+    CHECK(write_bytes(&v,bytes,3*PAGE_SIZE,0,&u)==0); /* Owner changes after preflight, before store. */
+    CHECK(v.node->rn_uid==272&&u.offset==2*PAGE_SIZE&&u.resid==(user_ssize_t)PAGE_SIZE);
+    CHECK(rm.rm_pages==2&&v.node->rn_size==2*PAGE_SIZE&&!owner_race);
+    CHECK(rm.rm_failures[RAMFS_PRESSURE_FILE_LIMIT]==1);
+    destroy_node(&v);free(rm.rm_hash);CHECK(!allocated_pages&&!held);
+    return 0;
+}
+
 int main(void) {
+    CHECK(logd_limit_checks()==0);
     struct ramfs_mount rm; struct uio u;
     CHECK(owners_checks()==0);
     char *data = malloc(PAGE_SIZE*4); memset(data,0x5a,PAGE_SIZE*4);

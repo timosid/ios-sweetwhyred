@@ -1,3 +1,28 @@
+## Active v87 cache-bound fix (2026-11-01)
+
+- New v85 UART recovers the damaged largest TOP row: logd's DSC cache is6199
+  pages/96.86MiB,75.7% of128MiB. Its filename matches the main dyld cache UUID.
+  TOP ranks are zero-based; the earlier rank1-largest interpretation was wrong.
+  Containermanagerd then fails556-byte container metadata writes with ENOSPC.
+- Patch0166 adds default-off whyred-logd-file-mb=N (1..64MiB per UID272 regular
+  file). Next v87 tries8MiB. Oversized writes/truncate return EFBIG before page
+  allocation; locked stores and final owner/size checks cover races/pageout and
+  owner transfer. No global quota increase, file deletion or job policy change.
+  Physical logd behavior and unified-log symbol availability need testing.
+- Local UBSan1120166/25 actual functions,66 namespace checks, ARM64/noLSE/PAN,
+  exact replay and functional limit/owner negative controls pass. Full CI next.
+  See WHYRED-RAMFS-PRESSURE.md. This is a candidate resource fix; daemon exit
+  causes/lsd faults and successful container creation remain open.
+- V86 USB snapshot source1ebb9427e50bf5ff0cbd5e641849b7baa38beea7, CI41338911774
+  job124944527693: all27 steps passed (USB637/RAMFS1120134/idle799 ASan+UBSan).
+  Provenance/digests/CRC, exact sources/fixtures, linked ISA/cache/idle and loader/
+  layout guards passed. Image SHAa3f3bd6839ac59ad8c86f8e0707253ba1aa08a46f0d8e4e186042cf7422cd260,
+  22,331,392 bytes; unflashed. V87 combines those snapshots with the cache bound.
+- Actual service traces: fairplayd.H2/bluetoothd spawn succeeds then exit0;
+  suggestd exit2/reason0; pkd SIGABRT same stack; lsd SIGSEGV still reproduces.
+  Services remain enabled. No more lost old UART can be supplied. Installed
+  phone remains boot v85 / System v70; boot-only workflow, UART manual.
+
 ## Active v86 USB connection diagnosis (2026-11-01)
 
 - Installed remains boot v85 / System v70. User reports no new USB lines on

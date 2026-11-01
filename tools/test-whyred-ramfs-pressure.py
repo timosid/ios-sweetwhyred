@@ -30,10 +30,10 @@ def main():
     args = parser.parse_args()
     source = args.source / 'bsd/miscfs/whyred_ramfs/ramfs.c'
     text = source.read_text()
-    names = ['ramfs_pressure_name', 'ramfs_pressure_record_locked', 'ramfs_pressure_take_locked', 'ramfs_pressure_emit',
+    names = ['ramfs_logd_limit_from_arg', 'ramfs_file_limit', 'ramfs_pressure_name', 'ramfs_pressure_record_locked', 'ramfs_pressure_take_locked', 'ramfs_pressure_emit',
              'ramfs_page_alloc', 'ramfs_page_free', 'ramfs_reserve_slots', 'ramfs_free_pages',
              'ramfs_xattr_free', 'ramfs_hash_insert', 'ramfs_hash_remove', 'ramfs_node_free',
-             'ramfs_grow_slots', 'ramfs_store', 'ramfs_fetch', 'ramfs_resize', 'ramfs_write',
+             'ramfs_grow_slots', 'ramfs_store', 'ramfs_fetch', 'ramfs_resize', 'ramfs_setattr', 'ramfs_write',
              'ramfs_inactive', 'ramfs_reclaim', 'ramfs_xattr_find', 'ramfs_getxattr', 'ramfs_listxattr']
     extracted = {name: function(text, name) for name in names}
     declarations = []
@@ -51,6 +51,11 @@ def main():
         raise ValueError('Unexpected mount quota policy')
     if 'rm->rm_trace && PE_parse_boot_argn("whyred-ramfs-top", &top, sizeof(top)) && top == 1' not in text:
         raise ValueError('Missing separate default-off owner gate')
+    if ('PE_parse_boot_argn("whyred-logd-file-mb", &logd_file_mib, sizeof(logd_file_mib))' not in text or
+            'ramfs_logd_limit_from_arg(logd_file_mib, rm->rm_max_pages)' not in text):
+        raise ValueError('Missing opt-in logd limit configuration')
+    if extracted['ramfs_setattr'].index('final_size > ramfs_file_limit') > extracted['ramfs_setattr'].index('ramfs_resize(node, size)'):
+        raise ValueError('Owner/size policy must be checked before attribute mutations')
     seed = function(text, 'whyred_ramfs_seed_one')
     pageout = function(text, 'ramfs_pageout')
     for name, body in [('seed', seed), ('pageout', pageout)]:
