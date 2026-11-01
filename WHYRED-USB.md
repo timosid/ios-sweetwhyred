@@ -4,6 +4,10 @@ Patch 0159 ports the existing polled DWC3 CDC-ECM gadget to whyred. The first
 candidate includes Ethernet and a best-effort kernel console stream. It does
 not install SSH or require changes to the installed System v70 image.
 
+Patch 0160 is the v82 follow-up to the v81 PHY-preflight failure. It adds a narrow
+powered-shutdown resume path and more explicit diagnostics; full CI and a new
+device test are pending. The v81 build/hardware results below remain the baseline.
+
 The driver is off by default. `whyred-usb=1` takes a read-only handoff snapshot;
 `whyred-usb=2` attempts the gadget. Startup runs once after `net_init_run`, before
 root discovery, independently of UFS initialization. It never starts the UFS
@@ -29,9 +33,17 @@ and the USB2 PIPE mux/VBUS fields from
 | GCC USB30 GDSCR / reset | `0xf004` / `0xf000` from GCC `0x00100000` |
 | Master / sleep / UTMI clocks | `0xf008` / `0xf00c` / `0xf010` |
 | Config-NoC / aggre2 / AHB2PHY | `0x5018` / `0xf03c` / `0x6a004` |
+| QUSB2 / AHB2PHY resets | `0x12000` / `0x6a000` from GCC |
 
 This initial port takes over the bootloader's powered, calibrated PHY. It
-requires GDSC on, reset deasserted and a locked, unclamped PHY. Cold PHY power-up,
+requires GDSC on and resets deasserted. Patch 0159 required an already locked,
+unclamped PHY. Patch 0160 can release the exact legacy shutdown low-byte state
+`0x23` to `0x22`, as used by `qusb_phy_shutdown` and `qusb_phy_init` in the pinned
+[MiCode PHY driver](https://github.com/MiCode/Xiaomi_Kernel_OpenSource/blob/efbbb9cce47475c49f28d227b2a52eca6f0d02a7/drivers/usb/phy/phy-msm-qusb.c).
+It requires the existing reference gate on, retains tuning, waits 150 us and
+polls at most another 1000 us for power readback plus PLL lock. A failed preflight
+restores the PHY shutdown state before undoing introduced branch votes. It does
+not attempt other PHY states or analog power-up. Cold PHY power-up,
 PMIC supplies and clock-source/PLL programming are not implemented. Mode 2 can
 vote the six confirmed branch enable bits with bounded polls; preflight failure
 undoes only votes introduced by that attempt. It does not read gated DWC3/PHY
@@ -39,8 +51,10 @@ blocks or copy another SoC's SMMU SID/configuration. DMA below 4 GiB assumes the
 bootloader's direct USB DMA path; physical DMA visibility still needs testing.
 
 `WHYRED USB: handoff=N` reports 0 ready, 2 map failure, 3 power domain off,
-4 reset asserted, 5 clock unavailable, 6 PHY not ready, or 7 invalid/held-reset
-core. The snapshot includes the clock and PHY values. A failed warm handoff
+4 reset asserted, 5 clock unavailable, 6 PHY not ready, 7 invalid/held-reset
+core, or 8 attempted PHY wake failed. The snapshot includes clocks, PHY values
+before/after, wake attempt/polls/rollback and QUSB/AHB reset states. The driver
+explicitly says when the controller was never sampled. A failed handoff
 stops before gadget startup; setting the boot flag alone does not prove a link.
 
 The gadget halts the bootloader controller before installing its own DMA area.
@@ -85,6 +99,11 @@ can still lose bytes; this is not a lossless or panic-safe transport. An earlier
 failure before the gadget starts still needs another capture path.
 
 ## Validation status
+
+v82 local UBSan passes 601 checks including the PHY shutdown case, delayed and
+failed lock, rejected writes, reference/reset guards and ordered rollback.
+The wake-disabled negative control fails. ARM64 compiles, exact incremental patch
+replay and zero LSE/PAN object audits pass. Full v82 CI/hardware results are pending.
 
 Local checks execute 27 actual kernel functions plus the board helper, with
 modeled MMIO, mbufs, sockets and thread waits. They cover default-off/read-only

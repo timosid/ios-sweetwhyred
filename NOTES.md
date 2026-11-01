@@ -1,4 +1,26 @@
-## Current whyred work (2026-11-01, USB Ethernet/live console candidate)
+## Active whyred USB follow-up (2026-11-01, v82 PHY shutdown resume)
+
+- User-supplied v81 UART identifies handoff status 6 before any DWC3 register
+  access. Domain/clocks passed, while the legacy PHY POWER_DOWN bit remained set
+  and PLL lock was absent. The ID/GCTL zeros were unsampled, not proof of a bad
+  controller. Current installed phone remains boot v81 / System v70.
+- Patch 0160 adds a narrow exit from the exact major-rev=1 shutdown low-byte
+  state 0x23, using MiCode's 0x22 enable value. Mode 2 additionally requires the
+  reference gate on and QUSB/AHB2PHY resets deasserted. It waits 150 us and polls
+  for at most another 1000 us. Failure restores 0x23 before undoing new clock
+  votes; status 8 distinguishes an attempted wake timeout. Mode 1 stays read-only.
+- This retains bootloader tuning and requires powered rails. It adds no PMIC,
+  PLL tuning, reset-controller or SMMU writes and is not full cold PHY init.
+  Expanded diagnostics report before/after, attempt/polls/restore and explicitly
+  distinguish an unsampled controller from register values actually read.
+- Local UBSan passes 601 checks, including delayed/failed PLL, rejected writes,
+  missing reference gate, held resets, wrong PHY states and ordered rollback.
+  Disabling the new wake branch is rejected by the strengthened tests. Exact
+  patch replay and both ARM64 compiles pass; LSE/PAN object audits find zero.
+- Next: full CI including USB ASan+UBSan, authenticate artifacts and package v82
+  with all v81 retained guards. No v82 image has been flashed or hardware-tested.
+
+## Verified v81 USB baseline and hardware observation
 
 - The user resumed USB work and selected Ethernet plus live logs first. SSH is
   outside this candidate. Patch 0159 ports the existing CDC-ECM driver to the
@@ -35,10 +57,9 @@
   is now boot v81 / System v70; System was not written. Fastboot disappeared after
   reboot. No CDC Ethernet interface or UDP console bytes have yet been observed;
   enumeration, ping and actual delivery remain unconfirmed.
-- Cold PHY power-up is unsupported; powered handoff, DMA visibility and host
-  compatibility remain physical assumptions. Next: obtain the user's UART
-  `WHYRED USB:` snapshot/stopped reason and screen observation, then diagnose that
-  evidence. Do not infer a register/power fix from host tests alone.
+- The user's UART confirms stop at PHY preflight (status 6), powered-down legacy
+  PHY and no sampled controller. v82 above addresses this observed shutdown
+  state. Physical wake, DMA visibility and host compatibility remain unconfirmed.
 - macOS 26 exposes USB via IOService IOUSBHostDevice / SPUSBHostDataType. The
   legacy IOUSB-plane/SPUSBDataType query returned empty even with Fastboot present;
   use the current inventory. Raw UART/serials remain private and user-supplied.
