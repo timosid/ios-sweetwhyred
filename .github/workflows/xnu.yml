@@ -38,6 +38,8 @@ on:
       - "tools/whyred-container-trace-host.c"
       - "tools/test-whyred-emmc-contract.py"
       - "tools/prepare-whyred-ramfs-io-check.py"
+      - "tools/test-whyred-ramfs-pressure.py"
+      - "tools/whyred-ramfs-pressure-host.c"
       - "tools/mkapfs-test-root.py"
       - "tools/apfs-host-windows/**"
       - "tools/verify-whyred-apfs-source.py"
@@ -229,6 +231,10 @@ jobs:
           sdk_path="$(xcrun --sdk macosx --show-sdk-path)"
           xcrun --sdk macosx clang -std=c11 -Wall -Wextra -Werror -O1 -isysroot "$sdk_path" out/ramfs-io-host-check/ramfs-io.c -o out/ramfs-io-host-check/ramfs-io
           out/ramfs-io-host-check/ramfs-io
+
+      - name: Check RAMFS pressure causes and reclamation
+        run: |
+          python3 tools/test-whyred-ramfs-pressure.py dxb/xnu --output out/ramfs-pressure-host-check --sanitize address,undefined
 
       - name: Build minimal mockfs PID 1
         run: |
