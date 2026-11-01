@@ -94,7 +94,8 @@ jobs:
           marker = "    patches\n"
           if text.count(marker) != 1:
               raise SystemExit("Pinned build script patch entry point changed")
-          guard = '    python3 "${WORK_DIR}/../tools/verify-whyred-xnu.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-source-report.json" --expected-upstream-commit 1b191cb58250d0705d8a51287127505aa4bc0789\n'
+          guard = '    python3 "${WORK_DIR}/../tools/make-whyred-splash.py" "${WORK_DIR}/../assets/meimei.jpg" --output "${WORK_DIR}/xnu/osfmk/arm64/whyred_splash_image.h" --report "${WORK_DIR}/../out/splash-image.json" --expected-sha256 5bff1c39a707e16be19810774912fa65cca1e010f21dd805effb7dd46a21b409\n'
+          guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-xnu.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-source-report.json" --expected-upstream-commit 1b191cb58250d0705d8a51287127505aa4bc0789\n'
           guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-apfs-source.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-apfs-source-report.json"\n'
           guard += '    python3 "${WORK_DIR}/../tools/test-whyred-emmc-contract.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-emmc-contract"\n'
           script.write_text(text.replace(marker, marker + guard))
@@ -187,6 +188,14 @@ jobs:
         run: |
           set -o pipefail
           bash build.sh 2>&1 | tee build.log
+
+      - name: Check bounded eMMC clock, batches and recovery
+        run: |
+          python3 tools/test-whyred-emmc-perf.py dxb/xnu --output out/emmc-perf-host-check
+
+      - name: Check early boot image and three-second timer
+        run: |
+          python3 tools/test-whyred-splash.py dxb/xnu --output out/splash-host-check
 
       - name: Check framebuffer pixel copy, scaling and bounds
         run: |
