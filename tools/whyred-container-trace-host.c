@@ -4,6 +4,10 @@
 #include <limits.h>
 #include <stdbool.h>
 
+/* Match Apple's unsigned UINT16_MAX spelling, including in Windows checks. */
+#undef UINT16_MAX
+#define UINT16_MAX 0xffffU
+
 static int failure_line;
 static void host_assert(bool ok, int line) { if (!ok && !failure_line) failure_line = line; }
 #define assert(x) host_assert(!!(x), __LINE__)

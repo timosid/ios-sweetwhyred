@@ -270,7 +270,7 @@
 +	/* p_comm truncates the 17-character daemon name; p_name preserves it. */
 +	const char *name = proc->p_name[0] ? proc->p_name : proc->p_comm;
 +	unsigned int target = whyred_ct_target(name);
-+	if (!target || error > UINT16_MAX) return;
++	if (!target || (unsigned int)error > UINT16_MAX) return;
 +	struct whyred_ct_call call = whyred_ct_call_for(code);
 +	if (call.name == NULL) return;
 +	uint64_t written = 0, requested = 0;
