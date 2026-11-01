@@ -56,4 +56,9 @@ concurrent report attempts. Assembly and hook-placement contracts are checked.
 Local UBSan passes 799 checks; all three changed ARM64 units compile with zero
 LSE/PAN instructions. Restoring the unmasked timer call or weakening the output
 budget fails a negative control. Host tests do not emulate real GIC wakeup or
-kernel stack execution. Full CI and device observations remain required.
+kernel stack execution. Full CI41329547329 subsequently passed all27 steps, including799 ASan+UBSan
+checks, retained USB614/RAMFS1120134 and the complete ARM64 build. Downloaded
+artifacts match provenance, digest, length and CRC. Packaged linked cpu_idle
+contains the pending-IRQ/DSB/WFI wait with no DAIFClr; runtime sources match the
+reviewed files. The verified v85 image remains unflashed. Device wakeup, stability
+and service exit observations are the next required evidence.

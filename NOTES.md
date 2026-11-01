@@ -15,7 +15,19 @@
 - Local UBSan799 checks pass, including 8000 concurrent report attempts. Changed
   cpu.c/kern_exec.c/kern_exit.c compile for ARM64; zero LSE/PAN audit, exact replay
   and both negative controls pass. Full CI will retain all v84 tests and add this
-  suite. Next boot candidate v85 combines these with USB and RAMFS owner tracing.
+  suite. Verified v85 below combines these with USB and RAMFS owner tracing.
+- V85 source `276c34608544fa2e3e1874f57500e8befccef022`, workflow
+  [41329547329](https://github.com/timosid/ios-sweetwhyred/actions/runs/41329547329),
+  job124916560517: all27 steps passed. New799, USB614 and RAMFS1120134 checks pass
+  ASan+UBSan. Both ZIP provenance/digests/length/CRC and exact reviewed runtime/
+  test sources pass. Linked cpu_idle contains pending-IRQ/DSB/WFI with no DAIFClr;
+  linked ISA/cache, trusted loader/ADT/DTB/layout and size guards pass.
+- Packaged v85 image SHA256
+  `ed46661c5641b49bc59a79fe71df2c2bd8ce87070830de489699d80d89c707d8`,
+  22,315,008 bytes, payload21,504,496. Boot args enable service trace, RAMFS owners
+  and USB. It is unflashed; next step is physical Fastboot readiness followed by
+  fresh device/product/unlock/64MiB/image/rollback checks and boot-only testing.
+  No physical USB link, daemon exit cause or panic-resolution claim yet.
 - V84 source d4ba66b3b00832f7610a6bd24887f2396d0694d8, CI41327819130/job124911379642:
   all26 steps pass, USB614 and RAMFS1120134 ASan+UBSan. Authenticated/package
   image SHA12e1b309a8f7af21fc4f079541943efb42faf603aef577fdf32595150305e8f8.
