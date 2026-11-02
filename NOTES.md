@@ -1,3 +1,21 @@
+## Kernel97 foreground API candidate; installed96 still under observation (2026-11-02)
+
+- User's repair work continues while the actual boot96/System95 observation
+  runs. Patch0174 narrowly enables the real host_set_multiuser_config_flags
+  implementation on SWEET despite the macOS target configuration. Preserves
+  NULL privileged-host rejection and writes the real commpage flags through
+  the existing updater; other macOS boards/SWEET=0 keep NOT_SUPPORTED.
+- Local ARM64 host.c compile with the actual authenticated96 compile command
+  passes. New actual-function/updater host suite passes960 checks across5
+  target configurations with UBSan; old source fails the SWEET/macOS case.
+  Private kernel-v97-draft. This is not deployed or physically validated yet.
+- Full kernel CI will include this check before compilation and preserve its
+  report. No new device write/reboot, no new observer: boot96 watch4706 and
+  UDP47443 continue. The new candidate retains all96 fixes; do not replace the
+  running96 trial prematurely or claim the session failure fixed on hardware.
+- Actual96 UUID/xattr/direct-read results are still pending at this milestone.
+  Next inspect audit/kernel96-observer.json before any further physical action.
+
 ## Boot96 flashed, System95 retained; automated validation pending (2026-11-02)
 
 - User freshly confirmed Fastboot. Exact-device/product/unlocked/boot64MiB,

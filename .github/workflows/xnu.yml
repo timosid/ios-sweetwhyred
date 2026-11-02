@@ -38,6 +38,7 @@ on:
       - "tools/test-whyred-container-trace.py"
       - "tools/whyred-container-trace-host.c"
       - "tools/test-whyred-emmc-contract.py"
+      - "tools/test-whyred-multiuser.py"
       - "tools/test-whyred-emmc-perf.py"
       - "tools/whyred-emmc-perf-host.c"
       - "tools/prepare-whyred-ramfs-io-check.py"
@@ -111,6 +112,7 @@ jobs:
           guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-apfs-source.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-apfs-source-report.json"\n'
           guard += '    python3 "${WORK_DIR}/../tools/test-whyred-apfs-errors.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-apfs-errors-check"\n'
           guard += '    python3 "${WORK_DIR}/../tools/test-whyred-emmc-contract.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-emmc-contract"\n'
+          guard += '    python3 "${WORK_DIR}/../tools/test-whyred-multiuser.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-multiuser-check"\n'
           script.write_text(text.replace(marker, marker + guard))
           PY
 
@@ -324,6 +326,7 @@ jobs:
           if [ -f dxb/whyred-apfs-source-report.json ]; then cp dxb/whyred-apfs-source-report.json out/; fi
           if [ -f dxb/whyred-apfs-errors-check/report.json ]; then cp -R dxb/whyred-apfs-errors-check out/apfs-errors-host-check; fi
           if [ -f dxb/whyred-emmc-contract/report.json ]; then cp dxb/whyred-emmc-contract/report.json out/whyred-emmc-contract-report.json; fi
+          if [ -f dxb/whyred-multiuser-check/report.json ]; then cp -R dxb/whyred-multiuser-check out/multiuser-host-check; fi
           ls -la out
           (cd out && shasum -a 256 kernel.* > SHA256SUMS) || true
           if [ -f out/whyred-var.hfs ]; then (cd out && shasum -a 256 whyred-var.hfs >> SHA256SUMS); fi
