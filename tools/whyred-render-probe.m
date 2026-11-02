@@ -3,6 +3,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
 #import <QuartzCore/QuartzCore.h>
+#import <IOSurface/IOSurface.h>
 #import <TargetConditionals.h>
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
 #import <OpenGLES/EAGL.h>
@@ -65,9 +66,8 @@ static int eagl(void) {
 #endif
 }
 
-static int layer_bitmap(void) {
+static int layer_draw(unsigned char *pixels) {
     /* Test QuartzCore's layer-to-CoreGraphics path separately from CoreImage. */
-    unsigned char pixels[16 * 16 * 4] = {0};
     CGColorSpaceRef color = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
     CGContextRef bitmap = CGBitmapContextCreate(pixels, 16, 16, 8, 16 * 4, color,
         kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
@@ -99,6 +99,49 @@ static int layer_bitmap(void) {
     return red_count == 192 && green_count == 64 ? 0 : 1;
 }
 
+static int layer_bitmap(void) {
+    unsigned char pixels[16 * 16 * 4] = {0};
+    return layer_draw(pixels);
+}
+
+static int surface_bitmap(void) {
+    NSDictionary *properties = @{
+        (NSString *)kIOSurfaceWidth: @16, (NSString *)kIOSurfaceHeight: @16,
+        (NSString *)kIOSurfaceBytesPerElement: @4,
+        (NSString *)kIOSurfaceBytesPerRow: @64,
+        (NSString *)kIOSurfaceAllocSize: @1024,
+        (NSString *)kIOSurfacePixelFormat: @(0x52474241u)
+    };
+    IOSurfaceRef surface = IOSurfaceCreate((__bridge CFDictionaryRef)properties);
+    printf("WHYRED RENDER: surface created=%d\n", surface != NULL);
+    if (!surface) return 1;
+    uint32_t seed = 0;
+    kern_return_t kr = IOSurfaceLock(surface, 0, &seed);
+    printf("WHYRED RENDER: surface lock=0x%x width=%zu height=%zu stride=%zu\n",
+           kr, IOSurfaceGetWidth(surface), IOSurfaceGetHeight(surface),
+           IOSurfaceGetBytesPerRow(surface));
+    if (kr || IOSurfaceGetWidth(surface) != 16 || IOSurfaceGetHeight(surface) != 16 ||
+        IOSurfaceGetBytesPerRow(surface) != 64 || !IOSurfaceGetBaseAddress(surface)) {
+        if (!kr) IOSurfaceUnlock(surface, 0, NULL);
+        CFRelease(surface); return 1;
+    }
+    unsigned char expected[1024];
+    unsigned char *base = IOSurfaceGetBaseAddress(surface);
+    memset(base, 0, sizeof(expected));
+    int result = layer_draw(base);
+    memcpy(expected, base, sizeof(expected));
+    kr = IOSurfaceUnlock(surface, 0, &seed);
+    if (kr) result = 1;
+    kern_return_t lock_kr = IOSurfaceLock(surface, kIOSurfaceLockReadOnly, &seed);
+    int preserved = !lock_kr && IOSurfaceGetBaseAddress(surface) &&
+        !memcmp(expected, IOSurfaceGetBaseAddress(surface), sizeof(expected));
+    printf("WHYRED RENDER: surface unlock=0x%x relock=0x%x preserved=%d display_changed=0\n",
+           kr, lock_kr, preserved);
+    if (!lock_kr) IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
+    CFRelease(surface);
+    return result || !preserved ? 1 : 0;
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     @autoreleasepool {
@@ -106,7 +149,8 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "software")) return bitmap();
             if (argc == 2 && !strcmp(argv[1], "eagl")) return eagl();
             if (argc == 2 && !strcmp(argv[1], "layer")) return layer_bitmap();
-            fputs("usage: whyred-render-probe software | eagl | layer\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
+            fputs("usage: whyred-render-probe software | eagl | layer | surface\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,

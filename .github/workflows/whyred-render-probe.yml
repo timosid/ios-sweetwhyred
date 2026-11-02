@@ -17,11 +17,11 @@ jobs:
       - name: Compile native software renderer diagnostic
         run: |
           mkdir -p out/render
-          clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -o out/render/whyred-render-probe-native
+          clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -o out/render/whyred-render-probe-native
       - name: Build signed iOS diagnostic
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework OpenGLES -o out/render/whyred-render-probe
+          clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -framework OpenGLES -o out/render/whyred-render-probe
           codesign --force --sign - --timestamp=none out/render/whyred-render-probe
           codesign --verify --strict out/render/whyred-render-probe
           otool -l out/render/whyred-render-probe > out/render/load-commands.txt

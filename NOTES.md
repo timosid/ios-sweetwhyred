@@ -1,3 +1,30 @@
+## Actual QuartzCore CPU layer probe passed on97; shared-surface probe next (2026-11-03 Minsk)
+
+- Signed layer diagnostic source8bb6b3ed2ef832f0a17d93d25621600f80de0c4e,
+  CI41524505780/job125548647347, artifact13177959738 ZIP40576B
+  SHA f0fccf3599fa03a1acd4ab2b313591b4bc26467afafa52fd9afbe5210459d0a0.
+  Binary89040B SHA517df605372eb54fca576639d7705fcc4f60f46dec1bb313a68c847a8cecc4d0.
+  Archive/signature/iOS/ISA/size verified, exact upload/readback pass. Worker22527
+  complete at21:02:15Z: ACTUAL97 CALayer CPU drawing returns0,192red+64green pixels
+  exactly match. audit/layer98-check.json/device. No display/System mutation.
+- This proves the real QuartzCore CPU layer rasterizer works on this phone,
+  independently of unavailable EAGL/CoreImage. Stock SpringBoard scene/display
+  still unconfirmed/unfixed. Must bridge real compositor updates to framebuffer,
+  not substitute test rectangles and call that a working iOS interface.
+- Added explicit surface probe to create its own16x16 IOSurface, lock/map it,
+  render identical CALayer tree into it, unlock/relock and require preserved
+  bytes. No display swap, shared server mutation or file writes. Native exact
+  pixels and preserved1024 bytes pass, warning-clean. Signed CI/device pending.
+- Exact software destination ABI investigated privately: renderer vtable+0x3d0
+  reaches CPU implementation0x18843cbfc, storing destination/stride/bpp/second
+  buffer/offset/size fields. No guessed private ABI invoked on phone. Quartz
+  renderer-info error path is server IPC, not automatically IOMFB selector57.
+  Keep observations separate; do not alter selector contracts speculatively.
+- Installed97/System95, observer17023/held shell19005/UDP47443 unchanged. At
+  21:01:41Z sample18 and3 direct health checks pass;1.382GB errors0/fallbacks0,
+  no RAMFS pressure/APFS/panic/latch, only the earlier explicit CI diagnostic
+  crash. System target PIDs stable; trial65min not yet complete.
+
 ## Graphics work: exact renderer selection and QuartzCore CPU path (2026-11-03 Minsk)
 
 - User explicitly requested graphics repair while97 longrun continues. No reboot,
