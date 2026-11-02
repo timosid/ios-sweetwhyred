@@ -1,3 +1,30 @@
+## Boot97 early foreground success; renderer helper verified and waiting (2026-11-02)
+
+- Actual97 USB early boot reports Set Foreground ID + multiuser in commpage
+  successfully; prior FAILED line is absent. This confirms the setter path,
+  but real userspace session flag readback/UUID are still pending SSH. Through
+  20:41:43Z eMMC503.7MB/errors0/fallbacks0, no APFS/PRESSURE/crash/panic/latch.
+  TCP reaches the phone but2222 currently refuses; dropbear exec was logged.
+  Do not reset it during this baseline or interpret normal startup as a repair.
+- Renderer diagnostic source8c929fb58ca5d64d13166fc1c73091ddddf21c76,
+  CI41520788443/job125535941232 all7 steps pass. Artifact13176484526 ZIP31522B
+  SHAf37e83fa127523bb15564ef554436f3d653e221063ae1d80f9da61ab9f1d9c09;
+  binary88096B SHAf49cf77fdca5adb0d0bf6eb24b2b0257831194f20127a1bbfa2558b5a22276b8.
+  Signature/iOS/ISA/length/CRC verified, kernel-v97-draft/render97. No claim of
+  iOS software rendering success yet. Native256-pixel proof is separate.
+- ONLY renderer worker17947 ssh-v90/check_render97.py waits for existing97
+  observer17023 phase monitoring/verified UUID/config. It then uploads the
+  reviewed helper to volatile tmp, verifies bytes and runs explicit software
+  andEAGL probes as mobile through the reviewed30s-bounded helper. Uses its own
+  SSH commands, never the observer FIFO. audit/render97-check.json/log/device.
+  No partition changes or UART. Read both status files before continuing.
+- Current read-only summary tool tools/summarize_kernel97.py records the exact
+  original boot interval and header-only FSERR errno, without contacting phone.
+  Output audit/kernel97-full-review/current-summary.json; UDP47443 unchanged.
+- Next: verify actual97 UUID/session flags (UID501),75 xattrs,12 read controls,
+  retained disabled jobs; inspect renderer results and preserve natural longrun.
+  Remaining Data Protection/notify/Jetsam/PRNG/platform/UI issues remain open.
+
 ## Boot97 flashed after user ended96 trial; USB/SSH validation pending (2026-11-02)
 
 - User reported a manual reboot to Fastboot and requested repairs. Exact phone
