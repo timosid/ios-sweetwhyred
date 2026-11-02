@@ -1,5 +1,6 @@
-/* Explicit developer diagnostic: render only a 16x16 process-local bitmap.
- * No windows, device state configuration, files or daemon changes. */
+/* Bounded developer graphics probes. Bitmap/capture modes do not present frames.
+ * Explicit remote-layer creates and invalidates one small visible test layer.
+ * No files, renderer configuration or daemon changes. */
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
 #import <QuartzCore/QuartzCore.h>
@@ -30,6 +31,14 @@ extern void *IOSurfaceGetBaseAddress(IOSurfaceRef);
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <objc/runtime.h>
+#include <unistd.h>
+
+@interface NSObject (WhyredContextProbe)
++ (id)remoteContextWithOptions:(NSDictionary *)options;
+- (void)setLayer:(CALayer *)layer;
+- (void)setLevel:(float)level;
+- (void)invalidate;
+@end
 
 static int bitmap(void) {
     puts("WHYRED RENDER: software context begin");
@@ -162,7 +171,7 @@ static int surface_bitmap(void) {
 }
 
 static int renderer_methods(void) {
-    const char *classes[] = {"CAWindowServer", "CAWindowServerDisplay", "CARenderer"};
+    const char *classes[] = {"CAWindowServer", "CAWindowServerDisplay", "CARenderer", "CAContext"};
     for (unsigned c = 0; c < sizeof(classes) / sizeof(classes[0]); c++) {
         Class cls = objc_getClass(classes[c]);
         printf("WHYRED RENDER: class=%s present=%d\n", classes[c], cls != Nil);
@@ -173,7 +182,9 @@ static int renderer_methods(void) {
             for (unsigned i = 0; i < count && printed < 128; i++) {
                 const char *name = sel_getName(method_getName(methods[i]));
                 if (!strcasestr(name, "render") && !strcasestr(name, "display") &&
-                    !strcasestr(name, "init") && !strcasestr(name, "server")) continue;
+                    !strcasestr(name, "init") && !strcasestr(name, "server") &&
+                    !strcasestr(name, "context") && !strcasestr(name, "layer") &&
+                    !strcasestr(name, "level") && !strcasestr(name, "invalidate")) continue;
                 IMP imp = method_getImplementation(methods[i]);
                 Dl_info info = {0};
                 if (!dladdr((const void *)imp, &info) || !info.dli_fbase) continue;
@@ -189,6 +200,7 @@ static int renderer_methods(void) {
     return 0;
 }
 
+static size_t last_capture_marker_pixels;
 static int capture_display(void) {
     /* Same five-argument call used by this system's backboardd screenshot path.
      * The destination is our own surface; this does not present a frame. */
@@ -214,18 +226,77 @@ static int capture_display(void) {
     memset(IOSurfaceGetBaseAddress(surface), 0, stride * height);
     puts("WHYRED RENDER: display capture LCD begin display_changed=0");
     int accepted = render(MACH_PORT_NULL, CFSTR("LCD"), surface, 0, 0);
-    size_t rgb = 0, alpha = 0;
+    size_t rgb = 0, alpha = 0, marker = 0;
     const unsigned char *base = IOSurfaceGetBaseAddress(surface);
     for (size_t y = 0; y < height; y++) for (size_t x = 0; x < width; x++) {
         const unsigned char *p = base + y * stride + x * 4;
         rgb += (p[0] | p[1] | p[2]) != 0;
         alpha += p[3] != 0;
+        marker += p[2] >= 210 && p[1] >= 30 && p[1] <= 90 && p[0] <= 80 && p[3] >= 240;
     }
-    printf("WHYRED RENDER: display capture accepted=%d rgb=%zu alpha=%zu pixels=%zu\n",
-           accepted, rgb, alpha, width * height);
+    printf("WHYRED RENDER: display capture accepted=%d rgb=%zu alpha=%zu pixels=%zu marker=%zu\n",
+           accepted, rgb, alpha, width * height, marker);
+    last_capture_marker_pixels = accepted ? marker : 0;
     kr = IOSurfaceUnlock(surface, 0, NULL);
     CFRelease(surface);
     return accepted && rgb && !kr ? 0 : 1;
+}
+
+static int remote_layer(void) {
+    Class cls = objc_getClass("CAContext");
+    if (!cls) return 1;
+    const char *names[] = {"remoteContextWithOptions:", "setLayer:", "invalidate"};
+    const char *types[] = {"@24@0:8@16", "v24@0:8@16", "v16@0:8"};
+    for (unsigned i = 0; i < 3; i++) {
+        SEL sel = sel_registerName(names[i]);
+        Method method = i ? class_getInstanceMethod(cls, sel) : class_getClassMethod(cls, sel);
+        if (!method || strcmp(method_getTypeEncoding(method), types[i])) {
+            printf("WHYRED RENDER: context ABI unavailable method=%s\n", names[i]);
+            return 1;
+        }
+    }
+    CFStringRef *display = dlsym(RTLD_DEFAULT, "kCAContextDisplayId");
+    CFStringRef *displayable = dlsym(RTLD_DEFAULT, "kCAContextDisplayable");
+    CFStringRef *ignore = dlsym(RTLD_DEFAULT, "kCAContextIgnoresHitTest");
+    if (!display || !*display || !displayable || !*displayable || !ignore || !*ignore) return 1;
+    NSDictionary *options = @{
+        (__bridge NSString *)*display: @0,
+        (__bridge NSString *)*displayable: @YES,
+        (__bridge NSString *)*ignore: @YES
+    };
+    puts("WHYRED RENDER: remote context baseline");
+    (void)capture_display();
+    size_t baseline_marker = last_capture_marker_pixels;
+    id context = [cls remoteContextWithOptions:options];
+    printf("WHYRED RENDER: remote context created=%d\n", context != nil);
+    if (!context) return 1;
+    int result = 1;
+    @try {
+        CALayer *root = [CALayer layer];
+        root.frame = CGRectMake(0, 0, 1125, 2436);
+        CALayer *marker = [CALayer layer];
+        marker.frame = CGRectMake(16, 16, 32, 32);
+        CGColorRef color = CGColorCreateSRGB(229.0 / 255, 57.0 / 255, 53.0 / 255, 1);
+        marker.backgroundColor = color;
+        CGColorRelease(color);
+        [root addSublayer:marker];
+        [context setLayer:root];
+        Method level = class_getInstanceMethod(cls, sel_registerName("setLevel:"));
+        if (level && !strcmp(method_getTypeEncoding(level), "v20@0:8f16")) [context setLevel:9000];
+        [CATransaction flush];
+        puts("WHYRED RENDER: remote marker submitted temporary=1 ignores_hit_test=1");
+        usleep(1000000);
+        result = capture_display();
+        printf("WHYRED RENDER: remote marker baseline=%zu after=%zu\n",
+               baseline_marker, last_capture_marker_pixels);
+        if (last_capture_marker_pixels < baseline_marker + 900) result = 1;
+    } @finally {
+        [context setLayer:nil];
+        [context invalidate];
+        [CATransaction flush];
+        puts("WHYRED RENDER: remote marker context invalidated");
+    }
+    return result;
 }
 
 int main(int argc, char **argv) {
@@ -238,7 +309,8 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
             if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
             if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display();
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer();
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | remote-layer\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
