@@ -1,3 +1,21 @@
+## Boot v94 physically installed; early validation running (2026-11-02)
+
+- User confirmed fresh Fastboot availability for v94. Private baseline identity,
+  product/unlock/64MiB boot geometry, exact candidate and verified boot93 rollback
+  passed. Boot send/write and reboot all OKAY (audit/emmc94-flash.json). Installed
+  NOW boot94/System91. No System/other partition write; System92 reserve unused.
+- Existing UDP receiver47443 stayed active; new boot offset7104825. Observer79898
+  started BEFORE flash/reboot17:35:31Z (audit/emmc-v94-observer.json and
+  audit/emmc94-observer.log), captures into audit/emmc-v94-device. No UART.
+  USB console works; port2222 appeared and pinned-shell initialization is now
+  running. At604MB of root reads the kernel reported errors0/fallbacks0; no
+  new APFS error/permanent-I/O rejection/panic captured. This is only startup.
+- Early cached/direct/mapped read checks and tool full readbacks are pending.
+  Do not launch a second observer or commands into its shell while it uploads.
+  Monitor65min after baseline, including uncached shell-list checks; retain
+  first-failure evidence and the one shell. No sustained/device recovery result
+  claimed yet. Bounded private-memory helper is still unused on phone.
+
 ## Boot v94 offline-ready; physical test pending (2026-11-02)
 
 - Kernel source3b180816fc9ca0c615404d1bf0ce484bce1b08b5, full CI
