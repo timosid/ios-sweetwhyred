@@ -1,3 +1,35 @@
+## Actual97 session/xattrs/read controls pass; isolated graphics failure reproduced (2026-11-02)
+
+- Running97 UUID1444AADE-E57B-3F55-88A9-866FFA6086A0 matches packaged kernel.
+  Real iOS session getters BOTH return0; raw flags0x1f5=UID501, multiuser0.
+  This plus early usermanagerd success physically validates the0174 setter fix.
+  All75 actual xattr checks and12 cached/F_NOCACHE/mmap length/hash controls pass;
+  all3 installed95 job/cache files read back exactly. No forbidden job spawns.
+- Observer17023 is now phase monitoring, held shell19005. Keep65min natural
+  observation; don't issue concurrent FIFO commands. Current early success is
+  not proof the previous38/44min eMMC failures are fully fixed. CMD17-only trial
+  remains a mitigation, batching still disabled. Read current observer first.
+- Renderer worker17947 COMPLETE at20:48:17Z, exact signed upload/readback pass.
+  EAGL2 AND EAGL3 both return nil/current0. Explicit CoreImage software request
+  SIGSEGVs before context creation returns: output only software context begin,
+  status139. Its own process whyred-render-f4 PID185 has pc0/lr0x1961ec58c,
+  slide0x16d8000 -> exact same CoreImage0x194b1458c NULL callback as mediaserverd.
+  Thus the software option did not avoid the unavailable GL dispatch in this
+  iOS build; do not recommend a simple software-renderer toggle as a fix.
+- This crash was the explicit diagnostic, not evidence of a new arbitrary
+  system-daemon crash. No SpringBoard/mediaserverd disable, fake GPU, framework
+  binary patch, System write or UART. Actual graphical scene remains unfixed.
+  Need a supported renderer/context path; native Mac software256-pixel success
+  does not establish the iOS path. Private audit/render97-device and status.
+- Public source8c929fb is diagnostic-only after97 kernel source47524; installed
+  kernel remains97/System95. NOTES-only source0c5745 recorded the earlier wait.
+  Raw logs/Apple bytes/helpers/private keys stay outsideGit. Current log remains
+  audit/current-whyred-usb.log, summary audit/kernel97-full-review/current-summary.
+- Next: preserve longrun97; inspect new genuine system crashes/storage/pressure.
+  Foreground fix,75 xattrs and initial read/config proofs are complete. Graphics,
+  Data Protection, early notifyOPT_DISABLE8, legacy Jetsam command6, fresh boot
+  entropy/reseed and persistent platform support remain separate open work.
+
 ## Boot97 early foreground success; renderer helper verified and waiting (2026-11-02)
 
 - Actual97 USB early boot reports Set Foreground ID + multiuser in commpage
