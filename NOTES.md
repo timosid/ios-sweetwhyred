@@ -1,3 +1,33 @@
+## System95 offline-ready; user ready and System installation in progress (2026-11-02)
+
+- System95 image5386170368 bytes SHA
+  6d8da8962b0cb6e40d329e2050ce9f57bb02bae417e26b17ba3ff8259324b99f.
+  Exact66 critical file checks pass. Independent dual-image APFS comparison
+  passes63022 nodes:45744 files/16607 dirs/671 symlinks;8614112801 unchanged
+  logical file bytes are identical to91. All paths/modes/owners/flags/times/link
+  targets compare; exactly3 file-content exceptions have separate byte/semantic
+  checks. Only Disabled=true for the two specified plist/cache definitions;
+  other529 jobs, SSH and existing keys preserved. All81 sparse slices reconstruct
+  the exact verified image. Readiness/metadata/comparison under candidate folder.
+- User spontaneously confirmed Fastboot after being informed System95 is being
+  prepared. This is current physical readiness for the requested configuration
+  change; do not ask again. Full file guards/rollback91/boot94 and fresh private
+  baseline identity/product/unlocked/System geometry/download guards pass.
+  tools/flash_services95.py --flash --ready-answer is currently writing ONLY
+  system, audit/services95-flash.json; wait for all81 write confirmations/reboot.
+  At this note first11 are confirmed; not yet an installed/booted claim.
+- Current System95 observer88567 started BEFORE writing/reboot18:30:15Z with
+  offset7987522; audit/system95-observer.json/log and audit/system95-device.
+  It waits through System transfer and startup, authenticates pinned root SSH,
+  verifies volatile tools and12 read controls, then reads back all3 actual
+  installed config files byte-for-byte. Checks logs and PS for forbidden job
+  spawns/processes; records first I/O error separately. UDP47443 retained, no UART.
+- After boot: confirm all81/reboot, new System config and no bluetoothd/fairplayd
+  job launches, then inspect pkd/suggestd/lsd and storage health. Boot94 remains;
+  its second CMD12 recovery failure is unresolved. Do not claim disabling two
+  jobs fixes the global read failure or all dependencies. System91 rollback,
+  original protected partitions and unused System92 reserve remain intact.
+
 ## System95 disabling the two jobs is building; v94 long test failed (2026-11-02)
 
 - User's explicit disable request supersedes the optional exit-stack diagnostic.
