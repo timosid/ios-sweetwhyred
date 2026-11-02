@@ -1,3 +1,31 @@
+## V94 early pinned SSH and all read controls pass; long test active (2026-11-02)
+
+- Boot94/System91 remains installed. Pinned root SSH authentication and held
+  shell81341 work. Both reviewed tools uploaded only to RAMFS0755; entire raw
+  35056-byte and diag70752-byte readbacks equal their reviewed signed binaries.
+  All8 cached/F_NOCACHE reads plus4 mapped reads pass status/length and exact
+  original-file FNV checks. Diag selftest and first2 VM/fs/ps samples pass.
+- Initial sample: page16KiB/free30508/active33667/inactive4342/wired11250,
+  compressor/pageouts0; RAMFS free7103/8192 pages. At1.04GB kernel root reads,
+  errors0/fallbacks0/XO1/multi1. No APFS error/common memory-error SIGBUS/permanent
+  rejection/panic captured yet. These are early controls, not sustained recovery
+  or proof that all individual service/hardware problems are fixed.
+- First local SSH attempt raced early server readiness and timed out; its local
+  SSH child had exited. Observer79898 was stopped before any tool upload, all
+  attempt files archived in audit/emmc-v94-bootstrap-attempt-1. Added bounded
+  pinned-command readiness and local-child exit detection. Root probe succeeds
+  without auth-policy changes. Current ONLY observer81246 retains original
+  boot offset7104825; status audit/emmc-v94-observer.json, device directory
+  audit/emmc-v94-device, log audit/emmc94-observer.log. UDP47443 stayed active.
+- Collector now monitors65min after the early baseline, recording VM/fs/ps and
+  periodic true uncached reads. Do not reboot/start duplicate shell commands or
+  use the unused pressure helper during this window. Read its final phase and
+  first-failure controls before claiming stability; if clean, verify fresh root
+  auth and service lifetimes after the window. UART remains unopened. Latest
+  user questions concern WHYRED FSERR: errno0 is specifically a short successful
+  write, accompanied by same-id requested/returned diagnostics; it is not a new
+  read-error or memory-corruption result.
+
 ## Boot v94 physically installed; early validation running (2026-11-02)
 
 - User confirmed fresh Fastboot availability for v94. Private baseline identity,
