@@ -185,7 +185,7 @@ def main():
             run([*compile_args, '-Os', '-Wall', '-Wextra', '-Werror', str(src), '-o', str(dest / 'whyredctl')],
                 work, target_env, work / 'whyredctl-build.log')
             src = Path(__file__).with_name('whyreddiag.c')
-            run([*compile_args, '-O1', '-g', '-fno-omit-frame-pointer', '-Wall', '-Wextra', '-Werror', str(src), '-o', str(dest / 'whyreddiag')],
+            run([*compile_args, '-O1', '-fno-omit-frame-pointer', '-Wall', '-Wextra', '-Werror', str(src), '-o', str(dest / 'whyreddiag')],
                 work, target_env, work / 'whyreddiag-build.log')
         if platform == 'ios':
             for binary in dest.iterdir():
