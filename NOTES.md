@@ -1,3 +1,29 @@
+## User requests disabling Bluetooth/FairPlay jobs; restricted control preparing (2026-11-02)
+
+- User explicitly requests removing bluetoothd/fairplayd.H2 launches (or fake
+  processes), to prevent their restart loops and test dependent services. Choose
+  genuine launchd disable/bootout, without fake Mach-service endpoints. Current
+  exits are clean0, not demonstrated causes of other services' crashes.
+- Fresh v94 manual mobile Bluetooth child confirms missing marconi-bt/bluetooth
+  IORegistry services, invalid/missing address and No bluetooth on this device,
+  then exit0. IORegistry bluetooth query is empty. Private audit/services-v94/.
+  FairPlay's exact normal-exit cause remains unresolved. Long eMMC observer is
+  still running; no APFS/permanent-read/panic failure yet. Service policy changes
+  will be timestamped separately from the preceding storage baseline.
+- System image has no launchctl. New whyredsvc source uses pinned Procursus
+  launchctl protocol22906f7d, allowing ONLY the two exact labels in explicit
+  system/user501 domains. Root whyred boot gate prevents RPC on host macOS;
+  dry-run validates27 label/action/domain/host guards without sending RPC.
+  Query first, then disable and bootout only an identified target/domain.
+  Replies/error dictionaries must succeed; inverse enable/bootstrap is retained.
+- iOS helper CI pending. No helper upload, live disable, System/boot write or
+  fake process has occurred. First aim is a reversible live RAMFS-backed launchd
+  change; persistence across /var reset needs a separate verified seed change.
+- Earlier optional pre-exit stack tracing work is deferred, NOT compiled or
+  committed. Private service-exit-v95/ holds it and deferred-tools; no0171 patch
+  exists. Its initial BSD compile lacks private task/region layouts; do not use
+  it as a candidate. Current installed stays boot94/System91; UART unopened.
+
 ## V94 early pinned SSH and all read controls pass; long test active (2026-11-02)
 
 - Boot94/System91 remains installed. Pinned root SSH authentication and held
