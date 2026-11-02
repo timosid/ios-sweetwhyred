@@ -1,4 +1,24 @@
-## System v90 flashed; SSH host address pending (2026-11-02)
+## Active System v91 SSH bootstrap correction (2026-11-02)
+
+- The user confirmed macOS administrator authentication. The exact USB service
+  now has persistent Manual192.168.7.1/24 with no router. Ping3/3 and new kernel
+  UDP logs passed. TCP2222 returned Connection refused; no SSH login succeeded.
+- Static inspection of the exact installed launchd's embedded Bootstrap/Paths
+  identifies the packaging mistake: /Library/LaunchDaemons is not searched at
+  boot. V90 placed the added job there. V91 moves the job and its merged-cache
+  key to /System/Library/LaunchDaemons, retaining the same binaries/keys and all
+  original530 jobs. The image builder now checks the actual embedded startup
+  paths; the previous v90 path is rejected by a functional negative check.
+- The user intentionally powered off/disconnected the phone, then returned it
+  to Fastboot and requested continuing the installation. This is not a crash
+  observation. The exact private-baseline Fastboot device is present. Preparing
+  and validating the corrected System v91 before the authorized System-only
+  transfer; retain boot v89. No v91 image has yet been flashed.
+- Receiver remains alive; new logs include a backboardd NSInvalidArgumentException
+  for a nil URL path and containermanagerd ENOENT/EPERM. Those are new observations,
+  not proof of daemon/RAMFS stability. SSH hardware testing remains pending.
+
+## System v90 flashed; initial host address pending (2026-11-02)
 
 - User explicitly authorized adding SSH, then said to flash the concrete System
   v90 candidate. Fresh private-baseline identity, whyred/unlocked, exact System

@@ -11,14 +11,16 @@ import shutil
 import stat
 import subprocess
 import sys
+from xml.parsers.expat import ExpatError
 
 BASE_SHA = 'd2e155be8cc3457b8d5784cf676933ab17e6052d75b596091fff0e52819983e3'
 BUILDER_SHA = '09975effcec5c65261dd0296137b2baa1ba53713d3667bd50b111a72bc6fabc0'
 CACHE_SHA = '51634e43a5683e338afd1319204ebeb0ef1658f38855d27e76f2b2e3111d4aa9'
 PARTITION_BYTES = 13085938 * 512
 LABEL = 'org.whyred.ssh'
-JOB_PATH = 'Library/LaunchDaemons/org.whyred.ssh.plist'
+JOB_PATH = 'System/Library/LaunchDaemons/org.whyred.ssh.plist'
 KEY_DIR = 'System/Library/WhyredSSH'
+VERSION = 91
 
 
 def sha(path):
@@ -30,6 +32,38 @@ def get(root, path):
     for part in path.split('/'):
         root = root.children[part]
     return root
+
+
+def bootstrap_paths(launchd):
+    """Read startup paths from this exact launchd's embedded configuration."""
+    data = launchd.read_bytes()
+    position, matches = 0, []
+    while True:
+        start = data.find(b'<?xml', position)
+        if start < 0:
+            break
+        end = data.find(b'</plist>', start)
+        if end < 0:
+            break
+        position = end + len(b'</plist>')
+        try:
+            value = plistlib.loads(data[start:position])
+        except (plistlib.InvalidFileException, ExpatError):
+            continue
+        if isinstance(value, dict) and isinstance(value.get('Bootstrap'), dict):
+            paths = value['Bootstrap'].get('Paths')
+            if isinstance(paths, list) and all(isinstance(p, str) for p in paths):
+                matches.append(paths)
+    if len(matches) != 1:
+        raise ValueError('Cannot identify the exact launchd bootstrap search paths')
+    return matches[0]
+
+
+def validate_job_path(launchd, job_path):
+    paths = bootstrap_paths(launchd)
+    if '/' + str(Path(job_path).parent) not in paths:
+        raise ValueError('SSH job directory is not in this launchd bootstrap configuration')
+    return paths
 
 
 def main():
@@ -71,6 +105,8 @@ def main():
     original = base / 'whyred-rootfs-v70/whyred-system-ios165-v70.apfs'
     old = base / 'whyred-rootfs-v70'
     prep = base / 'whyred-rootfs-prep'
+    launchd = prep / 'rootfs-extracted/sbin/launchd'
+    startup_paths = validate_job_path(launchd, JOB_PATH)
     if sha(original) != BASE_SHA:
         raise SystemExit('System v70 rollback image differs')
     if sha(prep / 'mkapfs-whyred-v60.py') != BUILDER_SHA or sha(old / 'launchd.bringup.plist') != CACHE_SHA:
@@ -168,10 +204,12 @@ def main():
     get(root, 'System/Library/xpc/launchd.plist').source = str(cachefile)
     changes.append(dict(path='System/Library/xpc/launchd.plist', source=str(cachefile),
                         bytes=cachefile.stat().st_size, sha256=sha(cachefile)))
-    image = out / 'whyred-system-ios165-v90-ssh.apfs'
-    plan = dict(version=90, baseline_sha256=BASE_SHA, boot_version_required=89,
+    image = out / ('whyred-system-ios165-v%d-ssh.apfs' % VERSION)
+    plan = dict(version=VERSION, baseline_sha256=BASE_SHA, boot_version_required=89,
                 source_commit=source_commit, userland_provenance=provenance, changes=changes,
                 baseline_catalog=counts,
+                ssh_job_path='/' + JOB_PATH, launchd_bootstrap_paths=startup_paths,
+                launchd_bootstrap_path_verified=True, launchd_source_sha256=sha(launchd),
                 old_jobs_unchanged=True, old_job_count=530, new_job_count=531,
                 device_writes=False, ssh_hardware_verified=False)
     (out / 'plan.json').write_text(json.dumps(plan, indent=2) + '\n')

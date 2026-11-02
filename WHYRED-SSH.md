@@ -48,3 +48,12 @@ import comparison pass for all five binaries. Offline System image preparation
 adds one job to the existing530 and checks the baseline45734 files/16600
 directories/671 symlinks. The image passed64 complete file comparisons and17 metadata checks. Device SSH
 remains untested while the Mac USB address is link-local only.
+
+Physical v90 testing restored the Mac address as persistent192.168.7.1/24,
+confirmed ping3/3 and resumed UDP capture, but TCP2222 refused connections.
+The added job was placed in /Library/LaunchDaemons. The exact installed launchd
+embeds a bootstrap directory list that excludes that directory. V91 corrects
+both the standalone job and cache key to /System/Library/LaunchDaemons.
+The image builder reads that actual embedded list and rejects the old path.
+Programs, keys and the530 original jobs are retained. V91 image/SSH results are
+pending; v90 did not establish a working SSH service.
