@@ -100,6 +100,19 @@ def main():
         node = builder.Node(Path(path).name, int(item['mode'], 8), source=str(source))
         node.uid, node.gid = item['uid'], item['gid']
         parent.children[node.name] = node
+    counts = dict(files=0, dirs=0, symlinks=0)
+    def inventory(node):
+        for name, child in node.children.items():
+            if name == '.DS_Store' or name.startswith('._') or ':' in name:
+                raise ValueError('Unexpected host metadata in source tree: ' + name)
+            kind = ('dirs' if stat.S_ISDIR(child.mode) else
+                    'symlinks' if stat.S_ISLNK(child.mode) else 'files')
+            counts[kind] += 1
+            if kind == 'dirs':
+                inventory(child)
+    inventory(root)
+    if counts != dict(files=45734, dirs=16600, symlinks=671):
+        raise SystemExit('Source catalog differs from verified System v70: ' + repr(counts))
     changes = []
     def directory(path, mode=0o755):
         node = root
@@ -158,6 +171,7 @@ def main():
     image = out / 'whyred-system-ios165-v90-ssh.apfs'
     plan = dict(version=90, baseline_sha256=BASE_SHA, boot_version_required=89,
                 source_commit=source_commit, userland_provenance=provenance, changes=changes,
+                baseline_catalog=counts,
                 old_jobs_unchanged=True, old_job_count=530, new_job_count=531,
                 device_writes=False, ssh_hardware_verified=False)
     (out / 'plan.json').write_text(json.dumps(plan, indent=2) + '\n')

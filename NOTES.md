@@ -1,30 +1,38 @@
-## Active SSH userland preparation (2026-11-02)
+## System v90 flashed; SSH host address pending (2026-11-02)
 
-- Initial userland source95364e71919c5884b6b318ecc8f040ee2a274f2a, CI41349937032/
-  job124977733752 passed all9 steps. Artifact provenance/SHA/length/CRC and all
-  native/iOS binary digests passed. The exact16.5 cache export audit found one
-  missing import in sh: strchrnul. This candidate is not for installation.
-  The iOS configure cache now selects dash's portable version; rebuild and
-  repeat the import audit. Dropbear/scp/whyredctl imports all matched.
-- Dedicated client/host keys were generated privately on the Mac and host
-  identity pinned. No keys were uploaded. The original5.3GiB System v70 rollback
-  image matches its recorded SHA. A native reader built from the authenticated
-  v89 APFS sources is ready to validate the new offline image.
-
-- User explicitly requested SSH if useful for diagnosis. Installed remains boot
-  v89 / System v70; USB Ethernet, ping and kernel UDP logging already work.
-  The persistent Mac receiver continues writing its private session log.
-- Preserved System has no sshd or /bin/sh. Preparing pinned Dropbear2026.94,
-  dash0.5.13.5 and whyredctl diagnostics plus a launchd job. No installation or
-  partition write has happened. See WHYRED-SSH.md for source/configuration facts.
-- Native Mac build passes correct/wrong-key authentication, command exit status,
-  exact1MiB binary round trip, dash builtins and diagnostic commands. The source
-  archive check covers all bytes/modes, including a canonical tree digest for
-  upstream Gitiles' varying archive metadata. iOS ARM64 CI is the next check.
-- The server will bind USB192.168.7.2:2222 and use a separate key. Password/PAM
-  and forwarding are omitted; production keys and Apple artifacts stay private.
-  The previous boot-only flash authorization does not identify a new System
-  candidate; finish and verify a concrete image before any installation decision.
+- User explicitly authorized adding SSH, then said to flash the concrete System
+  v90 candidate. Fresh private-baseline identity, whyred/unlocked, exact System
+  geometry6,700,000,256 bytes and512MiB download limit passed. All81 sparse
+  sends/writes and final reboot returned OKAY. Installed is boot v89 / System
+  v90. Only System was written; no separate format/GPT command was used.
+- System image5,386,170,368 bytes, SHA256
+  60b6411a89b72d3452e6bcde01e2f6589c48bfa106aa3ad82cb2778dc46a5464.
+  XNU APFS reader passed64 complete byte comparisons, including all43 active
+  cache members;17 inode/owner/mode checks and all81 sparse payload coverage/
+  digest checks passed. Original System v70 and preserved boot v89 hashes pass.
+- The baseline catalog45734 files/16600 directories/671 links is reproduced
+  without host metadata. Added Dropbear, dash, scp, whyredctl, private local
+  host/authorized keys and one job to the530 preserved decoded launchd jobs.
+  Keys were generated on the Mac and the host identity pinned; no private keys
+  or Apple bytes were uploaded. See WHYRED-SSH.md for exact source/options.
+- Corrected userland source b5b9b074c51e3b676928ced77a3b1b7c565ff600,
+  CI41350694615/job124979995276 passed all9 steps. Artifact13101197811 ZIP
+  SHA256dec89a1c4bddd17ba2f5204f383a50d5fce230938fe2dcc6fae6a97805fe1b18
+  passed provenance/digest/length/CRC and all binary digests. All five binaries
+  match exact installed16.5 cache exports, with proofs bound to binary SHA256.
+  Native key acceptance/rejection, command status,1MiB transport, shell builtins
+  and diagnostic commands passed. The earlier41349937032 shell imported absent
+  strchrnul; it was rejected and is not installed.
+- After the new reboot, the exact-MAC USB Ethernet interface returned. macOS
+  DHCP had removed the temporary192.168.7.1 alias; the host now has link-local
+  only. A guarded SystemConfiguration helper is ready to persist only this USB
+  service's192.168.7.1/24 without a router. OS administrator authentication timed
+  out without confirmation. A user question about the OS window is pending.
+  Restore this host address before testing SSH or inferring a phone crash.
+- The detached USB UDP receiver remains alive and retains its prior private log;
+  no second listener or UART was opened. Actual device SSH authentication and
+  commands remain UNVERIFIED. pkd/lsd, container/RAMFS behavior and other daemon
+  exit causes remain open; installing SSH does not establish their repair.
 
 ## V89 USB Ethernet and live kernel logs verified on device (2026-11-01)
 
