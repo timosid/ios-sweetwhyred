@@ -1,3 +1,44 @@
+## System95 disabling the two jobs is building; v94 long test failed (2026-11-02)
+
+- User's explicit disable request supersedes the optional exit-stack diagnostic.
+  A restricted live-control helper reached launchd but read requests returned154;
+  host xpc_strerror maps154 to Requestor is not a platform binary, consistent
+  with this kernel AMFI marking only ROOTFS executables as platform binaries.
+  Do not weaken platform policy or inject into another process to work around it.
+  No disable/bootout succeeded, and no fake process was started.
+- Modern helper sourceb98fc2b6/CI41496403618/job125452412560 all7 passes. Artifact
+  13166771893 ZIP16226 SHA9e05c12bdbba119e247744412810d571797757b82c60643160dae9bdf92becde,
+  signed binary76ee28ad580d4e96731a63577caa4b2fcc0edc6215a44dd4663dd5053deaf2b0.
+  Offline provenance/signature/34-import checks pass. Live transfer/read probe
+  did not complete; fresh SSH timed out. The existing held shell still served
+  the observer. No successful second-helper RPC or policy change is claimed.
+- Preparing System95 from the exact System91 base/keys/userland. Set Disabled=true
+  in ONLY the two physical LaunchDaemons plists and their cached definitions in
+  System/Library/xpc/launchd.plist. All other529 jobs/catalog metadata/SSH must
+  compare unchanged. tools/prepare-whyred-disabled-services.py rebuilds with the
+  already verified v70 APFS builder, replays verified91 changes and rechecks every
+  retained critical file and both new plist bytes/metadata. No phone writes.
+- Detached offline builder86458, audit/system95-build.json/log, output
+  ssh-v90/system-v95-candidate; at this note it passed tree/config diff guards and
+  is compressing/layouting. No final manifest or readiness yet. Independent
+  service-control-v95/compare-images uses the preserved APFS reader to compare
+  the entire catalog, metadata, symlinks and all unchanged file bytes against91,
+  with exactly3 content exceptions that require separate semantic/byte checks.
+  After these pass, generate/reconstruct every sparse slice before any flash.
+- V94 observation FAILED at18:13:17Z (sample33, about38min after boot). First
+  lower block read EIO then shared-cache page-in errors and permanent I/O reject.
+  Sequence: CMD18 failure, initial recovery/DATA reset, inherited baseline clock
+  restored, then second abort CMD12 reports command-timeout error, driver latches
+  failed. This is additional unresolved recovery behavior; patch0170 is not a
+  complete physical fix. Do not suppress errno or attribute this to daemon exits.
+- All true uncached controls now EIO; cached .17/.27 still match exact bytes;
+  shell-list/passwd normal reads EIO and mapped reads SIGBUS. Private
+  audit/emmc-v94-device/transport-all.txt, first-error-context.txt and12 failure
+  controls preserved. Observer81246 finished captured-first-error-session-retained;
+  held shell81341 and UDP47443 remain. No UART. Stop further fresh SSH probes
+  against this degraded run. Installed is still boot94/System91; System95 is
+  not built/verified/flashed yet. No job-policy change occurred before failure.
+
 ## Service-control helper live read probe; modern query update (2026-11-02)
 
 - Helper sourcef0ffa4b4, CI41496018797/job125451054330 all7 steps success.
