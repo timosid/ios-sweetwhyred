@@ -27,6 +27,9 @@ extern void *IOSurfaceGetBaseAddress(IOSurfaceRef);
 #endif
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+#include <objc/runtime.h>
 
 static int bitmap(void) {
     puts("WHYRED RENDER: software context begin");
@@ -158,6 +161,34 @@ static int surface_bitmap(void) {
     return result || !preserved ? 1 : 0;
 }
 
+static int renderer_methods(void) {
+    const char *classes[] = {"CAWindowServer", "CAWindowServerDisplay", "CARenderer"};
+    for (unsigned c = 0; c < sizeof(classes) / sizeof(classes[0]); c++) {
+        Class cls = objc_getClass(classes[c]);
+        printf("WHYRED RENDER: class=%s present=%d\n", classes[c], cls != Nil);
+        if (!cls) continue;
+        for (unsigned meta = 0; meta < 2; meta++) {
+            unsigned count = 0, printed = 0;
+            Method *methods = class_copyMethodList(meta ? object_getClass(cls) : cls, &count);
+            for (unsigned i = 0; i < count && printed < 128; i++) {
+                const char *name = sel_getName(method_getName(methods[i]));
+                if (!strcasestr(name, "render") && !strcasestr(name, "display") &&
+                    !strcasestr(name, "init") && !strcasestr(name, "server")) continue;
+                IMP imp = method_getImplementation(methods[i]);
+                Dl_info info = {0};
+                if (!dladdr((const void *)imp, &info) || !info.dli_fbase) continue;
+                printf("WHYRED RENDER: method=%c[%s %s] offset=0x%llx types=%s\n",
+                       meta ? '+' : '-', classes[c], name,
+                       (unsigned long long)((uintptr_t)imp - (uintptr_t)info.dli_fbase),
+                       method_getTypeEncoding(methods[i]));
+                printed++;
+            }
+            free(methods);
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     @autoreleasepool {
@@ -166,7 +197,8 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "eagl")) return eagl();
             if (argc == 2 && !strcmp(argv[1], "layer")) return layer_bitmap();
             if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
-            fputs("usage: whyred-render-probe software | eagl | layer | surface\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
