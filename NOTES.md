@@ -1,5 +1,20 @@
 ## Kernel97 foreground API candidate; installed96 still under observation (2026-11-02)
 
+- ACTUAL boot96 validation through20:02:41Z: running UUID matches packaged
+  BC9C2211-0018-3824-BC73-06DAAB42E274; all75 device xattr cases pass, all12
+  cached/direct/mmap controls match expected bytes/hashes, all3 installed95
+  job/cache files match. Zero forbidden job spawns. ~1.03GB CMD17 reads,
+  errors0/fallbacks0; no current APFS/PRESSURE/recovery-latch record. This is
+  early evidence only. Observer4706 now monitoring, held shell7488, samples2;
+  raw/diag uploads verified. Read current status before any further action.
+- SDK-isolation fix source47524d521237e9d50d84ba9d1b5e72806c5e13cd retriggers97
+  CI41515301290. Candidate97 is NOT installed. Do not reflash96/97 merely because
+  a new artifact appears; preserve this natural96 long-run exposure first.
+- Copied96 observer initially reused the95 bootstrap-probe filenames; current
+  probe metadata was archived under audit/kernel96-ssh-probe-*.json and the disk
+  script corrected. Earlier95 state/control/config/device-failure proofs are
+  intact, but do not use root-level system95-ssh-probe files for historical95
+  attribution now. Main96 outputs were always separate in kernel96-device.
 - Initial97 CI41514102825/job125513096438 failed BEFORE kernel compilation:
   the native pre-build test inherited the kernel-only SDKROOT and could not
   find stdio.h. No97 kernel was produced/deployed. The test now explicitly
