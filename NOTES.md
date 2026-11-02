@@ -1,3 +1,35 @@
+## Current97 SSH hang blocks next graphics probes; ordinary reboot requested (2026-11-03 Minsk)
+
+- ACTUAL IOSurface CPU probe passed at21:09:23Z: create16x16/stride64, lock/map,
+  CALayer192red+64green exact pixels, unlock/relock preserve all1024 bytes. Worker
+ 23548 complete; audit/surface98-check.json/device. No screen/server mutation.
+- Next capture helper source96ece6f4d80dfd0ff230c47a00fc1c353cf7dae4, CI41525632566,
+  artifact13178494206 ZIP57570B SHA40a2b30b897969082e3ede619219268261fa2d51e2d5be0e245057c067a29298;
+  binary91168B SHA52d964f0ed119d16d3053b63466380023caf8293e3583cb1c76ae530e336ecd7.
+  Signature/iOS/ISA/CRC/length verified under graphics-v98/capture98. Its upload
+  NEVER received first SCP acknowledgement; worker24031 failed before payload,
+  so neither methods nor capture command ran. No device graphics result here.
+- New SSH probe establishes TCP but times out BEFORE server version/banner,
+  before key offer/auth. Thus this is not a measured bad-key rejection. Original
+  observer17023 ALSO ended phase failed: retained-shell command got BEGIN but
+  no END within180s, samples28. Last complete state21:10:04Z: VMfree1802 pages,
+  wired16099/compressor384; RAMFSfree3500/8192, not data quota. No concurrent FIFO
+  commands were issued. Held SSH shell19005 may retain a stuck remote child.
+- UDP still supplies SpringBoard/USB lines. No current EMMC recovery/APFS/EIO/
+  RAMFS pressure/panic captured. Last I/O1.388GB errors0/fallbacks0. Separately,
+  genuine mediaserverd28 again hit the known NULL CoreImage callback; distinguish
+  it from diagnostic process185. Do not claim storage fully fixed or attribute
+  this new hang to the old CMD12 latch without evidence.65min watch incomplete.
+- Private immutable cut audit/kernel97-full-review/ssh-hang-summary.json/log,
+  graphics-v98/restart-request-boundary.json and ssh-login-check stderr stages.
+- Asked user for an ordinary power reboot to continue graphics checks (or report
+  Fastboot if already there). Await actual reply; no new flash is required to
+  run the existing97 kernel. Do not restart old observers/overwrite old outputs.
+  Prepare distinct97b output/baseline only after user confirms the new boot.
+- Graphics still open: real CPU layer and owned IOSurface work; need server
+  snapshot/root-layer composition and framebuffer delivery. No fake GPU, service
+  disable, System rewrite, framework byte patch or guessed renderer flags made.
+
 ## Graphics server capture investigation (2026-11-03 Minsk)
 
 - Read actual /usr/libexec/backboardd over pinned SSH to private graphics-v98;
