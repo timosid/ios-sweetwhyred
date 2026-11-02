@@ -28,6 +28,8 @@ jobs:
           for c in data[3:16387]:h=((h^c)*1099511628211)&((1<<64)-1)
           assert r.stdout.count('fnv1a64=%016x'%h)==2
           assert 'entered without dyld' in r.stdout
+          r2=subprocess.run([str(p/'whyredraw-native'),str(p/'fixture'),'3','512','0','1'],check=True,capture_output=True,text=True)
+          assert 'fcntl_nocache=0' in r2.stdout
           for args,code in [([str(p/'absent'),'0','16','0'],1),([str(p/'fixture'),'0','65537','0'],2),([str(p/'fixture'),'0','16','2'],2)]:
               assert subprocess.run([str(p/'whyredraw-native'),*args],capture_output=True).returncode==code
           (p/'host-test.txt').write_text(r.stdout+'PASS file bytes/mmap agree and invalid bounds rejected\n')

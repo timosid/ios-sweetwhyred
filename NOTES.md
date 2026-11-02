@@ -1,3 +1,32 @@
+## Read/mmap failure confirmed; bounded APFS diagnostics preparing (2026-11-02)
+
+- Corrected raw helper cc0ab5c / CI41468481553/job125355507394 passes all6
+  steps. ZIP49e05ae3ee299910feb47b63c22aa56d9cbe339437e6bc3f82d6d8cb2a9bfac3,
+  binary97db040f25f6faaef038229892af6b6dc3a3aa5bddd1934f05ba74cf3c87b490.
+  Signature/platform/no imports validated, volatile complete self digest passes.
+  It now starts on every tested argument layout. Shells/passwd/.27 fault-page
+  pread EIO, then mmap succeeds but actual mapped read SIGBUS138. Cache .17
+  pread/mmap still give the exact expected512-byte digest. These are genuine
+  memory-error faults after entering main, distinct from the fixed SP bug.
+- Patch0169 adds default-off whyred-apfs-errors=1 tracing at transport, cached
+  read/fill and page-in failures. Preserves original errno/UPL abort behavior,
+  records original mapping KR, file inode/offset/size and free/wired counters.
+  At most32 records, no allocation or pathname lookup. It also honors existing
+  IO_NOCACHE read requests through the already implemented direct path; this
+  enables a controlled cache-vs-parser comparison, not a claim of root repair.
+- Both changed C units compile locally for ARM64 with authenticated v79
+  generated headers. Exact no-fuzz patch replay on authenticated v89 passes.
+  Host fault injection extracts the actual kernel functions and checks17
+  read/page-in/transport fault cases, cleanup, EOF zeroing, direct dispatch and
+  default-off/32-record logging budget. Undefined-behavior sanitizer passes.
+  Local ASan runtime itself traps in libpthread initialization before main;
+  that attempted run is not counted as a kernel/test result.
+- Raw helper adds optional bounded F_NOCACHE toggle; native syscall test passes.
+  Full kernel CI/new signed raw artifact pending. Boot89/System91 is still
+  installed, verified System92 reserve unused, held SSH shell/UDP log alive.
+  No UART or partition access added. User's ordinary reboot is not a new flash
+  readiness answer. Prepare a verified boot-only candidate before next test.
+
 ## First common SIGBUS captured; read-only APFS files return EIO (2026-11-02)
 
 - The ordinary reboot reproduced the common failure at14:46:27Z (~33 minutes

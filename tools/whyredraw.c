@@ -28,10 +28,11 @@ static U digest(const volatile unsigned char *p,U n){U h=14695981039346656037UL;
 S raw_main(U *stack) __attribute__((used));
 S raw_main(U *stack){
     U argc=stack[0];char **argv=(char**)(stack+1);text("WHYRED RAW: entered without dyld\n");
-    if(argc!=5){text("usage: raw PATH OFFSET LENGTH MAP(0|1)\n");return 2;}
-    U offset=number(argv[2]),size=number(argv[3]),map=number(argv[4]);
-    if(!size||size>65536||offset>0x7fffffffffffffffUL-size||map>1)return 2;
+    if(argc!=5&&argc!=6){text("usage: raw PATH OFFSET LENGTH MAP(0|1) [NOCACHE(0|1)]\n");return 2;}
+    U offset=number(argv[2]),size=number(argv[3]),map=number(argv[4]),nocache=argc==6?number(argv[5]):0;
+    if(!size||size>65536||offset>0x7fffffffffffffffUL-size||map>1||nocache>1)return 2;
     S fd=call6(5,(S)argv[1],0,0,0,0,0);value("open=",fd);if(fd<0)return 1;
+    if(nocache){S flag=call6(92,fd,48,1,0,0,0);value("fcntl_nocache=",flag);if(flag<0){call6(6,fd,0,0,0,0,0);return 1;}}
     S st=call6(339,fd,(S)status_bytes,0,0,0,0);value("fstat=",st);
     if(!st){value("uid=",*(unsigned*)(status_bytes+16));value("mode=",*(unsigned short*)(status_bytes+4));value("file_size=",*(S*)(status_bytes+96));}
     S n=call6(153,fd,(S)data,size,offset,0,0);value("pread=",n);if(n>=0)hex("pread_fnv1a64=",digest(data,(U)n));

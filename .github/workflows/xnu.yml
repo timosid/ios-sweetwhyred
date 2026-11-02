@@ -30,6 +30,7 @@ on:
       - "tools/apfs/**"
       - "tools/apfs-*"
       - "tools/test-whyred-apfs.py"
+      - "tools/test-whyred-apfs-errors.py"
       - "tools/test-whyred-framebuffer.py"
       - "tools/test-whyred-framebuffer-content.py"
       - "tools/test-whyred-aks-wrap.py"
@@ -106,6 +107,7 @@ jobs:
           guard = '    python3 "${WORK_DIR}/../tools/make-whyred-splash.py" "${WORK_DIR}/../assets/meimei.jpg" --output "${WORK_DIR}/xnu/osfmk/arm64/whyred_splash_image.h" --report "${WORK_DIR}/../out/splash-image.json" --expected-sha256 5bff1c39a707e16be19810774912fa65cca1e010f21dd805effb7dd46a21b409\n'
           guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-xnu.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-source-report.json" --expected-upstream-commit 1b191cb58250d0705d8a51287127505aa4bc0789\n'
           guard += '    python3 "${WORK_DIR}/../tools/verify-whyred-apfs-source.py" "${WORK_DIR}/xnu" --report "${WORK_DIR}/whyred-apfs-source-report.json"\n'
+          guard += '    python3 "${WORK_DIR}/../tools/test-whyred-apfs-errors.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-apfs-errors-check"\n'
           guard += '    python3 "${WORK_DIR}/../tools/test-whyred-emmc-contract.py" "${WORK_DIR}/xnu" --output "${WORK_DIR}/whyred-emmc-contract"\n'
           script.write_text(text.replace(marker, marker + guard))
           PY
