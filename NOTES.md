@@ -1,3 +1,23 @@
+## Live SSH service diagnostics in progress (2026-11-02)
+
+- Boot v89 / System v91 stays installed; no additional partition writes. Root
+  SSH and the existing single UDP receiver are working; UART is not opened.
+- Across the first roughly half-hour, pkd280/suggestd283/lsd95 retain their PIDs
+  and no pkd/lsd crash appears in the v91 capture. This is an observation, not a
+  long-run stability claim. Bluetooth/fairplay continue clean status0 exits.
+- RAMFS free pages fell from7198 shortly after SSH to2214/8192. The root DSC
+  temporary file disappeared; the remaining DSC file is about1.2MB. Thus the
+  original bulk DSC footprint is absent at the sample, but other growth still
+  needs attribution; global quota128MiB remains unchanged.
+- The private MCM log repeatedly reports unsupported class2 Data Protection;
+  exact local cache code checks statfs MNT_CPROTECT. RAMFS does not implement
+  per-file keys. Do not blindly advertise encryption to hide this error.
+- A bounded live thread sampler and mobile-user child runner are being built
+  as a standalone signed iOS helper. It reads registers/frames without target
+  suspension or memory writes; child diagnostics have a30s timeout. Upload
+  through SSH into volatile /var/tmp, not a new System flash. CI/device results
+  are pending. Device logs/cache bytes and keys remain outside Git.
+
 ## System v91 SSH verified on the phone (2026-11-02)
 
 - Installed is boot v89 / System v91. The user returned the intentionally powered
