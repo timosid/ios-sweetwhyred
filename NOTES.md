@@ -1,3 +1,34 @@
+## Remote marker failed to reach server capture; read-only backend inspection prepared (2026-11-03 Minsk)
+
+- User explicitly requested continued graphics work. Exact remote-layer probe
+  source056181479a063781a173918ad829bd7ec6a59be1 from CI41530546994/artifact13182076347
+  ZIP66842B SHA56ae641531f7026fd9a9027c8e92990db4a414d031b482851826fae4bc577b1c;
+  binary92048B SHA2a22ff0b9e96451dad0c21cf3d0cb801f9a62999fd4ce770f409a87baefa9904.
+  Signature/iOS/ISA/CRC/length and exact upload/readback verified. Worker29221
+  complete21:42:29Z: CAContext created,32x32 red layer submitted, before/after
+  capture accepted1 but RGB/alpha/marker all0. Context invalidated in finally.
+  No rendered marker or stock UI repair claimed. audit/remote98-check/device.
+- Runtime method ABI checks passed for factory/setLayer/invalidate; setLevel
+  called ONLY for verified float ABI. No guessed renderer flags or server memory
+  writes. Actual new context failing to appear suggests server remote composition
+  path needs investigation; empty capture alone doesn't prove a unique cause.
+- Read-only unsuspended SpringBoard26/Backboard57/lsd96 thread samples private.
+  SpringBoard main waits through CoreServices; another thread waits synchronously
+  on XPC from CoreServices/Foundation. No identity of the waited-on service yet.
+  Correct shared cache slide30728000 confirmed by TWO exact kernel anchors:
+  workq_kernreturn+8 and ulock_wait+8. Earlier hand-calculated30628000 was wrong
+  and discarded before any claimed diagnosis; corrected private symbolication.
+- CAWindowServer serverIfRunning is an exact load from shared global1dcf3c160;
+  planned inspection reads the actual backboardd task/global/object/vtable only.
+  Added bounded read-only whyreddiag cache PID and region PID ADDRESS LENGTH<=4096,
+  no task suspend/write. task_cache reads actual dyld all-image-info shared slide
+  before using addresses. Native warning-clean build, actual self task-cache/read
+  and7 malformed/overflow/negative/size cases pass. Signed iOS CI/device pending.
+- Current installed97/System95 and observer25904/shell27792 untouched. Graphics
+  remains active. Next authenticate helper, inspect server backend pointers/flags
+  from read-only snapshots, then decode actual backend choice. Don't fabricate
+  accelerator support, blindly switch bits, or present a test marker as iOS UI.
+
 ## Actual97b server capture completed: accepted but transparent/empty (2026-11-03 Minsk)
 
 - User asked to act now. TCP was initially refused while cold CMD17 startup read

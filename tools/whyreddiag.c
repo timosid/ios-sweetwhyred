@@ -12,6 +12,8 @@
 #include <sys/sysctl.h>
 #include <sys/xattr.h>
 #include <sys/wait.h>
+#include <mach-o/dyld_images.h>
+#include <stddef.h>
 #include <errno.h>
 #include <grp.h>
 #include <fcntl.h>
@@ -107,6 +109,40 @@ static int sample(pid_t pid) {
     if (threads) vm_deallocate(mach_task_self(), (vm_address_t)threads, count * sizeof(*threads));
     if (pid != getpid()) mach_port_deallocate(mach_task_self(), task);
     return sampled ? 0 : 1;
+}
+
+static int region_read(pid_t pid, uint64_t address, size_t length) {
+    if (!address || !length || length > 4096 || address > UINT64_MAX - length) return 2;
+    task_t task = MACH_PORT_NULL;
+    kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+    if (kr) { fprintf(stderr, "region task_for_pid: %d\n", kr); return 1; }
+    unsigned char bytes[4096]; vm_size_t got = 0;
+    kr = vm_read_overwrite(task, (vm_address_t)address, length, (vm_address_t)bytes, &got);
+    mach_port_deallocate(mach_task_self(), task);
+    printf("WHYRED DIAG: region pid=%d address=0x%llx bytes=%lu kr=%d read_only=1\n",
+           pid, (unsigned long long)address, (unsigned long)got, kr);
+    if (kr || got != length) return 1;
+    for (size_t i = 0; i < length; i++) printf("%02x%s", bytes[i], (i + 1) % 16 ? "" : "\n");
+    if (length % 16) putchar('\n');
+    return 0;
+}
+
+static int task_cache(pid_t pid) {
+    task_t task = MACH_PORT_NULL;
+    kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+    if (kr) { fprintf(stderr, "cache task_for_pid: %d\n", kr); return 1; }
+    task_dyld_info_data_t info = {0}; mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
+    kr = task_info(task, TASK_DYLD_INFO, (task_info_t)&info, &count);
+    uintptr_t slide = 0; vm_size_t got = 0;
+    if (!kr && info.all_image_info_format == TASK_DYLD_ALL_IMAGE_INFO_64) {
+        kr = vm_read_overwrite(task, info.all_image_info_addr +
+            offsetof(struct dyld_all_image_infos, sharedCacheSlide), sizeof(slide),
+            (vm_address_t)&slide, &got);
+    } else if (!kr) kr = KERN_INVALID_ARGUMENT;
+    mach_port_deallocate(mach_task_self(), task);
+    printf("WHYRED DIAG: cache pid=%d kr=%d bytes=%lu slide=0x%llx read_only=1\n",
+           pid, kr, (unsigned long)got, (unsigned long long)slide);
+    return kr || got != sizeof(slide) ? 1 : 0;
 }
 
 static double now(void) {
@@ -211,16 +247,32 @@ static int run_mobile(char **args) {
 }
 
 int main(int argc, char **argv) {
+    if ((argc == 3 && !strcmp(argv[1], "cache")) ||
+        (argc == 5 && !strcmp(argv[1], "region"))) {
+        char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
+        if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
+        if (argc == 3) return task_cache((pid_t)pid);
+        if (argv[3][0] == '-' || argv[4][0] == '-') return 2;
+        errno = 0; uint64_t address = strtoull(argv[3], &end, 0);
+        if (errno || *end) return 2;
+        errno = 0; unsigned long length = strtoul(argv[4], &end, 0);
+        if (errno || *end || !length || length > 4096) return 2;
+        return region_read((pid_t)pid, address, length);
+    }
     if (argc == 2 && !strcmp(argv[1], "kernel")) return kernel_info();
     if (argc == 2 && !strcmp(argv[1], "session")) return session_info();
     if (argc == 3 && !strcmp(argv[1], "xattrs")) return xattr_probe(argv[2]);
     if (argc == 2 && !strcmp(argv[1], "memory")) return memory_stats();
-    if (argc == 2 && !strcmp(argv[1], "selftest")) return memory_stats() || sample(getpid());
+    if (argc == 2 && !strcmp(argv[1], "selftest")) {
+        static const unsigned char probe[] = {0x13,0x37,0x42,0x19,0x88,0x76,0x54,0x32};
+        return memory_stats() || sample(getpid()) || task_cache(getpid()) ||
+            region_read(getpid(), (uintptr_t)probe, sizeof(probe));
+    }
     if (argc == 3 && !strcmp(argv[1], "threads")) {
         char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
         if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
         return sample((pid_t)pid);
     }
     if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
 }
