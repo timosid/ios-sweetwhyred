@@ -35,7 +35,7 @@ S raw_main(U *stack){
     S st=call6(339,fd,(S)status_bytes,0,0,0,0);value("fstat=",st);
     if(!st){value("uid=",*(unsigned*)(status_bytes+16));value("mode=",*(unsigned short*)(status_bytes+4));value("file_size=",*(S*)(status_bytes+96));}
     S n=call6(153,fd,(S)data,size,offset,0,0);value("pread=",n);if(n>=0)hex("pread_fnv1a64=",digest(data,(U)n));
-    if(map&&n>0){
+    if(map){
 #if defined(__aarch64__)
         U page=16384;
 #else

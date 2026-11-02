@@ -1,3 +1,48 @@
+## First common SIGBUS captured; read-only APFS files return EIO (2026-11-02)
+
+- The ordinary reboot reproduced the common failure at14:46:27Z (~33 minutes
+  into boot). VM pressure/compression began first: free about2094 pages,
+  compressor753/pageouts31 at the last complete sample; a later partial sample
+  shows free2345/wired18089/compressor2374/pageouts39. RAMFS still had2838 free
+  pages (~44MiB), so this failure is not its128MiB data quota. Earlier
+  mediaserverd NULL-call SIGSEGV is distinct from subsequent common SIGBUS.
+- Automatic first-failure collector completed. Freshly executing dynamic probes,
+  whyredctl and whyreddiag all die before main in dyld at the same writable
+  shared-cache address0x2120e4d80 (unslid0x1e1eb0d80/.27.dylddata offset0xa59cd80).
+  Held raw SSH shell PID40269 survives. New server2223 rejects valid auth because
+  User root has invalid shell, rejected; auth/key checks stay unchanged.
+- Critically, built-in shell reads of /etc/shells and passwd produce no bytes.
+  A signed freestanding ARM64 probe (no dyld/imports) was transferred using only
+  shell printf into the no-longer-running volatile probe's0755 inode. It starts
+  in the broken state, and complete self-file digest matches the reviewed Mac
+  binary. This modifies only /var/tmp, not System or any partition.
+- Raw syscalls prove: /etc/shells open/fstat succeed, UID0/mode100644/size8,
+  but pread=-5(EIO). Passwd has correct2795-byte size and also pread EIO. The
+  critical .27.dylddata file has correct189300736-byte size but that offset
+  returns EIO. The old .17 literal's512 bytes still read correctly with expected
+  FNV d58f5b0f9afadca0. Mounted root block-device open is EBUSY, not a transport
+  test. eMMC counters last report0 errors; failures before hardware accounting
+  and UBC/page-in failures remain possible. APFS pread uses its custom UBC path;
+  these results do NOT prove whether parser, UBC, mapping or transport is root.
+- Raw first version CI41466390673/job125348296582 passed all6 steps; zero imports,
+  LC_UNIXTHREAD/no dylinker, iOS platform, code signature and ISA checked. Binary
+  bf775bbf07bc8023c9b5a83342a954275e4685d65bce6b42ce4983bd8520722e,
+  ZIP2f3472292b39b3e9b79387d086524014b1c16b9464f6005995d685bfb23850e9.
+  Earlier CI41465971269 failed because static ld omits platform metadata; the
+  build now inserts the correct iOS16.4 declaration in reserved padding BEFORE
+  signing. No wrong-platform artifact was deployed.
+- Some first raw runs hit our own initial-SP alignment bug (exception0x103,
+  not the common memory-error0xa). Confirmed via stack address/PC; argument
+  padding allowed immediate EIO measurements. Source9e897dea85c8345a8650ae09a47cc02257b3b133
+  aligns SP while retaining argv pointer. Its new CI and improved mmap-after-
+  pread-error diagnostic are pending. Do not confuse probe alignment with root.
+- Next: finish signed raw probe update/read-vs-mmap comparison, then prepare
+  narrowly bounded kernel error diagnostics/repair based on actual failure.
+  No boot/System flash since v91; v92 is still an unused verified reserve.
+  Native collector37864 failed at the common SIGBUS; cold watcher45132 completed.
+  Old watcher42713 was superseded for a5-minute pause in new auth requests.
+  Kernel UDP receiver47443 and held shell40269 remain; no UART opened.
+
 ## Volatile diagnostics verified after user reboot (2026-11-02)
 
 - User confirmed ordinary reboot. Existing USB/host address and UDP receiver
