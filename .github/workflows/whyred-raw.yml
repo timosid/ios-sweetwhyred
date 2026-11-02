@@ -21,7 +21,7 @@ jobs:
           clang $FLAGS tools/whyredraw.c -o out/raw/whyredraw-native
           python3 - <<'CHECK'
           from pathlib import Path
-          import subprocess
+          import subprocess,re
           p=Path('out/raw');data=bytes(range(256))*257;(p/'fixture').write_bytes(data)
           r=subprocess.run([str(p/'whyredraw-native'),str(p/'fixture'),'3','16384','1'],check=True,capture_output=True,text=True)
           h=14695981039346656037
@@ -32,7 +32,13 @@ jobs:
           assert 'fcntl_nocache=0' in r2.stdout
           for args,code in [([str(p/'absent'),'0','16','0'],1),([str(p/'fixture'),'0','65537','0'],2),([str(p/'fixture'),'0','16','2'],2)]:
               assert subprocess.run([str(p/'whyredraw-native'),*args],capture_output=True).returncode==code
-          (p/'host-test.txt').write_text(r.stdout+'PASS file bytes/mmap agree and invalid bounds rejected\n')
+          pressure=subprocess.run([str(p/'whyredraw-native'),'pressure','4','1'],check=True,capture_output=True,text=True)
+          before=re.search(r'pressure_before_fnv1a64=([0-9a-f]+)',pressure.stdout)
+          after=re.search(r'pressure_after_fnv1a64=([0-9a-f]+)',pressure.stdout)
+          assert before and after and before[1]==after[1] and 'pressure_unmap=0' in pressure.stdout
+          for args in [('97','1'),('4','16'),('0','1'),('4','0')]:
+              assert subprocess.run([str(p/'whyredraw-native'),'pressure',*args],capture_output=True).returncode==2
+          (p/'host-test.txt').write_text(r.stdout+pressure.stdout+'PASS file bytes/mmap agree and invalid bounds rejected\n')
           (p/'fixture').unlink()
           CHECK
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)

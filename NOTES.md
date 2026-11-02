@@ -1,3 +1,21 @@
+## Bounded private-memory reproduction helper preparing (2026-11-02)
+
+- Boot93/System91 still running with one observer59812 and held shell60796.
+  Atstate021, free7292/wired14708/compressor0; RAMFS4382/8192 free. pkd296,
+  suggestd300 and lsd96 retain PIDs, no APFS error/panic captured yet. Initial
+  stacks resolve with slide0x1e1f8000, validated by mach_msg2/kevent/ulock/stat
+  trap offsets. Eight VM/UPL/pager source files match authenticated v93 exactly.
+- Static probe gains an explicit pressure MIB SECONDS mode, hard bounds96MiB/
+  15s, only its own anonymous private pages. Deterministic incompressible fill,
+  before/after full digest, select timeout and munmap; any process exit releases
+  the region. Native4MiB/1s allocation/fill/hold/verification/free and invalid
+  bounds pass. Existing file-only mode/collector binary is unchanged on phone.
+- New signed artifact CI pending; no memory-pressure test ran on phone. Prepare
+  this for a short64MiB test only if normal observation does not reproduce the
+  previous roughly33-minute failure. Check live memory/first-error status first;
+  do not compound an already-occurring failure. No filesystem/partition writes
+  or service-policy changes, no UART. Exact root cause remains unproven.
+
 ## Boot v93 physically installed; early SSH/read baseline passes (2026-11-02)
 
 - User confirmed fresh Fastboot. Exact private baseline/product/unlocked/64MiB

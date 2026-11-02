@@ -1,4 +1,4 @@
-/* Freestanding read-only probe: no dyld, libSystem, allocation or target writes. */
+/* Freestanding file probe and bounded private-memory test. No dyld/libSystem or file writes. */
 typedef unsigned long U;
 typedef long S;
 static unsigned char data[65536] __attribute__((aligned(16384)));
@@ -25,10 +25,28 @@ static void value(const char *name,S n){char b[32];U x=n<0?(U)(-n):(U)n,i=32;do{
 static void hex(const char *name,U n){char b[16];for(int i=15;i>=0;i--){unsigned v=n&15;n>>=4;b[i]=(char)(v<10?'0'+v:'a'+v-10);}text(name);write_all(b,16);text("\n");}
 static U number(const char *s){U n=0,base=10;if(s[0]=='0'&&s[1]=='x'){s+=2;base=16;}for(;*s;s++){unsigned v=*s>='0'&&*s<='9'?(unsigned)(*s-'0'):*s>='a'&&*s<='f'?(unsigned)(*s-'a'+10):99;if(v>=base||n>(~0UL-v)/base)return ~0UL;n=n*base+v;}return n;}
 static U digest(const volatile unsigned char *p,U n){U h=14695981039346656037UL;for(U i=0;i<n;i++){h^=p[i];h*=1099511628211UL;}return h;}
+/* Touch only this process's anonymous pages; the kernel frees them on any exit. */
+static int same(const char *a,const char *b){while(*a&&*a==*b){a++;b++;}return *a==*b;}
+static S pressure(const char *mib_arg,const char *seconds_arg){
+    U mib=number(mib_arg),seconds=number(seconds_arg);
+    if(!mib||mib>96||!seconds||seconds>15)return 2;
+    U size=mib*1024*1024;
+    S address=call6(197,0,size,3,0x1002,-1,0);
+    value("pressure_mib=",mib);hex("pressure_map=",(U)address);if(address<0)return 1;
+    volatile U *words=(volatile U*)(U)address;U state=0x9e3779b97f4a7c15UL;
+    for(U i=0;i<size/sizeof(U);i++){state^=state<<13;state^=state>>7;state^=state<<17;words[i]=state;}
+    U before=digest((const volatile unsigned char*)(U)address,size);
+    hex("pressure_before_fnv1a64=",before);value("pressure_hold_seconds=",seconds);
+    S tv[2]={(S)seconds,0};S waited=call6(93,0,0,0,0,(S)tv,0);value("pressure_wait=",waited);
+    U after=digest((const volatile unsigned char*)(U)address,size);
+    hex("pressure_after_fnv1a64=",after);S released=call6(73,address,size,0,0,0,0);value("pressure_unmap=",released);
+    text("WHYRED RAW: pressure done\n");return waited<0||released<0||before!=after?1:0;
+}
 S raw_main(U *stack) __attribute__((used));
 S raw_main(U *stack){
     U argc=stack[0];char **argv=(char**)(stack+1);text("WHYRED RAW: entered without dyld\n");
-    if(argc!=5&&argc!=6){text("usage: raw PATH OFFSET LENGTH MAP(0|1) [NOCACHE(0|1)]\n");return 2;}
+    if(argc==4&&same(argv[1],"pressure"))return pressure(argv[2],argv[3]);
+    if(argc!=5&&argc!=6){text("usage: raw PATH OFFSET LENGTH MAP(0|1) [NOCACHE(0|1)] | pressure MIB(1..96) SECONDS(1..15)\n");return 2;}
     U offset=number(argv[2]),size=number(argv[3]),map=number(argv[4]),nocache=argc==6?number(argv[5]):0;
     if(!size||size>65536||offset>0x7fffffffffffffffUL-size||map>1||nocache>1)return 2;
     S fd=call6(5,(S)argv[1],0,0,0,0,0);value("open=",fd);if(fd<0)return 1;
