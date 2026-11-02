@@ -1,3 +1,38 @@
+## Boot v93 offline-ready; physical Fastboot readiness requested (2026-11-02)
+
+- Kernel source5f63e7c9e9e2fb776e74324a62c82ce3592a15ab,
+  CI41471287807/job125365226436: all27 steps success. New actual-function
+  fault-injection/UBSan test also passes in Build before kernel compile and
+  its report is retained. Earlier SDK-inheritance failure remains rejected.
+- Authenticated kernel ZIPa05fd85b5e95ce2b90bc3a60d059d1c9eac44b81df69924730642d06361748b5,
+  buildtree ZIP37126b09ed1d00742af2a50e4014220a67528ff91992b546b25893429b21ab88.
+  ZIP size/CRC/provenance, all retained checks, exact reviewed APFS3 files and
+  other runtime source, linked diagnostic markers, no-LSE disassembly, boot
+  artwork, loader ABI/layout and stock-image contract pass.
+- Candidate port/out/whyred-ios-root-v93-apfs-errors-41471287807/:
+  boot22347776 bytes SHA5a29f651144b546e030db6376cac4daee5f78eb94c5a52f18f5bc6987f0ba37f,
+  kernel58c8ad2ecb6005a641720cceacfd84529dee52917628857ae8eecbe76f886213.
+  Command581bytes adds only whyred-apfs-errors=1 to v89 profile; global RAMFS
+  quota/AKS/USB/storage policy retained. New API behavior is explicit IO_NOCACHE
+  direct read, for cache-vs-parser comparison. It is not a verified root fix.
+- Current boot89/System91 remains installed. No new flash/UART this run.
+  Boot-only helper is pinned to image/kernel/source/System91 contract and known
+  boot89 rollback. Fastboot devices currently returns none. Physical Fastboot
+  readiness question is pending; ordinary reboot reply was not flash readiness.
+  Do not write System92 reserve, GPT, recovery, bootloaders or other partitions.
+- Once user confirms Fastboot, freshly verify private baseline/product/unlock/
+  boot geometry; start prepared ssh-v90/observe_apfs93.py BEFORE flash/reboot
+  (not against old running boot), then guarded tools/flash_apfs93.py. Existing
+  UDP receiver47443 stays; never open UART/duplicate receiver. Observer uploads
+  signed raw3996342f/helperc1a356f4 only into volatile RAMFS using pinned SSH,
+  exact full readback, retains one shell, and captures early/first failure with
+  normal-vs-F_NOCACHE/mmap comparisons. It is prepared, not started/tested yet.
+- Later old-boot sample: .27 header reads correctly while0xa59cd80 returns EIO;
+  shell/server headers and .17 retained bytes also read. Corrected raw mapped
+  faults are confirmed sig10/code0x10000000a at valid file mappings. Thus failure
+  is per-page, not whole-file disappearance. Exact originating layer is unproven.
+  Private audit evidence and keys remain outside Git.
+
 ## Full CI test SDK correction (2026-11-02)
 
 - Initial kernel run41470349414/job125361960778 stopped BEFORE kernel compile:
