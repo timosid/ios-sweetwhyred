@@ -1,3 +1,22 @@
+## User confirmed ordinary reboot; distinct97b observers running (2026-11-03 Minsk)
+
+- User rebooted phone normally. No flash. New observer25904 uses existing97
+  manifest and distinct audit/kernel97b-observer.json/log/device, confirmation
+  audit/kernel97b-user-reboot.json. Log boundary9537568 preserved before reboot;
+  fresh reset I/O counters/early foreground success observed. Old97 failed
+  outputs remain immutable. No duplicate old observer or concurrent FIFO use.
+- Renderer capture worker25936 ssh-v90/check_capture98b.py waits for new97b
+  baseline then uploads verified source96ece6f4 capture helper and runs methods/
+  capture commands as mobile. Existing graphics-v98/capture98 artifact unchanged.
+  Status audit/capture98b-check.json/log/device. Do not duplicate this worker.
+- Through early new boot~21:25Z,302MB errors0/fallbacks0, foreground setter works.
+  SSH still starting; no UUID/session/read baseline or capture result from this
+  new run yet. Continue reading both statuses before action; no new reboot
+  needed while startup progresses. Previous ordinary97 watch failed before65min.
+- Graphics remains an active repair task: CPU layer and IOSurface proved, real
+  display/server capture pending. Do not call offscreen test rectangles a working
+  stock interface. No System/driver/framework modifications deployed for graphics.
+
 ## Current97 SSH hang blocks next graphics probes; ordinary reboot requested (2026-11-03 Minsk)
 
 - ACTUAL IOSurface CPU probe passed at21:09:23Z: create16x16/stride64, lock/map,
