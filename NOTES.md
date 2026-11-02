@@ -1,3 +1,50 @@
+## Current boot94/System95 log audit and repair queue (2026-11-02)
+
+- User requested a complete current-run error review/list, not another fix or
+  flash. Reviewed all1826 available USB lines through18:55:41Z (21:55 Minsk),
+  157892 bytes from original offset7987522. Pre-USB kernel startup is unavailable
+  without UART; UDP/interleaved text is not lossless proof. Also read the entire
+  current MCM text log and both OTA reports, plus18 process/memory samples.
+  Private report audit/system95-full-review/REPAIR-LIST.md, immutable log/hash,
+  all78 FSERR events, state summary and additional logs. No raw logs committed.
+- Current confirmed RAMFS event is one68-byte getxattr NOWAIT allocation failure,
+  not data quota: event resident578/8192 pages, prior peak1064, quota/page/slot
+  failures0. Code allocates the xattr snapshot under rm_lock with Z_NOWAIT and
+  returns ENOMEM on failure. Need safe allocation/revalidation outside the lock;
+  do not use waiting allocation under it or raise quota based on this event.
+  Add bounded caller/xattr identity; global OOM and affected client are unproven.
+- MCM log contains99 repeated unsupported container Data Protection errors.
+  Eight FSERR45 calls (MCM6/calaccessd2) really request F_SETPROTECTIONCLASS64;
+  current RAMFS has no CPROTECT/SEP. Need a truthful unprotected-mode contract
+  and client container tests; never claim encryption or fake successful class
+  support. Two profiled AKS selector31 unsupported results remain to interpret.
+- Graphics: repeated absent accelerator/scaler/backlight matches; ALL3 submitted
+  source surfaces have zero RGB/alpha, final panel zero too. Copying frames is
+  insufficient: investigate compositor rendering/fallback and advertised caps.
+  Additional open checks: exact devfs attrlist masks for3 EINVAL calls; early
+  foreground/commpage + persona notifications; launchd Jetsam request EINVAL;
+  PRNG seed/reseed interfaces; specific privilege denials, not blanket grants.
+- Storage/platform update path is incomplete: volatile Data, absent expected
+  options/storage IORegistry nodes and Preboot mount cause two OTA restore
+  diagnostic reports, not two application crashes. Prioritize core storage/UI
+  before OTA; trust-cache development warnings and duplicate gamepad classes
+  are separate limitations/noise, not current crash proof. Most FSERRs are
+  startup probes:54 ENOENT/10 EEXIST/8 ENOTSUP/3 EINVAL/3 EPERM. Temp/Data paths
+  now exist; cleanup completed, so those transient path failures are not proven
+  persistent defects. Parse errno only in the header, never copy_errno fields.
+- Current slice has no crash/panic/APFS error/permanent-I/O latch/ENOSPC;
+  eMMC1.297GB errors0/fallbacks0, all12 early controls plus3 later direct health
+  reads pass. Latest RAMFS3501/8192 pages, VM free7191 pages; growth alone does
+  not establish a leak. MCM/lsd/pkd/suggestd PIDs persist; disabled two jobs
+  remain absent. This22-minute observation DOES NOT close the previous boot94
+  CMD12 recovery failure at~38min. That is still the P0 prior-run blocker.
+- No new device writes/reboot/UART. Original observer88567, shell90517, UDP47443
+  continue, phase monitoring at18samples; do not start duplicate collectors.
+  Next: inspect their final/current evidence, then repair eMMC recovery based on
+  its first failure, RAMFS xattr, container contract and rendering in that order.
+  Commit ae87319 is the audit's source baseline; this milestone changes NOTES
+  only, so no new build or tests are warranted. Installed boot94/System95 stay.
+
 ## System95 policy verified on phone; MCM EINVAL checked (2026-11-02)
 
 - Installed boot94/System95, all81 System transfers/reboot OKAY. Pinned root SSH
