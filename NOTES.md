@@ -1,3 +1,28 @@
+## Actual97b server capture completed: accepted but transparent/empty (2026-11-03 Minsk)
+
+- User asked to act now. TCP was initially refused while cold CMD17 startup read
+  ~803MB. Once available, pinned SSH authenticated on first attempt. Running97
+  UUID/sessionUID501 and75 xattrs verified again; observer25904/shell27792 active.
+- Stopped ONLY waiting capture worker25936 before it performed any upload, then
+  started worker27563/check_capture98c.py after verified97 UUID, without waiting
+  for duplicate file controls. Distinct audit/capture98c outputs preserved.
+- Actual signed upload/readback pass. Methods command returns0 with runtime
+  signatures/implementation offsets; capture returns1 only because pixels empty:
+  CARenderServerRenderDisplay accepted=1, RGB0/alpha0 of2740500. No crash/timeout,
+  no screen mutation. Completed21:34:50Z. Existing CPU layer/surface proofs pass.
+- Runtime method offsets(relative QuartzCore base18827b000) now resolve exact
+  setters: CAWindowServer setRendererFlags25f430 ORs caller flags with3 and copies
+  to each CADisplayServer+0xb8. This is not yet a decoded software-switch bitmask;
+  do not write guessed bits. beginExternalUpdate:usingSoftwareRenderer:264b88
+  dispatches bool through server vtable+0x58, then update throughvtable+0x10.
+  Private disassembly graphics-v98/server-flags,display-flags,external-update.
+- Empty accepted server capture localizes the observed empty frame before panel
+  copying, but doesn't alone distinguish empty context tree from unavailable
+  renderer. No stock UI repair claimed. Next decode actual server backend/context
+  selection with new method addresses and inspect UI context availability.
+- No flash/System/driver/framework bytes changed; graphics task continues.
+  Prior97 SSH hang separate. Read97b observer/capture98c results before more work.
+
 ## User confirmed ordinary reboot; distinct97b observers running (2026-11-03 Minsk)
 
 - User rebooted phone normally. No flash. New observer25904 uses existing97
