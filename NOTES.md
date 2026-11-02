@@ -1,5 +1,18 @@
 ## Kernel96 candidate: xattr snapshots, STOP timeout recovery, attr masks (2026-11-02)
 
+- System95 naturally reproduced the storage failure at19:17:51Z (~44min boot),
+  after39 samples: CMD18 failed, first recovery passed, baseline clock restored,
+  CMD17 PIO stayed incomplete with DATA_AVAILABLE, second STOP timed out, then
+  permanent EIO and mass SIGBUS. All4 F_NOCACHE controls fail; several cached
+  controls still pass. Observer finished captured-first-error-session-retained,
+  shell90517 retained, no new dynamic SSH probes needed. Evidence is private
+  audit/system95-device and kernel-v96/system95-transport-first-error.txt.
+  Neither disabled daemon launched; their removal did not repair lower I/O.
+- Following that new evidence, final0172 also preserves pre-reset Qualcomm
+  FIFO route/data counters/clock/DLL snapshots (at most8 recovery entries).
+  An alternative FIFO-route reset is only a hypothesis; no unproven register
+  policy is changed. Rebuild is necessary to retain the state before erasure;
+  the initial CI below is superseded by this final kernel source update.
 - Kernel source8a95ca56679e8be290c6119fb31820b9b64efbc0 is building in full CI
  41508019427/job125492212913, required pre-build source checks passed. Private
   v96 packager retains all prior guards and requires System95; artifact/device

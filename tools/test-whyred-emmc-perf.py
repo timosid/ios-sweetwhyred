@@ -43,7 +43,7 @@ def main():
     (args.output / 'kernel-defines.h').write_text(constants + '\n')
     fragment = '\n'.join(function(driver, f) for f in (
         'whyred_emmc_wait_status', 'whyred_emmc_command',
-        'whyred_emmc_reset_data_path', 'whyred_emmc_read_sector'))
+        'whyred_emmc_log_msm_v5_snapshot', 'whyred_emmc_reset_data_path', 'whyred_emmc_read_sector'))
     fragment += '\n' + perf
     fragment += '\n' + '\n'.join(function(driver, f) for f in (
         'whyred_emmc_partition', 'whyred_emmc_strategy'))
