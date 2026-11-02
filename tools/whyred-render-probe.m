@@ -2,6 +2,7 @@
  * No windows, device state configuration, files or daemon changes. */
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
+#import <QuartzCore/QuartzCore.h>
 #import <TargetConditionals.h>
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
 #import <OpenGLES/EAGL.h>
@@ -64,13 +65,48 @@ static int eagl(void) {
 #endif
 }
 
+static int layer_bitmap(void) {
+    /* Test QuartzCore's layer-to-CoreGraphics path separately from CoreImage. */
+    unsigned char pixels[16 * 16 * 4] = {0};
+    CGColorSpaceRef color = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    CGContextRef bitmap = CGBitmapContextCreate(pixels, 16, 16, 8, 16 * 4, color,
+        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(color);
+    if (!bitmap) return 1;
+    puts("WHYRED RENDER: layer bitmap created");
+    CALayer *root = [CALayer layer];
+    root.frame = CGRectMake(0, 0, 16, 16);
+    CGColorRef red = CGColorCreateSRGB(1, 0, 0, 1);
+    CGColorRef green = CGColorCreateSRGB(0, 1, 0, 1);
+    root.backgroundColor = red;
+    CALayer *child = [CALayer layer];
+    child.frame = CGRectMake(4, 4, 8, 8);
+    child.backgroundColor = green;
+    [root addSublayer:child];
+    CGColorRelease(red); CGColorRelease(green);
+    puts("WHYRED RENDER: layer render begin");
+    [root renderInContext:bitmap];
+    CGContextRelease(bitmap);
+    printf("WHYRED RENDER: layer first=%u,%u,%u,%u center=%u,%u,%u,%u\n", pixels[0], pixels[1], pixels[2], pixels[3], pixels[544], pixels[545], pixels[546], pixels[547]);
+    unsigned red_count = 0, green_count = 0;
+    for (unsigned i = 0; i < 256; i++) {
+        const unsigned char *p = pixels + i * 4;
+        if (p[0] == 255 && p[1] == 0 && p[2] == 0 && p[3] == 255) red_count++;
+        if (p[0] == 0 && p[1] == 255 && p[2] == 0 && p[3] == 255) green_count++;
+    }
+    printf("WHYRED RENDER: layer red=%u/192 green=%u/64 files_written=0\n",
+           red_count, green_count);
+    return red_count == 192 && green_count == 64 ? 0 : 1;
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     @autoreleasepool {
         @try {
             if (argc == 2 && !strcmp(argv[1], "software")) return bitmap();
             if (argc == 2 && !strcmp(argv[1], "eagl")) return eagl();
-            fputs("usage: whyred-render-probe software | eagl\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "layer")) return layer_bitmap();
+            fputs("usage: whyred-render-probe software | eagl | layer\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,

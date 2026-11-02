@@ -1,3 +1,25 @@
+## Graphics work: exact renderer selection and QuartzCore CPU path (2026-11-03 Minsk)
+
+- User explicitly requested graphics repair while97 longrun continues. No reboot,
+  new image or framebuffer overwrite. Observer17023 still monitoring; read status.
+- Exact CoreImage initWithOptions removes UseSoftwareRenderer on this iOS path,
+  tries Metal then falls back into EAGL context creation. No working CPU CoreImage
+  selection established. CA_NO_ACCEL only controls backing allocation; do not
+  mistake it for a proven server software-compositor switch. CA_ENABLE_OGL is
+  renderer capability state, not yet a validated fallback repair. No system env
+  changes or binary/framework patches made based on these names.
+- QuartzCore exports real kCARenderSoftwareCallbacks/CARenderSoftwareSetDestination;
+  software constructor allocates0x4fe0 bytes and installs its own vtable. This
+  is a separate implementation worth testing, not a fake accelerator. Exact
+  cache analysis/disassembly remains private under graphics-v98.
+- Extended explicit render helper with layer command: public CALayer renderInContext
+  into16x16 CPU CGContext, red parent/green child. Native compile warning-clean;
+  192red+64green exact pixels pass using shared sRGB. Device test pending. No
+  window/server mutation or writes in this command. CI links QuartzCore explicitly.
+- Next validate same signed layer probe on97. If actual CPU layer drawing works,
+  investigate bridging the real software compositor to display/context updates.
+  A successful local layer bitmap alone is not repaired SpringBoard or CoreImage.
+
 ## Actual97 session/xattrs/read controls pass; isolated graphics failure reproduced (2026-11-02)
 
 - Running97 UUID1444AADE-E57B-3F55-88A9-866FFA6086A0 matches packaged kernel.
