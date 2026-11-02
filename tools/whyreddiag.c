@@ -1,4 +1,5 @@
-/* Bounded diagnostics for a developer-owned whyred device. No target writes. */
+/* Bounded diagnostics for a developer-owned whyred device.
+ * Sampling is read-only; the explicit xattrs command uses one temporary file. */
 #include <mach/mach.h>
 #include <mach/thread_info.h>
 #include <mach/vm_statistics.h>
@@ -8,9 +9,12 @@
 #include <mach/i386/thread_status.h>
 #endif
 #include <sys/resource.h>
+#include <sys/sysctl.h>
+#include <sys/xattr.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <grp.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <signal.h>
 #include <stdio.h>
@@ -111,6 +115,61 @@ static double now(void) {
     return t.tv_sec + t.tv_nsec / 1e9;
 }
 
+static int kernel_info(void) {
+    char uuid[128] = {0}; size_t size = sizeof(uuid) - 1;
+    if (sysctlbyname("kern.uuid", uuid, &size, NULL, 0)) { perror("kern.uuid"); return 1; }
+    uuid[sizeof(uuid) - 1] = 0;
+    printf("WHYRED DIAG: kernel_uuid=%s\n", uuid);
+    return 0;
+}
+
+static int xattr_probe(const char *directory) {
+    char path[1024];
+    if (directory[0] != '/' || snprintf(path, sizeof(path), "%s/whyred-xattrs.XXXXXX", directory) >= (int)sizeof(path)) return 2;
+    int fd = mkstemp(path);
+    if (fd < 0) { perror("xattrs mkstemp"); return 1; }
+    int result = 1; unsigned checks = 0;
+    const char *name = "user.whyred.snapshot";
+    unsigned char bytes[16384], got[16384]; char names[4096];
+    const size_t sizes[] = {0, 1, 68, 511, 4096, 16384, 68, 1, 0};
+#define XCHECK(condition) do { checks++; if (!(condition)) { \
+    fprintf(stderr, "WHYRED DIAG: xattrs check=%u failed line=%d errno=%d\n", checks, __LINE__, errno); goto cleanup; } } while (0)
+    for (unsigned i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
+        size_t size = sizes[i];
+        for (size_t j = 0; j < size; j++) bytes[j] = (unsigned char)(j * 17 + i);
+        XCHECK(fsetxattr(fd, name, bytes, size, 0, 0) == 0);
+        XCHECK(fgetxattr(fd, name, NULL, 0, 0, 0) == (ssize_t)size);
+        memset(got, 0x7e, sizeof(got));
+        if (size > 1) {
+            errno = 0;
+            XCHECK(fgetxattr(fd, name, got, size - 1, 0, 0) == -1 && errno == ERANGE);
+            XCHECK(got[0] == 0x7e);
+        }
+        XCHECK(fgetxattr(fd, name, got, sizeof(got), 0, 0) == (ssize_t)size);
+        XCHECK(memcmp(bytes, got, size) == 0);
+        ssize_t count = flistxattr(fd, names, sizeof(names), 0);
+        XCHECK(count > 0 && count <= (ssize_t)sizeof(names));
+        int found = 0;
+        for (size_t at = 0; at < (size_t)count;) {
+            size_t length = strnlen(names + at, (size_t)count - at);
+            XCHECK(length < (size_t)count - at);
+            if (!strcmp(names + at, name)) found = 1;
+            at += length + 1;
+        }
+        XCHECK(found);
+    }
+    XCHECK(fremovexattr(fd, name, 0) == 0);
+    errno = 0;
+    XCHECK(fgetxattr(fd, name, got, sizeof(got), 0, 0) == -1 && errno == ENOATTR);
+    printf("WHYRED DIAG: xattrs PASS checks=%u max_bytes=%zu temporary_file=1\n", checks, sizeof(bytes));
+    result = 0;
+cleanup:
+    if (close(fd)) { perror("xattrs close"); result = 1; }
+    if (unlink(path)) { perror("xattrs cleanup"); result = 1; }
+#undef XCHECK
+    return result;
+}
+
 static int run_mobile(char **args) {
     if (getuid() || args[0][0] != '/') { fprintf(stderr, "run-mobile requires root and an absolute executable\n"); return 2; }
     pid_t child = fork();
@@ -139,6 +198,8 @@ static int run_mobile(char **args) {
 }
 
 int main(int argc, char **argv) {
+    if (argc == 2 && !strcmp(argv[1], "kernel")) return kernel_info();
+    if (argc == 3 && !strcmp(argv[1], "xattrs")) return xattr_probe(argv[2]);
     if (argc == 2 && !strcmp(argv[1], "memory")) return memory_stats();
     if (argc == 2 && !strcmp(argv[1], "selftest")) return memory_stats() || sample(getpid());
     if (argc == 3 && !strcmp(argv[1], "threads")) {
@@ -147,5 +208,5 @@ int main(int argc, char **argv) {
         return sample((pid_t)pid);
     }
     if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | threads PID | run-mobile /executable [args]\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
 }

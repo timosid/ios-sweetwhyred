@@ -20,6 +20,9 @@ jobs:
           clang -O1 -g -Wall -Wextra -Werror -fno-omit-frame-pointer tools/whyreddiag.c -o out/diag/whyreddiag-native
           out/diag/whyreddiag-native selftest > out/diag/native-selftest.txt
           grep -q 'state_kr=0' out/diag/native-selftest.txt
+          out/diag/whyreddiag-native kernel > out/diag/native-kernel.txt
+          out/diag/whyreddiag-native xattrs "$RUNNER_TEMP" > out/diag/native-xattrs.txt
+          grep -q 'xattrs PASS' out/diag/native-xattrs.txt
       - name: Build signed iOS helper
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
@@ -39,7 +42,7 @@ jobs:
           p=Path('out/diag')
           assert re.search(r'platform\s+(?:2|IOS)\b',(p/'load-commands.txt').read_text())
           assert not re.search(r'\b(?:cas[a-z]*|ldadd[a-z]*|swp[a-z]*|stadd[a-z]*)\s+[wx]',(p/'isa.txt').read_text())
-          (p/'report.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'sha256':hashlib.sha256((p/'whyreddiag').read_bytes()).hexdigest(),'bytes':(p/'whyreddiag').stat().st_size,'target_writes':False,'suspends_tasks':False},indent=2)+'\n')
+          (p/'report.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'sha256':hashlib.sha256((p/'whyreddiag').read_bytes()).hexdigest(),'bytes':(p/'whyreddiag').stat().st_size,'default_target_writes':False,'opt_in_xattrs_creates_one_temporary_file':True,'suspends_tasks':False},indent=2)+'\n')
           PY
       - uses: actions/upload-artifact@v4
         with:

@@ -1,5 +1,21 @@
 ## Kernel96 candidate: xattr snapshots, STOP timeout recovery, attr masks (2026-11-02)
 
+- Kernel source8a95ca56679e8be290c6119fb31820b9b64efbc0 is building in full CI
+ 41508019427/job125492212913, required pre-build source checks passed. Private
+  v96 packager retains all prior guards and requires System95; artifact/device
+  validation pending. Later NOTES/diagnostic-only commits do not replace the
+  exact kernel build commit or cancel its workflow.
+- Diagnostic helper adds read-only kern.uuid for matching the actually running
+  image and explicit xattrs DIRECTORY probe (one mkstemp file, max16KiB values,
+  removes it afterwards). Native75 set/size/read/list/shrink/remove/ERANGE checks
+  pass, normal sampler remains read-only. Separate signed iOS helper CI pending;
+  no helper/device probe has been deployed during the current observation.
+- Exact-cache symbolication of the later mediaserverd failures places the
+  NULL indirect call in CoreImage, reached from CMCapture. Disassembly loads a
+  zero callback from a stack dispatch table while preparing GL state. This is
+  evidence for a graphics-context/dispatch problem, not a proven Bluetooth or
+  FairPlay dependency. Local IDA HTTP endpoint is currently unavailable; local
+  cache bytes/disassembly and decoded frames remain private under kernel-v96.
 - User authorized proceeding with repairs after the current-run audit. Candidate
   kernel96 changes ONLY kernel source/tests; installed boot94/System95 remains
   running under the original observer/UDP collector, no new flash or UART.
