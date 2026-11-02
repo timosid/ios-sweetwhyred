@@ -45,6 +45,9 @@ static uint8_t host_bytes[4096],gcc_bytes[4096];
 static uint32_t status,response,active_lba,active_count,active_word,card_count;
 static uint32_t commands[64],bad_commands,mmio_writes;
 static uint64_t timer;
+/* A device completion arriving while the polling CPU is descheduled. */
+static int late_response,late_armed,late_counter;
+static uint32_t late_status;
 static uint64_t test_frequency=19200000;
 static int fail_cmd23,fail_cmd18,fail_data,fail_single,missing_end,early_end,corrupt_xo;
 static int end_delay,end_delay_left,active_cmd;
@@ -55,7 +58,7 @@ static uint16_t clock_register=0xc0c7;
 static uint32_t test_checks;
 static uint8_t guarded[64+65536+64];
 
-static uint64_t whyred_emmc_counter(void){timer+=1000;return timer;}
+static uint64_t whyred_emmc_counter(void){timer+=1000;if(late_counter){timer+=200000;status=late_status;late_counter=0;}return timer;}
 static uint64_t whyred_emmc_timeout_ticks(void){return 100000;}
 static void whyred_emmc_delay_us(uint32_t n){timer+=n*20+1;}
 static uint32_t pattern_word(uint32_t lba,uint32_t word){return 0x91827364U^(lba*0x1020305U)^(word*0x03030303U);}
@@ -78,7 +81,7 @@ static uint32_t whyred_emmc_read32(volatile uint8_t *b,unsigned o)
         if(o==0x04||o==0x08)return gcc_bytes[o];
     }
     if(b==host_bytes){
-        if(o==SDHCI_INT_STATUS)return status;
+        if(o==SDHCI_INT_STATUS){if(late_armed){late_armed=0;late_counter=1;return 0;}return status;}
         if(o==SDHCI_RESPONSE)return response;
         if(o==SDHCI_PRESENT_STATE){
             if(active_count)return SDHCI_PSTATE_DATA_AVAILABLE;
@@ -91,7 +94,7 @@ static uint32_t whyred_emmc_read32(volatile uint8_t *b,unsigned o)
             if(corrupt_xo&&(cfg_register&0x371fU)==1)v^=0x80000000U;
             active_word++;
             if(fail_data&&commands[18]&&active_word==16){status|=0x00208000U;fail_data=0;}
-            if(fail_single&&active_cmd==17&&active_word==16){status|=0x00208000U;fail_single=0;}
+            if(fail_single&&active_cmd==17&&active_word==16){status|=0x00208000U;fail_single--;}
             if(active_word==128){
                 active_word=0;active_lba++;active_count--;
                 host_bytes[SDHCI_BLOCK_COUNT]=(uint8_t)active_count;
@@ -136,6 +139,7 @@ static void whyred_emmc_write16(volatile uint8_t *b,unsigned o,uint16_t v)
             if(cmd==18&&(whyred_emmc_read16(b,SDHCI_TRANSFER_MODE)!=0x32||
                 active_count!=whyred_emmc_read16(b,SDHCI_BLOCK_COUNT)))bad_commands++;
             status|=SDHCI_INT_DATA_AVAILABLE;
+            if(late_response){late_status=status|(late_response==2?0x00018000U:0);status=0;late_armed=1;late_response=0;}
         }else if(cmd==12){active_count=0;status|=SDHCI_INT_DATA_END;}
         else if(cmd!=13)bad_commands++;
     }
@@ -175,7 +179,7 @@ static void reset_model(void)
     memset(commands,0,sizeof(commands));memset(&whyred_emmc_perf,0,sizeof(whyred_emmc_perf));
     memset(guarded,0xa5,sizeof(guarded));memset(whyred_gpt_parts,0,sizeof(whyred_gpt_parts));
     status=response=active_lba=active_count=active_word=card_count=bad_commands=mmio_writes=0;
-    timer=0;fail_cmd23=fail_cmd18=fail_data=fail_single=missing_end=early_end=corrupt_xo=0;
+    timer=0;late_response=late_armed=late_counter=0;late_status=0;fail_cmd23=fail_cmd18=fail_data=fail_single=missing_end=early_end=corrupt_xo=0;
     active_cmd=end_delay=end_delay_left=0;
     fail_update=update_writes=clock_delay=card_delay=stuck_card=fault_reset=map_failed=0;
     boot_fast=boot_multi=boot_perf=0;
@@ -207,9 +211,66 @@ static int guards_ok(unsigned bytes)
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
+int whyred_perf_late_poll_checks(void)
+{
+    reset_model();uint32_t observed=0;uint64_t start=whyred_emmc_counter();
+    late_armed=1;late_status=SDHCI_INT_RESPONSE|SDHCI_INT_DATA_AVAILABLE;
+    CHECK(whyred_emmc_wait_status(host_bytes,SDHCI_INT_RESPONSE,start,100000,&observed)==0);
+    CHECK(observed==0x21U&&timer-start>=100000&&mmio_writes==0);
+    reset_model();late_response=1;
+    CHECK(whyred_emmc_read_sector(&whyred_emmc_live_io,67,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,1)&&guards_ok(512)&&commands[17]==1);
+    reset_model();late_response=2;
+    CHECK(whyred_emmc_read_sector(&whyred_emmc_live_io,67,guarded+64)!=0);
+    CHECK(guards_ok(0)&&commands[17]==1); /* a late hardware error is never data */
+    reset_model();start=whyred_emmc_counter();late_armed=1;late_status=SDHCI_INT_DATA_END;
+    CHECK(whyred_emmc_wait_status(host_bytes,SDHCI_INT_DATA_END,start,100000,&observed)==0);
+    CHECK(observed==SDHCI_INT_DATA_END&&mmio_writes==0);
+    reset_model();start=whyred_emmc_counter();late_armed=1;late_status=0x00018000;
+    CHECK(whyred_emmc_wait_status(host_bytes,SDHCI_INT_RESPONSE,start,100000,&observed)==0);
+    CHECK((observed&SDHCI_INT_ERROR_MASK)!=0); /* caller still rejects hardware errors */
+    reset_model();start=whyred_emmc_counter();late_armed=1;late_status=0;
+    CHECK(whyred_emmc_wait_status(host_bytes,SDHCI_INT_RESPONSE,start,100000,&observed)!=0);
+    CHECK(observed==0&&mmio_writes==0&&timer-start<=202000);
+    return 0;
+}
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int whyred_perf_baseline_retry_checks(void)
+{
+    reset_model();fail_single=1;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,1,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,1)&&guards_ok(512)&&whyred_emmc_transport_ok);
+    CHECK(commands[17]==2&&commands[12]==1&&commands[13]==1&&update_writes==0);
+    CHECK(!whyred_emmc_xo_active&&clock_register==0xc0c7&&cfg_register==0x2613);
+    CHECK(whyred_emmc_perf.errors==1&&whyred_emmc_perf.fallbacks==1);
+    reset_model();CHECK(whyred_emmc_try_xo(host_bytes)==1);
+    whyred_emmc_multi_enabled=true;fail_data=1;fail_single=1;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,8,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,8)&&guards_ok(4096)&&whyred_emmc_transport_ok);
+    CHECK(commands[18]==1&&commands[17]==9&&commands[12]==2&&commands[13]==2);
+    CHECK(whyred_emmc_perf.errors==2&&whyred_emmc_perf.fallbacks==2);
+    reset_model();fail_single=2;
+    struct test_buf failed={.count=512,.flags=B_READ,.blkno=3,.device=61,.data=guarded+64};
+    whyred_emmc_strategy(&failed);
+    CHECK(failed.done==1&&failed.error==EIO&&failed.resid==512&&!whyred_emmc_transport_ok);
+    CHECK(commands[17]==2&&commands[12]==1&&commands[13]==1&&guards_ok(512));
+    reset_model();fail_single=1;fault_reset=1;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,1,guarded+64)!=0);
+    CHECK(!whyred_emmc_transport_ok);uint32_t old=mmio_writes;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,1,guarded+64)!=0&&mmio_writes==old);
+    return 0;
+}
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
 int whyred_perf_host_checks(void)
 {
-    test_checks=0;reset_model();
+    test_checks=0;
+    CHECK(whyred_perf_late_poll_checks()==0);
+    CHECK(whyred_perf_baseline_retry_checks()==0);
+    reset_model();
     CHECK(whyred_emmc_ticks_us(19200000,19200000)==1000000);
     CHECK(whyred_emmc_ticks_us(19200001,19200000)==1000000);
     CHECK(whyred_emmc_ticks_us(1,0)==0);

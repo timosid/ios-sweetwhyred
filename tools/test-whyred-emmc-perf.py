@@ -96,6 +96,8 @@ def main():
                       'GCC XO programming, delayed clock readback and rollback',
                       'preflight mismatch and multiblock rejection',
                       'runtime recovery/reread and unrecoverable rejection',
+                      'completion resampled after a scheduling delay at deadline',
+                      'baseline CMD17 recovery and batch-then-baseline transient errors',
                       'actual block strategy/residuals and read-only bounds',
                       'log sampling and bounded telemetry'])
     (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')

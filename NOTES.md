@@ -1,3 +1,39 @@
+## eMMC failure localized; baseline recovery and deadline fixes preparing (2026-11-02)
+
+- V93 reproduced the global failure naturally after prolonged observation.
+  Observer ended captured-exec-failure-session-retained, sample38/status138;
+  held static SSH shell60796 and UDP receiver47443 remain. No synthetic memory
+  test was run on phone. Earlier strong-pressure8-read/fresh-auth checks passed;
+  this was a baseline, not a root-cause repair or sustained stability result.
+- First APFS failure is lower block-device read completion EIO with partial
+  residual, then page-in failure for a shared-cache member. Preceding sequence:
+  a CMD18 batch fails, card recovery completes, inherited baseline clock is
+  restored, then a CMD17 timeout is reported with an old zero status while the
+  next actual snapshot shows command response and data-ready bits. Driver then
+  permanently rejects every subsequent media read. Full logs/IDs are private.
+  True F_NOCACHE returns EIO for all tested files; some cached reads still match
+  source bytes. This localizes the origin below APFS/UPL and explains SIGBUS and
+  invalid-shell SSH rejection. RAMFS quota is not the originating read error.
+- Patch0170 addresses two specific code defects: resample interrupt completion
+  once at the deadline (CPU may have been descheduled after the first sample),
+  and recover/reread a failed CMD17 in baseline as well as XO mode. Restore
+  inherited clock only when XO is still active. CMD12/CMD13 READY/TRAN checks,
+  one-retry bound, readonly/LBA/partial-data guards and permanent rejection after
+  genuinely failed recovery/retry remain. No IRQ masking/timing-rate policy added.
+- Exact authenticated v93 driver/header extracted. Deterministic actual-function
+  host regressions BOTH fail on old code: late completion after counter jump and
+  baseline CMD17 recovery. Patched tests pass4769 cases, including batch failure
+  followed by baseline transient failure, late hardware-error rejection, and
+  persistent errors with exact residual/at-most-two attempts. Local ARM64 compile
+  and exact no-fuzz patch replay pass. Full kernel CI/device test still pending.
+- Current installed remains boot93/System91; System92 reserve unused. No new
+  partition write or UART. Next candidate is boot94 after full CI/provenance/
+  runtime-source/loader/image checks, then fresh physical Fastboot readiness.
+- Independent static private-memory helper source55970a81 / CI41478637167,
+  job125390794509 all6 succeeds; artifact13159040562 ZIP12117 SHA
+  06e9f6eaae260a680b71a5703a30c669b83b95d002a42952cd076efe095f0f1b.
+  It was NOT downloaded/uploaded/executed: natural VM pressure was sufficient.
+
 ## Bounded private-memory reproduction helper preparing (2026-11-02)
 
 - Boot93/System91 still running with one observer59812 and held shell60796.
