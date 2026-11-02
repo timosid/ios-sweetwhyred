@@ -1,59 +1,58 @@
-# SSH over the verified USB Ethernet link
+# SSH over USB Ethernet
 
-The user authorized adding SSH after v89 established USB Ethernet and kernel
-UDP logs. Installed is now boot v89 / System v90 after the explicit System
-installation approval and successful81-part transfer/reboot.
-Neither sshd nor /bin/sh exists in the preserved System filesystem, so this
-requires userland programs and a launchd job. The SSH package is separate from
-the successful USB kernel changes; it does not claim to fix daemon exit causes.
+Installed is boot v89 / System v91. The phone accepts root SSH commands at
+192.168.7.2:2222 using a dedicated Ed25519 key. Host identity is pinned on the
+Mac; private keys and device logs stay local. Password/PAM authentication,
+forwarding and SFTP are omitted. The Mac USB service now persists192.168.7.1/24
+without a router, and kernel UDP logs continue to the existing Mac receiver.
 
-The candidate builds [Dropbear2026.94](https://github.com/mkj/dropbear/releases/tag/DROPBEAR_2026.94)
-and dash0.5.13.5 from pinned upstream sources. The Dropbear release archive is
-checked against its published SHA256. Dash uses upstream commit
-037bbdfd330017c368caf6242f977974123239b5 through the kernel Gitiles mirror.
-Its regenerated archive metadata varies, so every member's path, type, mode,
-link target and complete content are authenticated by a canonical tree digest.
-No source files or executable modes can vary without failing that digest.
+Actual phone checks passed root identity, uname, process/filesystem inspection,
+remote shell exit status, an exact65536-byte binary round trip, rejection of an
+unrelated key and reading the server log. The first20-second handshake timed out
+while userland was still loading; a90-second connection deadline succeeded.
+The listener was first observed331 seconds after the boot observer started.
+These are observations from this boot, not startup performance guarantees.
 
-The server is configured for192.168.7.2:2222 with public-key authentication;
-password/PAM, forwarding and SFTP support are omitted. Darwin lacks setresgid,
-so Dropbear's optional newer early privilege-drop mode is disabled while its
-ordinary authenticated session UID handling remains enabled. Normal account,
-shell, authorized-key ownership and signature checks remain in place. The local
-Mac test runs unprivileged and accepts only its isolated test key. Test keys are
-excluded from CI artifacts. Production client/host keys will be local-only.
+V90 installed the new job in /Library/LaunchDaemons. Static inspection of the
+exact installed launchd showed that directory is absent from its embedded
+Bootstrap/Paths. V91 moves both the standalone job and cache key to
+/System/Library/LaunchDaemons. The builder checks the actual embedded paths and
+rejects the previous v90 location. All530 original jobs and the SSH program/key
+bytes are retained. All81 sparse sends/writes and reboot returned OKAY.
 
-`whyredctl` provides ps, fs, du, ls, stat, cat, readlink, uname and id. It reports
-syscall errors directly. The shell supplies commands, pipes and redirection;
-SFTP is outside the first package. The existing USB kernel-log receiver remains
-separate and running throughout preparation.
+The v91 System image is5386170368 bytes, SHA256
+fa356fa4a02ae74fff9dbc674336f52f9754560767ee3c88ca3579629905ebe0.
+Before transfer, XNU's APFS reader passed64 complete file comparisons including
+all43 active cache members;17 inode/owner/mode checks and full sparse payload
+coverage/digest verification passed. The old /Library SSH job is absent. The
+baseline catalog45734 files/16600 directories/671 symlinks is reproduced without
+host metadata. The original System v70 and boot v89 rollback digests passed.
 
-Local native tests pass key acceptance/rejection, command exit status,
-1MiB binary round trip, dash expansion/builtins and uname/fs/ps/ls diagnostics.
-The ARM64 build uses the official iPhoneOS SDK, minimum iOS16.4 and generic+crypto
-without outline atomics. CI verifies its Mach-O platform, code signatures,
-dependencies and absence of detected LSE instructions. The final System image is verified and flashed; physical SSH login is pending
-restoration of the Mac USB address through OS administrator authentication.
+The package builds [Dropbear2026.94](https://github.com/mkj/dropbear/releases/tag/DROPBEAR_2026.94)
+and dash0.5.13.5 from pinned upstream sources. The Dropbear archive matches its
+published SHA256. Dash uses upstream commit037bbdfd330017c368caf6242f977974123239b5
+through the kernel Gitiles mirror. Regenerated archive metadata varies, so every
+member's path/type/mode/link target and complete content is authenticated by a
+canonical tree digest. Production client/host keys were generated on the Mac.
+No private keys are included in source or CI artifacts.
 
-The first iOS build passed CI but its shell imported strchrnul, absent from the
-exact installed16.5 cache. The iOS configure cache now selects dash's portable
-implementation. Every packaged binary must pass an export-trie comparison with
-that installed cache, bound to its binary SHA256, before image construction.
+Darwin lacks setresgid, so Dropbear's optional early privilege-drop feature is
+disabled while ordinary authenticated session UID handling remains enabled.
+Account, shell, key ownership and signature checks remain active. The iOS build
+uses the official SDK, minimum16.4 and generic+crypto without outline atomics.
+The first shell build imported strchrnul, absent from the exact16.5 cache; it
+was rejected. The corrected configure cache selects dash's portable version.
+Every packaged binary matches installed-cache exports, bound to its SHA256.
 
-The corrected source b5b9b074c51e3b676928ced77a3b1b7c565ff600 passed all9
-steps in CI41350694615/job124979995276. Artifact13101197811 has ZIP SHA256
+Userland source b5b9b074c51e3b676928ced77a3b1b7c565ff600 passed all9 steps in
+CI41350694615/job124979995276. Artifact13101197811 ZIP SHA256 is
 dec89a1c4bddd17ba2f5204f383a50d5fce230938fe2dcc6fae6a97805fe1b18.
-Provenance, complete archive CRC, native authentication tests and the exact16.5
-import comparison pass for all five binaries. Offline System image preparation
-adds one job to the existing530 and checks the baseline45734 files/16600
-directories/671 symlinks. The image passed64 complete file comparisons and17 metadata checks. Device SSH
-remains untested while the Mac USB address is link-local only.
+Provenance, complete archive CRC, signatures/platform/dependencies, detected-LSE
+checks and native authentication/command/1MiB transport tests passed. V91's
+bootstrap-directory packaging correction is source73572a42a155bc3a8b26911a7d7fd430f95c3065.
 
-Physical v90 testing restored the Mac address as persistent192.168.7.1/24,
-confirmed ping3/3 and resumed UDP capture, but TCP2222 refused connections.
-The added job was placed in /Library/LaunchDaemons. The exact installed launchd
-embeds a bootstrap directory list that excludes that directory. V91 corrects
-both the standalone job and cache key to /System/Library/LaunchDaemons.
-The image builder reads that actual embedded list and rejects the old path.
-Programs, keys and the530 original jobs are retained. V91 image/SSH results are
-pending; v90 did not establish a working SSH service.
+`whyredctl` provides ps, fs, du, ls, stat, cat, readlink, uname and id and reports
+actual syscall errors. The shell supplies commands, pipes and redirection.
+Kernel UDP capture is best effort and a final panic may interrupt delivery.
+SSH now enables direct runtime diagnosis; pkd/lsd, container/RAMFS behavior and
+other daemon exit causes remain open.

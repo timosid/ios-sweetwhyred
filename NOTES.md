@@ -1,22 +1,37 @@
-## Active System v91 SSH bootstrap correction (2026-11-02)
+## System v91 SSH verified on the phone (2026-11-02)
 
-- The user confirmed macOS administrator authentication. The exact USB service
-  now has persistent Manual192.168.7.1/24 with no router. Ping3/3 and new kernel
-  UDP logs passed. TCP2222 returned Connection refused; no SSH login succeeded.
-- Static inspection of the exact installed launchd's embedded Bootstrap/Paths
-  identifies the packaging mistake: /Library/LaunchDaemons is not searched at
-  boot. V90 placed the added job there. V91 moves the job and its merged-cache
-  key to /System/Library/LaunchDaemons, retaining the same binaries/keys and all
-  original530 jobs. The image builder now checks the actual embedded startup
-  paths; the previous v90 path is rejected by a functional negative check.
-- The user intentionally powered off/disconnected the phone, then returned it
-  to Fastboot and requested continuing the installation. This is not a crash
-  observation. The exact private-baseline Fastboot device is present. Preparing
-  and validating the corrected System v91 before the authorized System-only
-  transfer; retain boot v89. No v91 image has yet been flashed.
-- Receiver remains alive; new logs include a backboardd NSInvalidArgumentException
-  for a nil URL path and containermanagerd ENOENT/EPERM. Those are new observations,
-  not proof of daemon/RAMFS stability. SSH hardware testing remains pending.
+- Installed is boot v89 / System v91. The user returned the intentionally powered
+  off phone to Fastboot and requested continuing the repair. Fresh identity,
+  whyred/unlocked/System geometry/download guards passed. All81 sparse sends/
+  writes and final reboot returned OKAY; only System was written.
+- V91 image5,386,170,368 bytes, SHA256
+  fa356fa4a02ae74fff9dbc674336f52f9754560767ee3c88ca3579629905ebe0.
+  All64 complete XNU-reader file comparisons,17 metadata checks, obsolete job
+  ENOENT and81 sparse coverage/payload checks passed. The v90/v91 caches differ
+  only by the SSH job key. Programs/keys and original530 jobs are unchanged.
+  Packaging source73572a42a155bc3a8b26911a7d7fd430f95c3065. Existing authenticated
+  userland CI41350694615/b5b9b074 source is retained; no new kernel/SDK build.
+- V90's /Library/LaunchDaemons job was outside this exact launchd's embedded
+  Bootstrap/Paths. V91 uses /System/Library/LaunchDaemons for the standalone job
+  and cache key, and the builder validates the actual embedded search paths.
+  The old v90 mistake is rejected by a functional negative check.
+- The Mac OS administrator confirmation persisted only the exact USB service's
+  Manual192.168.7.1/24 without a router. This returned automatically after reboot.
+  Actual new kernel UDP logs resumed in the same detached receiver. UART was
+  not opened and no second5140 listener was started.
+- TCP2222/Dropbear2026.94 was first observed331s after the boot observer started.
+  The first20s SSH attempt timed out during startup. Retrying with90s confirmed
+  the pinned Ed25519 host and authenticated root, then returned actual Darwin
+  22.6.0/iPhone10,3 and uid/gid/euid/egid0. Subsequent full device checks passed
+  ps/fs, shell exit7, exact65536-byte binary round trip, unrelated-key rejection
+  and reading the server log. Production keys remain local; client timeout90s.
+- Read-only SSH health snapshot: RAMFS free6581/8192 pages (~102.8MiB of128MiB).
+  DSC files occupy6471680 allocated bytes at this snapshot; a5.25MB temporary
+  main-cache file is still being materialized. This does not yet establish the
+  physical8MiB cap or long-run quota behavior. PluginKitPlugin data directory
+  is absent at this point. Bluetoothd restarted between snapshots; backboardd
+  nil URL exception and container ENOENT/EPERM appear in the new UDP log.
+  Original pkd/lsd/other daemon and container/RAMFS goals remain open.
 
 ## System v90 flashed; initial host address pending (2026-11-02)
 
