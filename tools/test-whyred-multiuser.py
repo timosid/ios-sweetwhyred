@@ -3,10 +3,12 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 
 
 def function(text, name):
@@ -81,15 +83,25 @@ int main(void) {
         'sweet-ios': ['-DARM64_BOARD_CONFIG_SWEET=1'],
     }
     results = []
+    # The full build invokes this from a kernel-only SDK environment.
+    # These executables are native userspace tests, with normal libc headers.
+    env = os.environ.copy()
+    env.pop('SDKROOT', None)
+    env.pop('MACOSX_DEPLOYMENT_TARGET', None)
+    host_flags = []
+    if sys.platform == 'darwin':
+        sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'],
+                                      text=True, env=env).strip()
+        host_flags = ['-isysroot', sdk]
     for name, defines in configurations.items():
         binary = args.output / name
         build = subprocess.run([shutil.which('clang') or 'cc', '-std=c11', '-Wall', '-Wextra',
-                                '-Werror', '-fsanitize=undefined', *defines, str(source.resolve()),
-                                '-o', str(binary.resolve())], capture_output=True, text=True)
+                                '-Werror', '-fsanitize=undefined', *host_flags, *defines, str(source.resolve()),
+                                '-o', str(binary.resolve())], capture_output=True, text=True, env=env)
         (args.output / (name + '-compile.log')).write_text(build.stdout + build.stderr)
         if build.returncode:
             raise SystemExit(build.stderr)
-        run = subprocess.run([str(binary.resolve())], capture_output=True, text=True)
+        run = subprocess.run([str(binary.resolve())], capture_output=True, text=True, env=env)
         (args.output / (name + '-run.log')).write_text(run.stdout + run.stderr)
         if run.returncode:
             raise SystemExit(name + ': ' + run.stderr)

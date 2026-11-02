@@ -1,5 +1,16 @@
 ## Kernel97 foreground API candidate; installed96 still under observation (2026-11-02)
 
+- Initial97 CI41514102825/job125513096438 failed BEFORE kernel compilation:
+  the native pre-build test inherited the kernel-only SDKROOT and could not
+  find stdio.h. No97 kernel was produced/deployed. The test now explicitly
+  selects the native macOS SDK and clears inherited SDK/deployment variables,
+  matching the existing eMMC host runner. Rebuild after this environment fix.
+- Boot96 diagnostic now captured MCM's exact /dev query: common6, volume80060000,
+  count5,64-byte buffer/options0 = DEVID/FSID/capabilities/UUID. Upstream devfs
+  provides no volume UUID, so generic getattrlist returns EINVAL for it. Native
+  macOS reproduces22 with this exact query; removing UUID succeeds. This specific
+  /dev probe is expected unsupported behavior, not a container write/crash cause.
+  Other EINVAL calls, e.g. /tmp, must still be evaluated on their own masks.
 - User's repair work continues while the actual boot96/System95 observation
   runs. Patch0174 narrowly enables the real host_set_multiuser_config_flags
   implementation on SWEET despite the macOS target configuration. Preserves
