@@ -134,6 +134,30 @@ def main():
             tar.extractall(work, filter='data')
         drop = work / 'dropbear-2026.94'
         (drop / 'localoptions.h').write_text(OPTIONS)
+        # Mirror only bounded server diagnostics over the existing USB log link.
+        # Keep all upstream account, ownership, key and signature checks intact.
+        if platform == 'ios':
+            shutil.copyfile(Path(__file__).with_name('whyred-ssh-udp.h'), drop / 'src/whyred-ssh-udp.h')
+            edits = {
+                'svr-session.c': [('#include "includes.h"', '#include "includes.h"\n#include "whyred-ssh-udp.h"'),
+                    ('\tvsnprintf(printbuf, sizeof(printbuf), format, param);',
+                     '\tvsnprintf(printbuf, sizeof(printbuf), format, param);\n\twhyred_ssh_usb_log(printbuf);')],
+                'svr-authpubkey.c': [
+                    ('\tif (stat(filename, &filestat) != 0) {',
+                     '\tif (stat(filename, &filestat) != 0) {\n\t\tdropbear_log(LOG_WARNING, "WHYRED AUTH stat errno=%d", errno);'),
+                    ('\t\tif (!authfile) {\n\t\t\tTRACE',
+                     '\t\tif (!authfile) {\n\t\t\tdropbear_log(LOG_WARNING, "WHYRED AUTH open/fdopen errno=%d", errno);\n\t\t\tTRACE')],
+                'common-session.c': [('\tpw = getpwnam(username);\n\tif (!pw) {',
+                     '\tpw = getpwnam(username);\n\tif (!pw) {\n\t\tdropbear_log(LOG_WARNING, "WHYRED AUTH getpwnam returned NULL errno=%d", errno);')],
+            }
+            for filename, replacements in edits.items():
+                path = drop / 'src' / filename
+                text = path.read_text()
+                for before, after in replacements:
+                    if text.count(before) != 1:
+                        raise RuntimeError('Upstream diagnostic patch context changed: ' + filename)
+                    text = text.replace(before, after)
+                path.write_text(text)
         flags = ['--disable-zlib', '--disable-pam', '--disable-syslog', '--disable-lastlog',
                  '--disable-utmp', '--disable-utmpx', '--disable-wtmp', '--disable-wtmpx',
                  '--disable-loginfunc', '--disable-pututline', '--disable-pututxline']
@@ -160,15 +184,23 @@ def main():
             src = Path(__file__).with_name('whyredctl.c')
             run([*compile_args, '-Os', '-Wall', '-Wextra', '-Werror', str(src), '-o', str(dest / 'whyredctl')],
                 work, target_env, work / 'whyredctl-build.log')
+            src = Path(__file__).with_name('whyreddiag.c')
+            run([*compile_args, '-O1', '-g', '-fno-omit-frame-pointer', '-Wall', '-Wextra', '-Werror', str(src), '-o', str(dest / 'whyreddiag')],
+                work, target_env, work / 'whyreddiag-build.log')
         if platform == 'ios':
             for binary in dest.iterdir():
-                subprocess.run(['codesign', '--force', '--sign', '-', '--timestamp=none', str(binary)], check=True)
+                signing = ['codesign', '--force', '--sign', '-', '--timestamp=none']
+                if binary.name == 'whyreddiag':
+                    entitlements = work / 'diagnostic-entitlements.plist'
+                    entitlements.write_text('<?xml version="1.0"?><plist version="1.0"><dict><key>task_for_pid-allow</key><true/><key>com.apple.system-task-ports</key><true/></dict></plist>')
+                    signing += ['--entitlements', str(entitlements)]
+                subprocess.run([*signing, str(binary)], check=True)
                 subprocess.run(['codesign', '--verify', '--strict', str(binary)], check=True)
         reports[platform] = {p.name: {'bytes': p.stat().st_size, 'sha256': sha(p)} for p in dest.iterdir()}
         print(platform + ' binaries built', flush=True)
     report = {'sources': SOURCES, 'platforms': reports, 'password_auth': False,
               'public_key_auth': True, 'target_min_ios': '16.4', 'port': 2222,
-              'target_bind': '192.168.7.2', 'hardware_verified': False}
+              'target_bind': '192.168.7.2', 'hardware_verified': False, 'usb_auth_log_mirror': True}
     (out / 'build-report.json').write_text(json.dumps(report, indent=2) + '\n')
 
 

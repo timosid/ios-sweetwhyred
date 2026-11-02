@@ -20,7 +20,7 @@ PARTITION_BYTES = 13085938 * 512
 LABEL = 'org.whyred.ssh'
 JOB_PATH = 'System/Library/LaunchDaemons/org.whyred.ssh.plist'
 KEY_DIR = 'System/Library/WhyredSSH'
-VERSION = 91
+VERSION = 92
 
 
 def sha(path):
@@ -94,9 +94,10 @@ def main():
         raise SystemExit('Exact installed iOS import compatibility audit did not pass')
     if (report.get('password_auth') is not False or not report.get('public_key_auth') or
             report.get('target_bind') != '192.168.7.2' or report.get('port') != 2222 or
-            not tests.get('passed') or tests.get('keys_in_artifact') is not False):
+            not tests.get('passed') or tests.get('keys_in_artifact') is not False or
+            report.get('usb_auth_log_mirror') is not True):
         raise SystemExit('Required userland/authentication checks missing')
-    for name in ['dropbear', 'dropbearkey', 'scp', 'sh', 'whyredctl']:
+    for name in ['dropbear', 'dropbearkey', 'scp', 'sh', 'whyredctl', 'whyreddiag']:
         path = userland / 'ios-bin' / name
         if sha(path) != report['platforms']['ios'][name]['sha256'] or sha(path) != audit[name]['sha256']:
             raise SystemExit('Built binary differs from reports: ' + name)
@@ -171,7 +172,7 @@ def main():
         changes.append(dict(path=path, source=str(source), mode=oct(node.mode), uid=0, gid=0,
                             bytes=source.stat().st_size, sha256=sha(source)))
     add('bin/sh', userland / 'ios-bin/sh')
-    for name in ['dropbear', 'scp', 'whyredctl']:
+    for name in ['dropbear', 'scp', 'whyredctl', 'whyreddiag']:
         add('usr/local/whyred/bin/' + name, userland / 'ios-bin' / name)
     for name in ['DROPBEAR-LICENSE', 'DASH-COPYING']:
         add('usr/local/whyred/share/licenses/' + name, userland / name, 0o644)

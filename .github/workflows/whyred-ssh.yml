@@ -9,6 +9,9 @@ on:
       - tools/build-whyred-ssh.py
       - tools/test-whyred-ssh.py
       - tools/whyredctl.c
+      - tools/whyred-ssh-udp.h
+      - tools/whyreddiag.c
+      - tools/test-whyred-ssh-udp.py
 
 permissions:
   contents: read
@@ -29,6 +32,8 @@ jobs:
         run: |
           xcrun --sdk iphoneos --show-sdk-path
           command -v autoconf || brew install autoconf
+      - name: Verify bounded USB auth log mirror
+        run: python3 tools/test-whyred-ssh-udp.py
       - name: Build native and iOS diagnostics
         run: python3 tools/build-whyred-ssh.py --output out/ssh-userland
       - name: Verify key authentication and command transport

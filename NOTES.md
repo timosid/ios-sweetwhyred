@@ -1,3 +1,29 @@
+## SSH long-run authentication failure; v92 diagnostics preparing (2026-11-02)
+
+- After several successful read-only sessions, SSH began rejecting the same
+  pinned production public key before the signed-key step. Private/public/
+  authorized local key correspondence still passes. TCP/host identity and live
+  kernel UDP continue. No cause is proven: account lookup, shell checks, file
+  lookup/permissions and resource pressure must remain distinct possibilities.
+- The standalone sampler passed full CI41452473934/job125300803642 on source
+  231eafc514f11e9f71d3bfc6b3309e30c0eb53fc. ZIP SHA256
+  0658c018c635099c69e7e20ce4b93f55e83748da5f9e0ed3cb9860284cf65c1f,
+  binary d2193f8a6d79b5ac416744bb4d5d832edcba298039ca1495f862509f6c2335fb;
+  signature/platform/ISA and37 exact installed-cache imports passed. Upload
+  stopped at SSH authentication, before any file payload; no sampler executed
+  on the phone. Initial sampler CI failed on unsupported SDK mach_vm.h; the
+  reviewed correction uses the supported64-bit vm_read_overwrite interface.
+- Latest linked allocations are distributed: /var/mobile43.3MiB,
+  /var/db24.9MiB (uuidtext21.8MiB), /var/containers16.8MiB. No new quota-pressure
+  or pkd/lsd/suggestd crash was in the captured v91 segment at this checkpoint.
+- V92 candidate adds bounded nonblocking SSH-server log mirroring to the same
+  fixed USB destination192.168.7.1:5140 and includes the live sampler in System.
+  It also records errno on failed account/authorized-key metadata/open lookup.
+  Account/shell/ownership/key/signature decisions and job activation are intact.
+  Native UDP delivery/budget512/max1023/sanitization/errno tests and all exact
+  upstream patch contexts pass. New full userland CI/package are still pending.
+  No new flash was performed. UART stays unopened; existing receiver stays alive.
+
 ## Live SSH service diagnostics in progress (2026-11-02)
 
 - Boot v89 / System v91 stays installed; no additional partition writes. Root
