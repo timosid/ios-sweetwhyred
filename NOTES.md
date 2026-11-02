@@ -1,3 +1,43 @@
+## Volatile diagnostics verified after user reboot (2026-11-02)
+
+- User confirmed ordinary reboot. Existing USB/host address and UDP receiver
+  survived. Installed stays boot89/System91; no partition write or UART access.
+  Early pinned root SSH succeeded, and one persistent raw shell remains alive.
+- Reviewed v92 helperc1a356f4/server5f1f16a4 were uploaded only into /var/tmp via
+  SCP0755 and complete readback equality. On-phone helper self-test, cross-task
+  registers/frame reads and VM statistics succeed. A diagnostic server on2223
+  uses the existing pinned System host/authorized keys; actual root login passed
+  and server messages arrive in the existing USB UDP log. Original2222 job stays.
+- Manual mobile-user Bluetooth child prints missing marconi-bt/bluetooth service,
+  invalid/missing device address and No bluetooth on this device, then exit0.
+  This confirms its missing-device exit branch in that run, consistent with
+  stock clean exits; manual execution does not reproduce all launchd context.
+  FairPlay mobile child also exits0 but supplies no stderr cause. No DRM or
+  anti-debug behavior was bypassed; Bluetooth hardware functionality is unported.
+- Current samples show pkd305/suggestd314/lsd96 alive, with task frames captured;
+  no new target crash yet in this boot. Initial VM free37944 pages fell to about
+  7700, inactive about25500, wired15400; compressor/pageouts/swap stay0. RAMFS
+  free about4700/8192 pages. This is not a long-run stability or repair claim.
+- Added bounded read-only file/pread/mmap/task-memory probe source
+  c99b6ccf444e2c82f600135fc981fa81cb3ab34f. Full CI41462202753/job125333835496
+  all7 steps pass. Artifact13149202188 ZIP16978 bytes, SHA256
+  48bfefb53548365ace93ca7e85a8405b142f280e0a43ea7add23b5e8f6ba1bc4;
+  binaryd47c8b9e1206ae4b4c99f69ec3536fd4e968200047a8a1899ecd732ae34e9b4a.
+  Signature/platform/ISA and31 exact16.5 imports pass. Volatile SCP/readback and
+  physical baseline pass: root lookup succeeds, the old fault's cache .17
+  literal returns identical512 bytes by pread/mmap/remote suggestd VM read, and
+  the old writable cache-page address is readable in launchd. No target writes.
+- Read-only baseline VM slide0x30234000 is inferred from mach_msg2_trap return
+  and validated by identical literal bytes. Local symbol helper's old100-load-
+  command cap was raised to1000 (same64KiB bound) for legitimate SpringBoard
+  224 commands; Apple/cache bytes and analysis remain private.
+- Native collectors: PID37864 samples VM/fs/PIDs/new target stacks until14:47Z;
+  persistent shell PID40269/FIFO is retained afterward. PID42713 watches first
+  SIGBUS or fresh2223 auth failure until about15:01Z, then reads account/file/
+  mapped-page/VM/server evidence through that held shell. Do not duplicate them.
+  Private audit/services-volatile-v91/ and monitor JSON hold current status.
+  The earlier v91 common SIGBUS and MCM lack of Data Protection remain unresolved.
+
 ## Ready v92 reserve; preferred next test is volatile upload after reboot (2026-11-02)
 
 - Detached v92 build completed all offline checks at14:09:00Z. Image size
