@@ -53,6 +53,8 @@ static int fail_cmd23,fail_cmd18,fail_data,fail_single,missing_end,early_end,cor
 static int end_delay,end_delay_left,active_cmd;
 static int fail_update,update_writes,clock_delay,card_delay,stuck_card;
 static int fault_reset,map_failed,boot_fast,boot_multi,boot_perf;
+static int stop_timeouts,status_timeouts,command_latched;
+static uint32_t card_status=0x900;
 static uint32_t command_register,cfg_register=0x2613;
 static uint16_t clock_register=0xc0c7;
 static uint32_t test_checks;
@@ -84,6 +86,7 @@ static uint32_t whyred_emmc_read32(volatile uint8_t *b,unsigned o)
         if(o==SDHCI_INT_STATUS){if(late_armed){late_armed=0;late_counter=1;return 0;}return status;}
         if(o==SDHCI_RESPONSE)return response;
         if(o==SDHCI_PRESENT_STATE){
+            if(command_latched)return SDHCI_PSTATE_CMD_INHIBIT;
             if(active_count)return SDHCI_PSTATE_DATA_AVAILABLE;
             if(end_delay_left>0){end_delay_left--;return 3;}
             return 0;
@@ -140,8 +143,14 @@ static void whyred_emmc_write16(volatile uint8_t *b,unsigned o,uint16_t v)
                 active_count!=whyred_emmc_read16(b,SDHCI_BLOCK_COUNT)))bad_commands++;
             status|=SDHCI_INT_DATA_AVAILABLE;
             if(late_response){late_status=status|(late_response==2?0x00018000U:0);status=0;late_armed=1;late_response=0;}
-        }else if(cmd==12){active_count=0;status|=SDHCI_INT_DATA_END;}
-        else if(cmd!=13)bad_commands++;
+        }else if(cmd==12){
+            active_count=0;
+            if(stop_timeouts){stop_timeouts--;status=0x00018000;command_latched=1;return;}
+            status|=SDHCI_INT_DATA_END;
+        }else if(cmd==13){
+            if(status_timeouts){status_timeouts--;status=0x00018000;command_latched=1;return;}
+            response=card_status;
+        }else bad_commands++;
     }
 }
 static void whyred_emmc_write8(volatile uint8_t *b,unsigned o,uint8_t v)
@@ -150,6 +159,7 @@ static void whyred_emmc_write8(volatile uint8_t *b,unsigned o,uint8_t v)
     if(o==SDHCI_SOFTWARE_RESET){
         if(v&~0x06U)bad_commands++;
         if(fault_reset){b[o]=v;return;}
+        if(v&0x02)command_latched=0;
         b[o]=0;status=0;active_count=0;end_delay_left=0;return;
     }
     b[o]=v;
@@ -182,6 +192,7 @@ static void reset_model(void)
     timer=0;late_response=late_armed=late_counter=0;late_status=0;fail_cmd23=fail_cmd18=fail_data=fail_single=missing_end=early_end=corrupt_xo=0;
     active_cmd=end_delay=end_delay_left=0;
     fail_update=update_writes=clock_delay=card_delay=stuck_card=fault_reset=map_failed=0;
+    stop_timeouts=status_timeouts=command_latched=0;card_status=0x900;
     boot_fast=boot_multi=boot_perf=0;
     command_register=0;cfg_register=0x2613;clock_register=0xc0c7;
     gcc_bytes[0x04]=gcc_bytes[0x08]=1;
@@ -265,11 +276,45 @@ int whyred_perf_baseline_retry_checks(void)
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
+int whyred_perf_stop_timeout_checks(void)
+{
+    reset_model();fail_single=1;stop_timeouts=1;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,1,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,1)&&guards_ok(512)&&whyred_emmc_transport_ok);
+    CHECK(commands[12]==1&&commands[13]==1&&commands[17]==2&&!command_latched);
+    CHECK(bad_commands==0&&update_writes==0&&clock_register==0xc0c7);
+    reset_model();CHECK(whyred_emmc_try_xo(host_bytes)==1);
+    whyred_emmc_multi_enabled=true;fail_data=1;fail_single=1;stop_timeouts=2;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,8,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,8)&&guards_ok(4096)&&whyred_emmc_transport_ok);
+    CHECK(commands[12]==2&&commands[13]==2&&commands[17]==9&&!command_latched);
+    reset_model();fail_single=1;stop_timeouts=1;status_timeouts=1;
+    CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,1,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,1)&&commands[12]==2&&commands[13]==2&&!command_latched);
+    for(unsigned mode=0;mode<4;mode++) {
+        reset_model();fail_single=1;stop_timeouts=1;
+        if(mode==0)card_status=0x800; /* TRAN but not READY */
+        if(mode==1)card_status=0xb00; /* READY but DATA state */
+        if(mode==2)card_status=0x00400900; /* R1 card error */
+        if(mode==3)status_timeouts=2;
+        struct test_buf b={.count=512,.flags=B_READ,.blkno=3,.device=61,.data=guarded+64};
+        whyred_emmc_strategy(&b);
+        CHECK(b.error==EIO&&b.resid==512&&b.done==1&&!whyred_emmc_transport_ok);
+        CHECK(commands[17]==1&&commands[12]==2&&commands[13]==2&&guards_ok(512));
+        uint32_t old=mmio_writes;
+        CHECK(whyred_emmc_read_blocks(&whyred_emmc_live_io,67,1,guarded+64)!=0&&mmio_writes==old);
+    }
+    return 0;
+}
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
 int whyred_perf_host_checks(void)
 {
     test_checks=0;
     CHECK(whyred_perf_late_poll_checks()==0);
     CHECK(whyred_perf_baseline_retry_checks()==0);
+    CHECK(whyred_perf_stop_timeout_checks()==0);
     reset_model();
     CHECK(whyred_emmc_ticks_us(19200000,19200000)==1000000);
     CHECK(whyred_emmc_ticks_us(19200001,19200000)==1000000);

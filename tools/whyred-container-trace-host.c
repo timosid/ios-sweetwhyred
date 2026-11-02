@@ -48,6 +48,9 @@ typedef struct vnode *vnode_t;
 #define NULLVP ((vnode_t)0)
 static unsigned int tests, parse_calls, copy_calls, fd_gets, fd_drops, vnode_gets, vnode_puts;
 static int option, copy_failure, fd_failure, vnode_failure, path_failure;
+static user_addr_t attr_address;
+static unsigned int attr_copy_calls;
+static int attr_copy_failure;
 static char output[300000];
 static size_t used;
 static struct vnode node;
@@ -91,6 +94,11 @@ static int copyinstr(user_addr_t addr, char *out, size_t cap, size_t *done) {
     if (len >= cap) { memcpy(out, src, cap); *done = cap; return ENAMETOOLONG; }
     memcpy(out, src, len + 1); *done = len + 1; return 0;
 }
+static int copyin(user_addr_t addr, void *out, size_t size) {
+    attr_copy_calls++;assert(size==24);
+    if(attr_copy_failure || !addr || addr!=attr_address){memset(out,0xab,size);return 14;}
+    memcpy(out,(const void *)(uintptr_t)addr,size);return 0;
+}
 static int fp_getfvp(struct proc *p, int fd, struct fileproc **fp, vnode_t *vp) {
     (void)p; fd_gets++;
     if (fd_failure || fd != 7) return EBADF;
@@ -117,6 +125,7 @@ static void reset(void) {
     option = 1; used = 0; output[0] = 0;
     parse_calls = copy_calls = fd_gets = fd_drops = vnode_gets = vnode_puts = 0;
     copy_failure = fd_failure = vnode_failure = path_failure = 0;
+    attr_address=0;attr_copy_calls=0;attr_copy_failure=0;
 }
 static void call(struct proc *p, unsigned short code, int error, struct uthread *u) {
     struct uthread before = *u;
@@ -147,6 +156,24 @@ API int whyred_container_host_checks(void) {
     CHECK(strstr(output, "errno=22") != NULL && strstr(output, "pc=0x18001234") != NULL);
     CHECK(strstr(output, "path1=/private/var/metadata copy_errno=0") != NULL);
     CHECK(strstr(output, "args=") != NULL);
+    uint32_t masks[6]={5,0x1234,0x80000000,1,2,4};
+    for(unsigned i=0;i<4;i++) {
+        reset();attr_address=(user_addr_t)(uintptr_t)masks;
+        unsigned code=i==0?SYS_getattrlist:i==1?SYS_fgetattrlist:i==2?SYS_getattrlistat:SYS_getattrlistbulk;
+        struct uthread attr={{0}, {0,0}};
+        unsigned slot=i==2?2:1;
+        attr.uu_arg[0]=(i==1||i==3)?7:(uint64_t)(uintptr_t)"/dev";
+        if(i==2)attr.uu_arg[1]=(uint64_t)(uintptr_t)"/dev";
+        attr.uu_arg[slot]=attr_address;attr.uu_arg[slot+1]=0x99;attr.uu_arg[slot+2]=64;attr.uu_arg[slot+3]=8;
+        call(&manager,(unsigned short)code,EINVAL,&attr);
+        CHECK(attr_copy_calls==1&&strstr(output,"count=5 reserved=0 common=0x1234 volume=0x80000000")!=NULL);
+        CHECK(strstr(output,"directory=0x1 file=0x2 fork=0x4 bufsize=64 options=0x8")!=NULL);
+        reset();attr_address=(user_addr_t)(uintptr_t)masks;attr_copy_failure=1;
+        call(&manager,(unsigned short)code,EINVAL,&attr);
+        CHECK(attr_copy_calls==1&&strstr(output,"attrlist_copy_errno=14 count=0 reserved=0 common=0x0")!=NULL);
+        reset();attr_address=(user_addr_t)(uintptr_t)masks;
+        call(&manager,(unsigned short)code,EIO,&attr);CHECK(attr_copy_calls==0);
+    }
     reset(); call(&pkd, SYS_open, ENOENT, &u);
     CHECK(strstr(output, ",1234,3,0,0,0,0") != NULL); /* no stale words beyond sy_narg */
     reset(); u.uu_arg[0] = 7; call(&manager, SYS_fcntl, EINVAL, &u);

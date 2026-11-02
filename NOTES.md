@@ -1,3 +1,38 @@
+## Kernel96 candidate: xattr snapshots, STOP timeout recovery, attr masks (2026-11-02)
+
+- User authorized proceeding with repairs after the current-run audit. Candidate
+  kernel96 changes ONLY kernel source/tests; installed boot94/System95 remains
+  running under the original observer/UDP collector, no new flash or UART.
+- Patch0171 removes nonblocking snapshot allocation under the RAMFS mutex from
+  getxattr/listxattr. Allocate with waiting allowed outside the lock, re-find and
+  re-size under it, copy a stable private snapshot, free by allocation capacity.
+  Handles growth/shrink/replacement/removal and copyout faults without holding
+  the mutex over allocation/user access. Quota and honest protection policy stay.
+- Patch0172 resets CMD+DATA again after STOP timeout before attempting status;
+  prior recovery ignored STOP failure then waited on latched CMD_INHIBIT. At
+  most2 stop/status attempts, require clean R1/READY/TRAN plus idle host/FIFO,
+  then reread. No failed bytes accepted or media/config writes introduced.
+  This repairs a reproducible recovery defect, not yet the entire physical-I/O
+  root cause. Actual long-run hardware verification is still required.
+- Patch0173 adds bounded best-effort24-byte attrlist masks/options/length to
+  existing EINVAL trace for get/fget/getat/bulk. Copy failures print zero masks
+  plus their own copy error; no syscall result or user output buffer changes.
+  Needed to establish the unexplained /dev and later /tmp EINVAL branch.
+- Local checks pass1120236 RAMFS cases with UBSan and4792 modeled eMMC cases;
+ 144 trace checks/90 syscall descriptors/2 return hooks. New fixtures fail on
+  old RAMFS/eMMC source. ARM64 RAMFS/eMMC single-file compiles pass with actual
+  generated headers; all3 patches replay exactly with fuzz0. Private kernel-v96.
+  Local ASan runtime traps before main even for an empty program; plain/UBSan
+  work. Full CI's ASan checks must still pass before packaging kernel96.
+- Current observer reached32samples with no storage latch/APFS failure; later
+  current log now contains a mediaserverd NULL-PC SIGSEGV, plus SpringBoard
+  layer/layout warnings and unsupported AKS selector8. Preserve these as new
+  follow-on evidence; prior audit was a timestamped earlier slice. Do not claim
+  current whole-run crash-free or diagnose the NULL-PC callback without symbols.
+- Next: full kernel CI and authenticated packaging, then new-boot validation
+  when physically ready. Keep65min existing observation until it completes or
+  captures first storage failure; do not prematurely reset to shorten testing.
+
 ## Current boot94/System95 log audit and repair queue (2026-11-02)
 
 - User requested a complete current-run error review/list, not another fix or

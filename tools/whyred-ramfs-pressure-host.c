@@ -64,6 +64,9 @@ static unsigned vm_page_free_count = 123, vm_page_wire_count = 456;
 static _Atomic uint64_t ramfs_pages_in_use;
 static void *kernel_map;
 static unsigned held, log_lines, fail_slot_wait, fail_slot_nowait, fail_copy, fail_page;
+static unsigned fail_copy_wait, fail_copyout, data_allocations, wait_allocations;
+static void (*allocation_race)(void), (*copyout_race)(void);
+static struct { void *pointer; size_t size; } data_records[64];
 static size_t allocated_pages;
 static char log_text[4096];
 static void host_lock(int *p) { (void)p; assert(held++ == 0); }
@@ -85,9 +88,25 @@ static void *host_slots(size_t n, int flags) {
     return calloc(1,n);
 }
 static void *host_data(size_t n, int flags) {
-    if (flags & Z_WAITOK) assert(held == 0);
+    if (flags & Z_WAITOK) {
+        assert(held == 0); wait_allocations++;
+        if (allocation_race) { void (*callback)(void)=allocation_race; allocation_race=NULL; callback(); }
+        if (fail_copy_wait) { fail_copy_wait--; return NULL; }
+    }
     if ((flags & Z_NOWAIT) && fail_copy) { fail_copy--; return NULL; }
-    return calloc(1,n);
+    void *p=calloc(1,n);
+    if (p) {
+        unsigned i=0; while(i<64 && data_records[i].pointer) i++;
+        assert(i<64);data_records[i].pointer=p;data_records[i].size=n;data_allocations++;
+    }
+    return p;
+}
+static void host_data_free(void *p,size_t n) {
+    for(unsigned i=0;i<64;i++) if(data_records[i].pointer==p) {
+        assert(data_records[i].size==n && data_allocations>0);
+        data_records[i].pointer=NULL;data_allocations--;break;
+    }
+    free(p);
 }
 #define kalloc_type(t,n,f) ((t *)host_slots((size_t)(n)*sizeof(t),(f)))
 #define HOST_FREE2(t,p) free(p)
@@ -95,7 +114,7 @@ static void *host_data(size_t n, int flags) {
 #define HOST_SELECT(_1,_2,_3,NAME,...) NAME
 #define kfree_type(...) HOST_SELECT(__VA_ARGS__,HOST_FREE3,HOST_FREE2)(__VA_ARGS__)
 #define kalloc_data(n,f) host_data(n,f)
-#define kfree_data(p,n) free(p)
+#define kfree_data(p,n) host_data_free(p,n)
 static int kmem_alloc(void *map, vm_offset_t *addr, size_t size, int flags, int tag) {
     (void)map; (void)tag;
     if (!(flags & KMA_NOPAGEWAIT)) assert(held == 0);
@@ -129,6 +148,8 @@ static struct vnop_setattr_args *owner_race;
 static void (*namespace_race)(void);
 static int uiomove(void *p, int n, struct uio *u) {
     assert(held == 0 && n >= 0 && n <= u->resid);
+    if (!u->input && fail_copyout) {fail_copyout--;return EFAULT;}
+    if (!u->input && copyout_race) {void (*callback)(void)=copyout_race;copyout_race=NULL;callback();}
     if (u->input) memcpy(p,u->buf+u->cursor,(size_t)n);
     else memcpy(u->buf+u->cursor,p,(size_t)n);
     if (owner_race && u->input) {
@@ -380,7 +401,57 @@ static int root_dsc_checks(void) {
     CHECK(!allocated_pages&&!ramfs_pages_in_use&&!held);return 0;
 }
 
+/* Mutate the attribute while the real reader sleeps with rm_lock released. */
+static struct ramfs_node *xattr_race_node;
+static size_t xattr_race_size;
+static const char *xattr_race_name;
+static bool xattr_race_remove;
+static void change_xattr_race(void) {
+    struct ramfs_node *n=xattr_race_node;
+    host_lock(&n->rn_mount->rm_lock);
+    struct ramfs_xattr *xa=TAILQ_FIRST(&n->rn_xattrs);assert(xa);
+    n->rn_mount->rm_xattr_bytes-=xa->rx_size;
+    if(xattr_race_remove) {
+        TAILQ_REMOVE(&n->rn_xattrs,xa,rx_link);
+    } else {
+        free(xa->rx_data);xa->rx_size=xattr_race_size;xa->rx_data=malloc(xa->rx_size);
+        memset(xa->rx_data,0x5a,xa->rx_size);n->rn_mount->rm_xattr_bytes+=xa->rx_size;
+        if(xattr_race_name){free(xa->rx_name);xa->rx_name=strdup(xattr_race_name);xa->rx_namelen=(uint32_t)strlen(xattr_race_name);}
+    }
+    host_unlock(&n->rn_mount->rm_lock);
+    if(xattr_race_remove)ramfs_xattr_free(xa);
+}
+static int xattr_snapshot_checks(void) {
+    for(unsigned mode=0;mode<10;mode++) {
+        struct ramfs_mount rm;init_mount(&rm,true,3);
+        struct host_vnode v={.node=new_node(&rm,500+mode)};
+        struct ramfs_xattr *xa=calloc(1,sizeof(*xa));
+        xa->rx_name=strdup("test");xa->rx_namelen=4;xa->rx_size=16;xa->rx_data=calloc(1,16);
+        TAILQ_INSERT_TAIL(&v.node->rn_xattrs,xa,rx_link);rm.rm_xattr_bytes=16;
+        char output[64];memset(output,0x7e,sizeof(output));
+        struct uio u={.resid=sizeof(output),.buf=output};size_t size=99;
+        struct vnop_getxattr_args get={.a_vp=&v,.a_name="test",.a_uio=&u,.a_size=&size};
+        struct vnop_listxattr_args list={.a_vp=&v,.a_uio=&u,.a_size=&size};
+        xattr_race_node=v.node;xattr_race_size=16;xattr_race_name=NULL;xattr_race_remove=false;
+        unsigned before=wait_allocations;
+        if(mode==0){fail_copy=100;CHECK(ramfs_getxattr(&get)==0);CHECK(u.resid==48&&output[0]==0&&fail_copy==100);fail_copy=0;}
+        if(mode==1){xattr_race_size=48;allocation_race=change_xattr_race;CHECK(ramfs_getxattr(&get)==0);CHECK(u.resid==16&&output[0]==0x5a&&output[47]==0x5a&&wait_allocations==before+2);}
+        if(mode==2){xattr_race_size=7;allocation_race=change_xattr_race;CHECK(ramfs_getxattr(&get)==0);CHECK(u.resid==57&&output[6]==0x5a&&output[7]==0x7e);}
+        if(mode==3){xattr_race_remove=true;allocation_race=change_xattr_race;CHECK(ramfs_getxattr(&get)==ENOATTR);CHECK(u.resid==64&&output[0]==0x7e);}
+        if(mode==4){xattr_race_size=80;allocation_race=change_xattr_race;CHECK(ramfs_getxattr(&get)==ERANGE);CHECK(u.resid==64&&output[0]==0x7e);}
+        if(mode==5){xattr_race_name="longer-name";allocation_race=change_xattr_race;CHECK(ramfs_listxattr(&list)==0);CHECK(u.resid==52&&!memcmp(output,"longer-name",12)&&wait_allocations==before+2);}
+        if(mode==6){xattr_race_remove=true;allocation_race=change_xattr_race;CHECK(ramfs_listxattr(&list)==0);CHECK(u.resid==64&&output[0]==0x7e);}
+        if(mode==7){xattr_race_remove=true;copyout_race=change_xattr_race;CHECK(ramfs_getxattr(&get)==0);CHECK(u.resid==48&&output[0]==0&&output[15]==0);}
+        if(mode==8){fail_copyout=1;CHECK(ramfs_getxattr(&get)==EFAULT);CHECK(u.resid==64&&output[0]==0x7e);}
+        if(mode==9){get.a_uio=NULL;list.a_uio=NULL;CHECK(ramfs_getxattr(&get)==0&&size==16);CHECK(ramfs_listxattr(&list)==0&&size==5);CHECK(wait_allocations==before);}
+        CHECK(!allocation_race&&!copyout_race&&!data_allocations&&!held);
+        destroy_node(&v);free(rm.rm_hash);CHECK(!rm.rm_nodes&&!rm.rm_xattr_bytes);
+    }
+    xattr_race_node=NULL;return 0;
+}
+
 int main(void) {
+    CHECK(xattr_snapshot_checks()==0);
     CHECK(root_dsc_checks()==0);
     CHECK(logd_limit_checks()==0);
     struct ramfs_mount rm; struct uio u;
@@ -439,12 +510,12 @@ int main(void) {
     char attr[32]; memset(attr,0x7e,sizeof(attr)); size_t attrsize=0;
     u=(struct uio){.resid=sizeof(attr),.buf=attr};
     struct vnop_getxattr_args get={.a_vp=&a,.a_name="test",.a_uio=&u,.a_size=&attrsize};
-    fail_copy=1; reset_log(); CHECK(ramfs_getxattr(&get)==ENOMEM);
+    fail_copy_wait=1; reset_log(); CHECK(ramfs_getxattr(&get)==ENOMEM);
     CHECK(rm.rm_event.reason==RAMFS_PRESSURE_GETXATTR && u.resid==sizeof(attr) && attr[0]==0x7e);
     CHECK(ramfs_getxattr(&get)==0 && u.resid==sizeof(attr)-16 && attr[0]==0);
     u=(struct uio){.resid=sizeof(attr),.buf=attr};
     struct vnop_listxattr_args list={.a_vp=&a,.a_uio=&u,.a_size=&attrsize};
-    fail_copy=1; CHECK(ramfs_listxattr(&list)==ENOMEM);
+    fail_copy_wait=1; CHECK(ramfs_listxattr(&list)==ENOMEM);
     CHECK(rm.rm_event.reason==RAMFS_PRESSURE_LISTXATTR && rm.rm_xattr_bytes==16);
     CHECK(ramfs_listxattr(&list)==0 && memcmp(attr,"test",5)==0);
     destroy_node(&a); CHECK(rm.rm_pages==0 && rm.rm_xattr_bytes==0 && rm.rm_nodes==0);
