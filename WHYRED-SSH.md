@@ -56,3 +56,24 @@ actual syscall errors. The shell supplies commands, pipes and redirection.
 Kernel UDP capture is best effort and a final panic may interrupt delivery.
 SSH now enables direct runtime diagnosis; pkd/lsd, container/RAMFS behavior and
 other daemon exit causes remain open.
+
+## Live service diagnostics
+
+The next System v92 candidate includes `whyreddiag memory`, `threads PID`, and
+`selftest`. Thread sampling reads registers and at most24 frame pairs for at
+most256 threads, without suspension or target memory writes. Live frame chains
+can change during the sample. `run-mobile /absolute/program [args]` launches a
+separate mobile-user child, captures its standard streams and imposes a30-second
+limit; it does not reproduce launchd's complete bootstrap context.
+
+The iOS server mirrors its existing log messages over nonblocking UDP to the
+existing USB log destination192.168.7.1:5140. Messages are sanitized and capped at
+1023 bytes, with512 attempts per process. This best-effort diagnostic channel
+preserves errno and does not change authentication results. Missing account and
+authorized-key metadata/open failures include errno. Account/shell/ownership/
+key/signature checks remain enabled. The server binary contains no device keys.
+
+Early physical v91 SSH tests passed, but later sessions rejected the same key
+before signature submission while the kernel stream continued. A later common
+SIGBUS/KERN_MEMORY_ERROR crash storm affects multiple processes. The v92 changes
+are diagnostic tools; their build success is not evidence of a device fix.

@@ -1,3 +1,38 @@
+## V92 userland verified; image write restarted after interruption (2026-11-02)
+
+- Full v92 userland source838c644feea10ac38578c14b8aedadb0e22bab4b,
+  CI41454271748/job125307206157: all10 steps success. ZIP SHA256
+  f4f12a56ebe68c0ab18970972807c68b7a979aef11777e2b4e31fbe8bbb23adb,
+  artifact13144949733/573129 bytes, exact file set/CRC/provenance and every
+  binary digest pass. All six binaries match installed16.5 cache imports.
+  Dropbear5f1f16a4d23d3019a8cd3a799514f13cc5db7b838bd0be59c3ea7184e31c9ab1;
+  diagnostic helperc1a356f4fae9537a0336e2aedef465ed9cf248d2a99c369a3bfa210c18f10fa9.
+- Native authentication/transport5 checks and USB mirror512-budget/1023-byte/
+  sanitization/errno-preservation checks pass. Separate final sampler workflow
+  41454271609 also passes, including VM counter self-test. First full v92 build
+  failed because -g created a dSYM directory in the binary inventory; fixed by
+  omitting that debug bundle. No failed-build artifact was used.
+- First local v92 container write was interrupted before completed file checks.
+  /bin/sh comparison reports resource-fork EIO. It is quarantined privately in
+  system-v92-interrupted-ineligible with DO-NOT-FLASH marker; no successful
+  manifest exists and it must never be flashed. A separate detached build/
+  complete verification pipeline restarted; image results remain pending.
+- Later v91 USB capture reveals a system-wide SIGBUS/KERN_MEMORY_ERROR storm.
+  The first captured SIGBUS is SpringBoard25, followed by xpcproxy737; suggestd
+  later faults in strlen/strdup/xpc string creation reading a valid original
+  cache string. Shared-cache and private-data ranges both appear. Transport
+  counters last showed zero eMMC errors, which does not prove VM/page data
+  correctness. This supersedes the earlier short-run absence-of-crash sample.
+  Do not claim filesystem encryption or any daemon repair. Root cause remains
+  unproven; distinguish VM/resource, pager and file-read failure paths.
+- V92 retains boot89/kernel policy and every existing531 launchd job/key. It
+  changes the SSH server only to mirror bounded diagnostics and add failure
+  errno, plus installs the read-only task/VM helper. A persistent remote shell
+  collector is prepared so later diagnostics reuse one authenticated session;
+  loopback-only FIFO framing/exit7/next-command tests pass. No new phone write
+  or UART access happened. New candidate needs complete offline verification
+  before requesting fresh physical Fastboot readiness.
+
 ## SSH long-run authentication failure; v92 diagnostics preparing (2026-11-02)
 
 - After several successful read-only sessions, SSH began rejecting the same
