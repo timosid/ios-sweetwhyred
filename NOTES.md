@@ -1,3 +1,30 @@
+## Boot v93 physically installed; early SSH/read baseline passes (2026-11-02)
+
+- User confirmed fresh Fastboot. Exact private baseline/product/unlocked/64MiB
+  boot geometry and candidate/boot89 rollback guards passed. Boot send/write
+  and reboot all OKAY (audit/apfs93-flash.json); only boot changed. Installed
+  NOW boot93/System91. No UART opened. New bootargs/USB logs confirm profile.
+- Existing UDP receiver47443 stayed alive, new boot stream observation starts
+  at byte4926436. Detached observer59812 started15:40:07Z BEFORE flash/reboot;
+  audit/apfs-v93-observer.json/log and audit/apfs-v93-device hold private results.
+  Do not start duplicate collectors or reboot during this observation.
+- Early pinned root SSH works, held shell60796. Static raw3996342f and task/VM
+  helperc1a356f4 uploaded only to RAMFS0755; complete file readback equals each
+  reviewed binary. Raw cache17/27 cached+F_NOCACHE reads match expected original
+  FNV d58f5b0f9afadca0/b9b23f3a46fd0825; all8 initial file-read cases and mapped
+  reads pass. Prior-failing shells/passwd and0xa59cd80 range currently read.
+  This establishes baseline after reboot, NOT a sustained root-cause fix.
+- First VM sample: page16KiB, free40521/active29619/inactive709/wired8875,
+  compressor/pageouts0. RAMFS free7574/8192 pages. Initial SpringBoard25,
+  backboardd105, lsd96, containermanager65 have bounded read-only thread stacks;
+  pkd/suggestd not yet in initial sample. Continue observing to first failure.
+- Observer monitors65min after baseline for first WHYRED APFS ERROR or common
+  memory-error SIGBUS; normal/direct/mmap comparisons reuse retained shell.
+  Host reader separately walked63022 image objects and saved private inode/path
+  index for matching the first error to exact file. No phone media writes from
+  these diagnostics. System92 reserve remains unused. Kernel5f63e7c9 build
+ 41471287807 and boot5a29f651 are retained; earlier failed CI stays rejected.
+
 ## Boot v93 offline-ready; physical Fastboot readiness requested (2026-11-02)
 
 - Kernel source5f63e7c9e9e2fb776e74324a62c82ce3592a15ab,
