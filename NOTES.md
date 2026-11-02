@@ -1,3 +1,33 @@
+## Ready v92 reserve; preferred next test is volatile upload after reboot (2026-11-02)
+
+- Detached v92 build completed all offline checks at14:09:00Z. Image size
+  5,386,178,560 bytes, SHA256
+  0357bf46dc72f5c957ce7725d18952f7d31063e564681734c5d75bd44131bc28.
+  All65 exact file comparisons,18 metadata checks and81 sparse full-payload
+  reconstruction checks pass. Prior531 launchd jobs/keys are unchanged; only
+  the server changes and a diagnostic helper is added relative to v91.
+  Packager SHA4850cf670c08d38c5f28654ee3b074d38fcc1135184c62766fec02efb3ed32df.
+  No new flash occurred; installed remains boot89/System91. The first,
+  interrupted candidate remains quarantined and is not eligible.
+- Faster next action: user was asked to reboot normally, or enter Fastboot for
+  host reboot only. Once early SSH returns, use the reviewed v92 binaries in
+  volatile /private/var/tmp through the existing v91 server. This does not
+  require another System write. Do not treat this reboot-readiness answer as
+  authorization to flash the reserve v92 image.
+- Private detached monitor PID37864/script ssh-v90/observe_volatile_diag.py
+  started14:07:15Z, waits for TCP disconnect/reappearance, then opens a single
+  pinned persistent raw shell. It uploads/checks complete helper/server bytes,
+  starts the diagnostic server on2223 with existing System keys, and samples
+  VM/fs/process/thread state. It expires40 minutes after startup. Check status
+  audit/services-volatile-v91-monitor.json before starting anything else. It
+  was still waiting for physical reboot; no device tool upload or runtime
+  helper test has happened. No UART was opened; existing UDP capture continues.
+- Additional host-only investigation executes the exact authenticated boot89
+  APFS reader core against System91:4096 namespace probes,512 partial shared-
+  cache reads,133 cfile resets,33 metadata flushes pass with exact source bytes.
+  This does not test device eMMC, kernel UPL or VM pressure behavior and does
+  not establish a fix for the common SIGBUS/KERN_MEMORY_ERROR failure.
+
 ## V92 userland verified; image write restarted after interruption (2026-11-02)
 
 - Full v92 userland source838c644feea10ac38578c14b8aedadb0e22bab4b,
