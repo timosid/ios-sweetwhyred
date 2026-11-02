@@ -1,3 +1,49 @@
+## Boot96 flashed, System95 retained; automated validation pending (2026-11-02)
+
+- User freshly confirmed Fastboot. Exact-device/product/unlocked/boot64MiB,
+  image/kernel/source/System95 proof and rollback94 guards passed. Actual
+  fastboot flash boot AND reboot returned OKAY at~19:48:30Z. No System write.
+  Private audit/kernel96-flash.json and audit/kernel96-preflight.json.
+- Final kernel source b9e8aa455053478c4c785610e632a746b16c419c, full CI41509382660
+  /job125499618939 ALL27 steps successful including ASan/UBSan. Initial8a95 CI
+ 41508019427 was superseded. Downloaded ZIP SHA256s match official artifact
+  digests and exact build source, retained suites, ISA/no-LSE/no-PAN, bootstrap,
+  cache/idle paths, splash, ADT/payload/stock DTB/layout guards all pass.
+- Boot image port/out/whyred-ios-root-v96-xattr-recovery-41509382660/
+  shim-boot-whyred-uartdm-debug.img,22347776 bytes SHA
+  8680c3993b2cb8935377c18410479ffba4c7668c70430da1ecd553c83f510f24.
+  Kernel SHA fc0536cc2c98e952fb334e15a1d4ad38e63695d9e2228cb26c3013ab35709649;
+  expected running UUID BC9C2211-0018-3824-BC73-06DAAB42E274.
+- IMPORTANT trial policy: whyred-emmc-fast=1 BUT whyred-emmc-multi=0. Both
+  natural boot94 failures began with batch read failure, so next stability test
+  retains validated XO frequency with CMD17 only. New STOP recovery is tested
+  in the model, not yet physically proven; avoiding batches is a mitigation,
+  not evidence that the entire hardware fault was repaired. System95 stays.
+- New ONLY observer4706 (ssh-v90/observe_kernel96.py), audit/kernel96-observer
+  .json/.log, offset9153114, output audit/kernel96-device. It requires actual
+  UUID match, then75+ opt-in temporary-file xattr checks,12 cached/direct/mmap
+  controls, installed95 configurations and prolonged65min observation. Do not
+  issue simultaneous FIFO commands or duplicate it. UDP47443 still collects
+  audit/dsc89-usb-session.log; UART never opened. Prior95 observer finished
+  captured-first-error-session-retained at39samples and is not still monitoring.
+- Signed diagnostic25c9d22 source from CI41508866433/job125495161075 ALL7 steps
+  pass; ZIP SHA a76092c5fce79252cc1a2bb9362e23156c73508cb631008fe1a44bff1fbe307f,
+  binary kernel-v96/diag96/whyreddiag SHA
+  25bd35333ea3fe8c5553e6ea0eb4f8b44d43f67041f64a8095e4c65884b895ce.
+  Native75 xattr cases pass, iOS signature/platform/ISA verified. Not yet a
+  device test result. Private readiness/packager/proofs under kernel-v96.
+- Independent next findings: host_set_multiuser_config_flags in host.c returns
+  NOT_SUPPORTED in this macOS build; real commpage updater exists. Private
+  kernel-v97-draft contains a narrow SWEET-gate draft and4-config UBSan checks,
+  not shipped/committed. Exact launchd disassembly calls legacy memory command6
+  (fatal task limit), excluded with CONFIG_JETSAM0, not merely command5 soft HWM.
+  Review actual ledger/PID1 consequences before exposing it. Do not enable
+  global jetsam or fabricate success just to silence this message.
+- Next: read kernel96 observer first. Confirm UUID/xattrs/reads/95 jobs, preserve
+  first recovery snapshot if storage fails, collect attrlist masks. Only then
+  proceed with session/graphics/container work. Do not reflash System95 or ask
+  the same Fastboot readiness again for this already completed boot96 flash.
+
 ## Kernel96 candidate: xattr snapshots, STOP timeout recovery, attr masks (2026-11-02)
 
 - System95 naturally reproduced the storage failure at19:17:51Z (~44min boot),
