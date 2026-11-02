@@ -48,7 +48,7 @@ S raw_main(U *stack){
     call6(6,fd,0,0,0,0,0);text("WHYRED RAW: done\n");return n<0?1:0;
 }
 #if defined(__aarch64__)
-__attribute__((naked,noreturn)) void start(void){__asm__ volatile("mov x0, sp\n\tbl _raw_main\n\tmov x16, #1\n\tsvc #0x80\n\tb .");}
+__attribute__((naked,noreturn)) void start(void){__asm__ volatile("mov x0, sp\n\tand x9, x0, #-16\n\tmov sp, x9\n\tbl _raw_main\n\tmov x16, #1\n\tsvc #0x80\n\tb .");}
 #else
 __attribute__((naked,noreturn)) void start(void){__asm__ volatile("movq %rsp, %rdi\n\tandq $-16, %rsp\n\tcallq _raw_main\n\tmovq %rax, %rdi\n\tmovq $0x2000001, %rax\n\tsyscall\n\tjmp .");}
 #endif
