@@ -1,6 +1,5 @@
 /* Bounded diagnostics for a developer-owned whyred device. No target writes. */
 #include <mach/mach.h>
-#include <mach/mach_vm.h>
 #include <mach/thread_info.h>
 #if defined(__aarch64__)
 #include <mach/arm/thread_status.h>
@@ -71,8 +70,8 @@ static int sample(pid_t pid) {
                 /* Unsuspended frames can change; bounds prevent loops and runaway reads. */
                 uint64_t start = sp;
                 for (unsigned j = 0; j < 24 && fp >= start && fp - start < 8 * 1024 * 1024 && !(fp & 7); j++) {
-                    uint64_t frame[2]; mach_vm_size_t got = 0;
-                    kr = mach_vm_read_overwrite(task, fp, sizeof(frame), (mach_vm_address_t)frame, &got);
+                    uint64_t frame[2]; vm_size_t got = 0;
+                    kr = vm_read_overwrite(task, (vm_address_t)fp, sizeof(frame), (vm_address_t)frame, &got);
                     if (kr != KERN_SUCCESS || got != sizeof(frame)) break;
                     printf(" bt%u=0x%" PRIx64, j, frame[1]);
                     if (frame[0] <= fp) break;
