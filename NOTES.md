@@ -1,3 +1,45 @@
+## Boot97 flashed after user ended96 trial; USB/SSH validation pending (2026-11-02)
+
+- User reported a manual reboot to Fastboot and requested repairs. Exact phone
+  readiness/product/unlocked/64MiB boot, source/kernel/System95 and rollback94
+  guards passed. Actual sending/writing boot97 and reboot all returned OKAY at
+  ~20:35:08Z. No System write. Installed now boot97/System95; do not ask again
+  for the already consumed readiness answer or reflash this same image.
+- Full97 CI41515301290/job125517210664/source47524d521237e9d50d84ba9d1b5e72806c5e13cd
+  ALL27 steps succeeded. ZIP SHA/length/CRC, exact reviewed sources including
+  host.c/commpage.c,960 actual host/updater checks and linked call/NULL rejection,
+  retained ASan/UBSan suites, ISA/bootstrap/cache/idle/ADT/layout guards passed.
+- Image port/out/whyred-ios-root-v97-foreground-41515301290/
+  shim-boot-whyred-uartdm-debug.img,22347776B, SHA
+  ebbcb2a0f159d89b1996c7471d8e0bf86976ac8645310b9428c769986db0da00;
+  kernel SHAe6fd653a89391f50e58bc4a1edaece06c9022429877c87b0b8af9cc8bcebc4f3,
+  expected UUID1444AADE-E57B-3F55-88A9-866FFA6086A0. XO/CMD17 only retained.
+- ONLY new observer17023 ssh-v90/observe_kernel97.py, original offset9345783,
+  audit/kernel97-observer.json/log/device. Requires97 UUID, reads session flags
+  via real iOS getters,75 xattrs,12 read/mmap controls, actual95 job files then
+  65min watch. Do not issue concurrent FIFO commands. UDP47443 unchanged; no UART.
+- Signed session diagnostic CI41516654602/job125521825902 all7 steps pass.
+  Artifact13174284723 ZIP54600B SHA3fdfbae3b1f8d4d9eca0609836f8259cc902c248ffd9bb4bfb3bdc7cc5d086a1;
+  binary72592B SHAe74cdb1526999c8acbbb5ea698b6d31b4d60336c700129ea2d20b04e8c0d7130.
+  Signature/iOS/ISA/imports verified; private kernel-v97-draft/diag97. Device
+  session readback is pending, so don't claim foreground repaired on hardware yet.
+- Final96: user interrupted before65min completion. Observer4706/shell7488 ended
+  withSSH255 after reboot, not a captured storage latch. Final snapshot private
+  audit/kernel96-full-review/final-summary.json/log/termination.json:32 samples,
+  6 true direct health reads passed,1.318GB errors0/fallbacks0, no APFS/PRESSURE/
+  panic/latch/recovery record. lsd94/pkd257/suggestd265 persisted. No target two
+  job spawns. One mediaserverd28 NULL-PC graphics crash; replacement372 observed.
+  Latest successful sample20:31:15Z, last IO report~30min after I/O startup. This
+  incomplete exposure does NOT close the earlier38/44min physical eMMC failures.
+- Exact CoreImage tracing now names _wrapEAGLContextCreate and _wrapGetMacroContext:
+  API3 thenAPI2 context creation; a missing GL context leaves the zeroed callback
+  table, later called unchecked. No GPU/service/binary workaround applied.
+- Added explicit render probe: process-local16x16 red bitmap through requested
+  CoreImage software renderer, separate EAGL2/3 creation/status command. No window,
+  daemon change or files written by helper. Native warning-clean compile and all
+  256 expected RGBA pixels pass. Signed iOS helper CI/device test pending; native
+  success is not proof that iOS has a software renderer or SpringBoard fallback.
+
 ## Read-only session diagnostics prepared while boot96 observation continues (2026-11-02)
 
 - Added whyreddiag session: uses real iOS libsyscall host_get_multiuser_config_flags

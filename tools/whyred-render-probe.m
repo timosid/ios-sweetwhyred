@@ -1,0 +1,81 @@
+/* Explicit developer diagnostic: render only a 16x16 process-local bitmap.
+ * No windows, device state configuration, files or daemon changes. */
+#import <Foundation/Foundation.h>
+#import <CoreImage/CoreImage.h>
+#import <TargetConditionals.h>
+#if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/ES2/gl.h>
+#endif
+#include <stdio.h>
+#include <string.h>
+
+static int bitmap(void) {
+    puts("WHYRED RENDER: software context begin");
+    CIContext *context = [CIContext contextWithOptions:@{
+        kCIContextUseSoftwareRenderer: @YES,
+        kCIContextCacheIntermediates: @NO
+    }];
+    printf("WHYRED RENDER: software context=%s\n", context ? "created" : "nil");
+    if (!context) return 1;
+    CIColor *red = [CIColor colorWithRed:1 green:0 blue:0 alpha:1];
+    CGRect bounds = CGRectMake(0, 0, 16, 16);
+    CIImage *image = [[CIImage imageWithColor:red] imageByCroppingToRect:bounds];
+    unsigned char pixels[16 * 16 * 4];
+    memset(pixels, 0x6d, sizeof(pixels));
+    CGColorSpaceRef color = CGColorSpaceCreateDeviceRGB();
+    if (!color) return 1;
+    puts("WHYRED RENDER: software render begin");
+    [context render:image toBitmap:pixels rowBytes:16 * 4 bounds:bounds
+             format:kCIFormatRGBA8 colorSpace:color];
+    CGColorSpaceRelease(color);
+    unsigned matches = 0;
+    for (unsigned i = 0; i < 16 * 16; i++) {
+        const unsigned char *p = pixels + 4 * i;
+        if (p[0] == 255 && p[1] == 0 && p[2] == 0 && p[3] == 255) matches++;
+    }
+    printf("WHYRED RENDER: software pixels=%u/256 first=%u,%u,%u,%u files_written=0\n",
+           matches, pixels[0], pixels[1], pixels[2], pixels[3]);
+    return matches == 256 ? 0 : 1;
+}
+
+static int eagl(void) {
+#if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
+    unsigned successes = 0;
+    for (unsigned api = 2; api <= 3; api++) {
+        printf("WHYRED RENDER: EAGL api=%u begin\n", api);
+        EAGLContext *context = [[EAGLContext alloc] initWithAPI:(EAGLRenderingAPI)api];
+        BOOL current = context && [EAGLContext setCurrentContext:context];
+        printf("WHYRED RENDER: EAGL api=%u context=%s current=%d\n",
+               api, context ? "created" : "nil", current);
+        if (current) {
+            const GLubyte *renderer = glGetString(GL_RENDERER);
+            GLenum error = glGetError();
+            printf("WHYRED RENDER: EAGL api=%u renderer=%.*s error=0x%x\n",
+                   api, 256, renderer ? (const char *)renderer : "(null)", error);
+            if (renderer && error == GL_NO_ERROR) successes++;
+        }
+        [EAGLContext setCurrentContext:nil];
+    }
+    return successes ? 0 : 1;
+#else
+    puts("WHYRED RENDER: EAGL unavailable for this build target");
+    return 2;
+#endif
+}
+
+int main(int argc, char **argv) {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    @autoreleasepool {
+        @try {
+            if (argc == 2 && !strcmp(argv[1], "software")) return bitmap();
+            if (argc == 2 && !strcmp(argv[1], "eagl")) return eagl();
+            fputs("usage: whyred-render-probe software | eagl\n", stderr);
+            return 2;
+        } @catch (NSException *exception) {
+            printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
+                   exception.name.UTF8String, 512, exception.reason.UTF8String);
+            return 1;
+        }
+    }
+}
