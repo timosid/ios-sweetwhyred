@@ -55,7 +55,7 @@ static int parse(const char *action, const char *domain, const char *label, uint
     if (!strcmp(domain, "system")) { *type = 1; *handle = 0; }
     else if (!strcmp(domain, "user501")) { *type = 2; *handle = 501; }
     else return 2;
-    if (!strcmp(action, "status")) *routine = 815;
+    if (!strcmp(action, "status")) *routine = 712;
     else if (!strcmp(action, "disable")) *routine = 809;
     else if (!strcmp(action, "enable")) *routine = 808;
     else if (!strcmp(action, "bootout")) *routine = 801;
@@ -130,6 +130,8 @@ int main(int argc, char **argv) {
     if (!error && routine == 801) error = xpc_dictionary_get_int64(reply, "bootout-error");
     xpc_object_t errors = xpc_dictionary_get_value(reply, "errors");
     if (!error && errors && (xpc_get_type(errors) != XPC_TYPE_DICTIONARY || xpc_dictionary_get_count(errors))) error = EIO;
+    const char *(*explain)(int) = (const char *(*)(int))dlsym(RTLD_DEFAULT, "xpc_strerror");
+    if (error && explain) fprintf(stderr, "Launchd: %s\n", explain((int)error));
     char *description = xpc_copy_description(reply);
     printf("launchd_error=%" PRId64 " reply=%.8192s\n", error, description ? description : "(unavailable)");
     free(description); xpc_release(reply);

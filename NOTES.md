@@ -1,3 +1,20 @@
+## Service-control helper live read probe; modern query update (2026-11-02)
+
+- Helper sourcef0ffa4b4, CI41496018797/job125451054330 all7 steps success.
+  Artifact13165154529 ZIP15918 SHA
+  93333c714f5207fbbf7d49f4765435c0447c060fa683c1412161e082b62e364b;
+  signed binary19516e716f83d4e1db4ede921ddbdf3f9182ee5d2ec4557bb2f8bd15b8c39ec6.
+  Provenance/CRC/digest/IOS/ISA/signature and34 exact16.5 imports pass; both
+  dynamically resolved bootstrap symbols are exported by the exact cache.
+- Volatile SCP0755 and complete byte readback pass. Read-only named LIST815
+  calls reach launchd but return154 in system domain; no mutation attempted.
+  Switching read probe to the same modern712 named-service query used by pinned
+  Procursus domain discovery, plus xpc_strerror text for failures. New CI pending.
+  Current helpers/attempt evidence under service-control-v95/ and audit/services-v94/.
+- No job disable/bootout or partition write yet. Boot94/System91 observer remains
+  active with zero captured lower-read/APFS/panic failure; do not claim services
+  disabled until RPC responses AND subsequent spawn/PID checks confirm it.
+
 ## User requests disabling Bluetooth/FairPlay jobs; restricted control preparing (2026-11-02)
 
 - User explicitly requests removing bluetoothd/fairplayd.H2 launches (or fake
