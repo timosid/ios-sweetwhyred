@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fault-inject actual read/pagein/transport functions without a device or image."""
-import argparse,json,subprocess
+import argparse,json,os,subprocess,sys
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('xnu',type=Path);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
 def function(text,name):
@@ -146,6 +146,12 @@ code=head+function(f,'apfs_read_error')
 for name in ['apfs_fill','apfs_read_cached','apfs_vnop_read','apfs_vnop_pagein']:code+=function(v,name)
 code+=transport+function(f,'apfs_dev_read')+main
 c=a.output/'apfs-errors-host.c';c.write_text(code);exe=a.output/'apfs-errors-host'
-subprocess.run(['clang','-std=c11','-Wall','-Wextra','-Werror','-fsanitize=undefined',str(c),'-o',str(exe)],check=True)
-r=subprocess.run([str(exe)],capture_output=True,text=True);(a.output/'result.txt').write_text(r.stdout+r.stderr);print(r.stdout+r.stderr,end='');assert r.returncode==0
+# build.sh exports SDKROOT for the kernel; this executable runs on the host.
+host_env=os.environ.copy();host_env.pop('SDKROOT',None)
+compiler=['clang']
+if sys.platform=='darwin':
+ sdk=subprocess.check_output(['xcrun','--sdk','macosx','--show-sdk-path'],text=True,env=host_env).strip()
+ compiler+=['-isysroot',sdk]
+subprocess.run(compiler+['-std=c11','-Wall','-Wextra','-Werror','-fsanitize=undefined',str(c),'-o',str(exe)],check=True,env=host_env)
+r=subprocess.run([str(exe)],capture_output=True,text=True,env=host_env);(a.output/'result.txt').write_text(r.stdout+r.stderr);print(r.stdout+r.stderr,end='');assert r.returncode==0
 (a.output/'report.json').write_text(json.dumps({'passed':True,'actual_kernel_functions_extracted':True,'fault_paths':17,'device_access':False,'limitation':'Mock UPL/transport APIs; does not exercise physical VM pressure or eMMC.'},indent=2)+'\n')

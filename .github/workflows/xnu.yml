@@ -320,6 +320,7 @@ jobs:
           cp -R dxb/fakeroot/System/Library/Kernels/. out/ 2>/dev/null || true
           if [ -f dxb/whyred-source-report.json ]; then cp dxb/whyred-source-report.json out/; fi
           if [ -f dxb/whyred-apfs-source-report.json ]; then cp dxb/whyred-apfs-source-report.json out/; fi
+          if [ -f dxb/whyred-apfs-errors-check/report.json ]; then cp -R dxb/whyred-apfs-errors-check out/apfs-errors-host-check; fi
           if [ -f dxb/whyred-emmc-contract/report.json ]; then cp dxb/whyred-emmc-contract/report.json out/whyred-emmc-contract-report.json; fi
           ls -la out
           (cd out && shasum -a 256 kernel.* > SHA256SUMS) || true

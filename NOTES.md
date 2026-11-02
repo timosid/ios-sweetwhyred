@@ -1,3 +1,19 @@
+## Full CI test SDK correction (2026-11-02)
+
+- Initial kernel run41470349414/job125361960778 stopped BEFORE kernel compile:
+  the new host test inherited build.sh SDKROOT and could not find assert.h.
+  No failed-run boot artifact is eligible. Patch0169 applied and APFS source
+  read-only guards passed; this is not a device/kernel result.
+- Host test now removes inherited SDKROOT and explicitly chooses macOS SDK,
+  matching the existing eMMC contract-test pattern. A deliberately invalid
+  SDKROOT local run passes. CI also retains its report in the kernel artifact.
+- New raw F_NOCACHE probe source78fde09d / CI41470349071 all6 passed, binary
+  3996342f804590682d77e2bb4da2dbfabaa9666ebd9449a907a03a8ab7edea43,
+  ZIP8d237575107f8c98a0cbd83b7274eb0d5cf931fd7c65368e3ef6eeed68d4ddd7.
+  Complete volatile self digest passed. Current boot89 ignores IO_NOCACHE in
+  VNOP_READ: pread still EIO with fcntl success, as expected from exact source.
+  Signed probe remains usable despite broken dyld. No new boot/System flash.
+
 ## Read/mmap failure confirmed; bounded APFS diagnostics preparing (2026-11-02)
 
 - Corrected raw helper cc0ab5c / CI41468481553/job125355507394 passes all6
