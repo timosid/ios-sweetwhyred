@@ -1,3 +1,34 @@
+## Boot v94 offline-ready; physical test pending (2026-11-02)
+
+- Kernel source3b180816fc9ca0c615404d1bf0ce484bce1b08b5, full CI
+  [41482862184](https://github.com/timosid/ios-sweetwhyred/actions/runs/41482862184),
+  job125405454088: all27 steps succeeded, including4769 actual-function eMMC
+  model checks and both new old-code regression cases. These model checks do
+  not emulate physical SDCC timing. Exact no-fuzz replay and ARM64 compile pass.
+- Kernel ZIP79355972 bytes SHA
+  fb2f557a82364f2748cebdcf8fbcf06df257dba4aca5ba91d369cf55af2369d0;
+  buildtree ZIP25434691 bytes SHA
+  e046f477def1d3902baee1057b437237fbf6373cb318603219a70588d4593d5f.
+  GitHub digest/size/CRC/provenance, patch0170 replay, exact reviewed runtime
+  sources, retained suites, linked ISA/cache path, artwork, loader/ADT/stock DTB,
+  layout and image guards pass. No failed-build artifact is used.
+- Candidate port/out/whyred-ios-root-v94-emmc-recovery-41482862184/:
+  boot22347776 bytes SHA
+  cfd40e726b1d9b2fac7d8015bd503ffbd329110dbc38980cc6c5a6fc53c9b27c;
+  kernel1de821211845980d0e176f042704a8e1e0b489c44e2953941783b9692002f4dc.
+  Same581-byte command line/System91 contract as93. v94 only changes two driver
+  recovery/polling sites; no error suppression, quota increase or IRQ masking.
+- Current installed remains boot93/System91. v94 has NOT been flashed or
+  physically validated. Fastboot currently absent. Boot-only flash helper pins
+  image/kernel/source/System91 and verified boot93 rollback. Fresh physical
+  Fastboot readiness is required; previous answer was consumed for boot93.
+- Existing UDP receiver remains active; UART never opened. Prepared observer
+  ssh-v90/observe_emmc94.py is NOT started: start once before the next flash,
+  capture early cached/direct/mapped baselines through pinned root SSH, retain
+  one shell and monitor65min. Every fifth sample now verifies a true uncached
+  shell-list read. Stop/capture first lower-I/O/APFS/common-SIGBUS failure.
+  System92 reserve and private-memory pressure helper remain unused.
+
 ## eMMC failure localized; baseline recovery and deadline fixes preparing (2026-11-02)
 
 - V93 reproduced the global failure naturally after prolonged observation.
