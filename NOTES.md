@@ -1,3 +1,36 @@
+## System95 policy verified on phone; MCM EINVAL checked (2026-11-02)
+
+- Installed boot94/System95, all81 System transfers/reboot OKAY. Pinned root SSH
+  works (held shell90517). Reviewed volatile raw/diag uploads and full readbacks
+  pass. All12 early cached/direct/mapped controls pass. ALL3 actual installed
+  plist/cache files read back byte-for-byte equal to the verified95 overlays.
+- Through18:44:28Z, zero exec/spawn records for bluetoothd or fairplayd.H2, and
+  neither process appears in3 consecutive PS samples. Both requested jobs are
+  disabled, no fake processes/endpoints. Private audit/system95-policy-result.json.
+  Other529 cached job definitions and all unchanged System91 bytes preserved.
+- User asks about containermanagerd errno22: current first trace is getattrlist
+  on /dev with64-byte result buffer/options0, not a container metadata write.
+  Same process65 continues subsequent calls and is alive in all3 samples; no
+  MCM crash captured. Exact attribute masks are NOT in the current trace, so
+  the particular EINVAL branch/cause remains unknown. Do not suppress EINVAL or
+  fabricate successful attributes. Future diagnosis can capture the24-byte
+  attrlist plus options at the existing bounded syscall-return hook, if needed.
+- First current memory sample set ends free17374/wired12774/compressor0,
+  RAMFS free6648/8192. No current APFS error captured. This is EARLY health only;
+  the previous boot94/System91 failed its long run at a second CMD12 recovery
+  after baseline-clock fallback. That lower-I/O defect remains unresolved and
+  disabling these jobs is not proof it is fixed or all dependencies work.
+- ONLY observer88567 is active in monitoring phase; retained shell90517, UDP47443.
+  audit/system95-observer.json/log, audit/system95-device, original boot offset
+  7987522. It continues65min after baseline and captures first storage/policy
+  failure. Do not duplicate collectors, reopen UART or send concurrent commands
+  into its FIFO. No further flash is needed for the completed disable request.
+- Next on resume: read this observer's final phase/proofs and fresh UDP first.
+  If storage fails, preserve first CMD18/CMD12/recovery/clock sequence and static
+  controls, then repair based on that evidence. If only MCM EINVAL is at issue,
+  acquire masks/branch before changing VFS behavior. System91 rollback and all
+  protected partitions remain intact; System92 and deferred exit tracing unused.
+
 ## System95 completely written; new-boot validation pending (2026-11-02)
 
 - Fresh System95 file/device guards passed. Sending/writing ALL81 sparse slices
