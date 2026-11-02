@@ -1,3 +1,23 @@
+## System95 completely written; new-boot validation pending (2026-11-02)
+
+- Fresh System95 file/device guards passed. Sending/writing ALL81 sparse slices
+  and final reboot returned OKAY; audit/services95-flash.json completed_slices81,
+  written_partitions[system], boot_writtenfalse, no error. Known installed NOW
+  boot94/System95. Original System91 rollback and protected partitions untouched.
+- User's Fastboot-ready message was consumed for this authorized System95 update;
+  do not request it again for this same completed action. No new write is needed
+  merely to inspect the boot. Root startup/SSH/control tests are still pending.
+- Observer88567 remains active from before reboot, offset7987522, private
+  audit/system95-observer.json/log/device. It checks actual installed plist/cache
+  bytes,12 file/mmap controls and absence of either target process/spawn, then
+  prolonged storage behavior. UDP47443 remains; UART never opened. Do not launch
+  another observer or send concurrent commands into its retained shell.
+- System95 SHA6d8da8962b0cb6e40d329e2050ce9f57bb02bae417e26b17ba3ff8259324b99f,
+  5386170368 bytes; full63k-object/8.6GB unchanged-file comparison and81-slice
+  reconstruction passed. Only the requested two jobs have Disabled=true in the
+  physical plist and cached launchd definition. This is not yet hardware proof
+  of stopped launches or fixed dependencies. V94 CMD12/eMMC issue remains open.
+
 ## System95 offline-ready; user ready and System installation in progress (2026-11-02)
 
 - System95 image5386170368 bytes SHA
