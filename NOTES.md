@@ -1,3 +1,18 @@
+## Read-only session diagnostics prepared while boot96 observation continues (2026-11-02)
+
+- Added whyreddiag session: uses real iOS libsyscall host_get_multiuser_config_flags
+  and host_check_multiuser_mode getters, which read the commpage; no privileged
+  setter, guessed-address access, process suspension or device write. Prints
+  raw return codes/flags/mode so a97 device test can verify actual session state.
+- Native helper compiles with warnings-as-errors, selftest/kernel and all75
+  temporary-file xattr cases pass. Native macOS correctly reports NOT_SUPPORTED
+  for both session getters; this is not an iOS/device success claim. Signed iOS
+  helper CI and eventual on-device check remain pending.
+- Kernel97 CI41515301290/source47524 remains building; installed boot96 watch4706
+  continues undisturbed. No fresh partition write, reboot or UART. Private97
+  packager prepared with exact0174 source/report and linked setter-call guards,
+  retaining all96 packaging checks. No97 image has yet been packaged or flashed.
+
 ## Kernel97 foreground API candidate; installed96 still under observation (2026-11-02)
 
 - ACTUAL boot96 validation through20:02:41Z: running UUID matches packaged

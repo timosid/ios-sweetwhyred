@@ -123,6 +123,19 @@ static int kernel_info(void) {
     return 0;
 }
 
+static int session_info(void) {
+    host_t host = mach_host_self();
+    uint32_t flags = 0, multiuser = 0;
+    /* The iOS libsyscall getters read the same commpage used by usermanagerd.
+     * No host-privileged setter or guessed memory address is needed. */
+    kern_return_t flags_kr = host_get_multiuser_config_flags(host, &flags);
+    kern_return_t mode_kr = host_check_multiuser_mode(host, &multiuser);
+    mach_port_deallocate(mach_task_self(), host);
+    printf("WHYRED DIAG: session flags_kr=%d mode_kr=%d flags=0x%08" PRIx32
+           " multiuser=%" PRIu32 " read_only=1\n", flags_kr, mode_kr, flags, multiuser);
+    return flags_kr == KERN_SUCCESS && mode_kr == KERN_SUCCESS ? 0 : 1;
+}
+
 static int xattr_probe(const char *directory) {
     char path[1024];
     if (directory[0] != '/' || snprintf(path, sizeof(path), "%s/whyred-xattrs.XXXXXX", directory) >= (int)sizeof(path)) return 2;
@@ -199,6 +212,7 @@ static int run_mobile(char **args) {
 
 int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "kernel")) return kernel_info();
+    if (argc == 2 && !strcmp(argv[1], "session")) return session_info();
     if (argc == 3 && !strcmp(argv[1], "xattrs")) return xattr_probe(argv[2]);
     if (argc == 2 && !strcmp(argv[1], "memory")) return memory_stats();
     if (argc == 2 && !strcmp(argv[1], "selftest")) return memory_stats() || sample(getpid());
@@ -208,5 +222,5 @@ int main(int argc, char **argv) {
         return sample((pid_t)pid);
     }
     if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
 }
