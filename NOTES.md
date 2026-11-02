@@ -1,3 +1,26 @@
+## Graphics server capture investigation (2026-11-03 Minsk)
+
+- Read actual /usr/libexec/backboardd over pinned SSH to private graphics-v98;
+  no device writes. Its screenshot call at0x10001e974 invokes the exact imported
+  CARenderServerRenderDisplay with port0/display name/ownIOSurface/int0/int0,
+  between lock/unlock. QuartzCore wrapper at0x188470e40 returns normalized bool.
+- Added explicit capture diagnostic with that five-argument ABI, own1125x2436
+  BGRA surface, no display swap. Reports accepted/RGB/alpha counts only. Native
+  warning-clean compile; NOT run against the Mac display. iOS CI/device pending.
+  Root/mobile privilege differences and server renderer capabilities remain open.
+- Added read-only renderer methods diagnostic (source32fcf2a): runtime signatures
+  and implementation offsets for CAWindowServer/CAWindowServerDisplay/CARenderer,
+  bounded128 matches/class. No guessed private setters invoked. CI41525363634
+  produced artifact13178913579, not yet downloaded/physically tested.
+- Surface helper corrected-header CI41525233629 artifact13179636649 ZIP46978B
+  SHAabad646e2d0c8e9c7f8afc53c0abf63906b9e1d47f5e7178f49762b0eb036752;
+  binary90240B SHA6c03f65739617cbb734cafc98bf0cc25b3b46af1f51ceaff7071635f57052cb0.
+  Signature/iOS/ISA/CRC/length verified, worker23548 currently uploads exact helper,
+  audit/surface98-check.json/device. Await actual result, don't duplicate it.
+- No repair of the stock graphical scene claimed. Keep97 observer17023 and shell
+  19005 untouched while separate bounded diagnostic SSH commands run. Current
+  source capture addition is separate from already installed kernel97/System95.
+
 ## IOSurface diagnostic SDK declaration fix; not a device result (2026-11-03 Minsk)
 
 - Surface CI41524953675/job125550177453 failed before linking: iPhoneOS SDK has

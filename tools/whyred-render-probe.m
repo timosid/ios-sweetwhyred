@@ -189,6 +189,45 @@ static int renderer_methods(void) {
     return 0;
 }
 
+static int capture_display(void) {
+    /* Same five-argument call used by this system's backboardd screenshot path.
+     * The destination is our own surface; this does not present a frame. */
+    typedef int (*RenderDisplay)(mach_port_t, CFStringRef, IOSurfaceRef, int, int);
+    RenderDisplay render = (RenderDisplay)dlsym(RTLD_DEFAULT, "CARenderServerRenderDisplay");
+    if (!render) { puts("WHYRED RENDER: display capture API absent"); return 1; }
+    const size_t width = 1125, height = 2436, stride = 4544;
+    NSDictionary *properties = @{
+        (NSString *)kIOSurfaceWidth: @(width), (NSString *)kIOSurfaceHeight: @(height),
+        (NSString *)kIOSurfaceBytesPerElement: @4,
+        (NSString *)kIOSurfaceBytesPerRow: @(stride),
+        (NSString *)kIOSurfaceAllocSize: @(stride * height),
+        (NSString *)kIOSurfacePixelFormat: @(0x42475241u)
+    };
+    IOSurfaceRef surface = IOSurfaceCreate((__bridge CFDictionaryRef)properties);
+    if (!surface) return 1;
+    kern_return_t kr = IOSurfaceLock(surface, 0, NULL);
+    if (kr || !IOSurfaceGetBaseAddress(surface) || IOSurfaceGetBytesPerRow(surface) != stride ||
+        IOSurfaceGetWidth(surface) != width || IOSurfaceGetHeight(surface) != height) {
+        if (!kr) IOSurfaceUnlock(surface, 0, NULL);
+        CFRelease(surface); return 1;
+    }
+    memset(IOSurfaceGetBaseAddress(surface), 0, stride * height);
+    puts("WHYRED RENDER: display capture LCD begin display_changed=0");
+    int accepted = render(MACH_PORT_NULL, CFSTR("LCD"), surface, 0, 0);
+    size_t rgb = 0, alpha = 0;
+    const unsigned char *base = IOSurfaceGetBaseAddress(surface);
+    for (size_t y = 0; y < height; y++) for (size_t x = 0; x < width; x++) {
+        const unsigned char *p = base + y * stride + x * 4;
+        rgb += (p[0] | p[1] | p[2]) != 0;
+        alpha += p[3] != 0;
+    }
+    printf("WHYRED RENDER: display capture accepted=%d rgb=%zu alpha=%zu pixels=%zu\n",
+           accepted, rgb, alpha, width * height);
+    kr = IOSurfaceUnlock(surface, 0, NULL);
+    CFRelease(surface);
+    return accepted && rgb && !kr ? 0 : 1;
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     @autoreleasepool {
@@ -198,7 +237,8 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "layer")) return layer_bitmap();
             if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
             if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display();
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
