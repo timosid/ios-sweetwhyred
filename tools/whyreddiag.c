@@ -1,6 +1,7 @@
 /* Bounded diagnostics for a developer-owned whyred device. No target writes. */
 #include <mach/mach.h>
 #include <mach/thread_info.h>
+#include <mach/vm_statistics.h>
 #if defined(__aarch64__)
 #include <mach/arm/thread_status.h>
 #else
@@ -17,6 +18,23 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+static int memory_stats(void) {
+    host_t host = mach_host_self();
+    vm_statistics64_data_t vm;
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+    vm_size_t page_size = 0;
+    kern_return_t kr = host_page_size(host, &page_size);
+    if (kr == KERN_SUCCESS) kr = host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&vm, &count);
+    mach_port_deallocate(mach_task_self(), host);
+    if (kr != KERN_SUCCESS) { fprintf(stderr, "host VM statistics: %d %s\n", kr, mach_error_string(kr)); return 1; }
+    printf("VM page_size=%lu free=%u active=%u inactive=%u wired=%u compressor=%u internal=%u external=%u pageins=%llu pageouts=%llu swapins=%llu swapouts=%llu\n",
+        (unsigned long)page_size, vm.free_count, vm.active_count, vm.inactive_count, vm.wire_count,
+        vm.compressor_page_count, vm.internal_page_count, vm.external_page_count,
+        (unsigned long long)vm.pageins, (unsigned long long)vm.pageouts,
+        (unsigned long long)vm.swapins, (unsigned long long)vm.swapouts);
+    return 0;
+}
 
 static int sample(pid_t pid) {
     task_t task = MACH_PORT_NULL;
@@ -121,12 +139,13 @@ static int run_mobile(char **args) {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 2 && !strcmp(argv[1], "selftest")) return sample(getpid());
+    if (argc == 2 && !strcmp(argv[1], "memory")) return memory_stats();
+    if (argc == 2 && !strcmp(argv[1], "selftest")) return memory_stats() || sample(getpid());
     if (argc == 3 && !strcmp(argv[1], "threads")) {
         char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
         if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
         return sample((pid_t)pid);
     }
     if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | threads PID | run-mobile /executable [args]\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | threads PID | run-mobile /executable [args]\n"); return 2;
 }
