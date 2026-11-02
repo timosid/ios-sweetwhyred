@@ -1,3 +1,13 @@
+## IOSurface diagnostic SDK declaration fix; not a device result (2026-11-03 Minsk)
+
+- Surface CI41524953675/job125550177453 failed before linking: iPhoneOS SDK has
+  IOSurface dylib but no IOSurface/IOSurface.h. Native headers exist. Added a
+  minimal ABI declaration fallback for the exact used C calls/keys. Forced
+  fallback native build passes warnings-as-errors and actual surface/pixel/
+  relock checks; no device/header failure has been hidden as a passing test.
+- Rebuild signed surface helper next. No new kernel/System/phone reboot. Actual
+  layer98 result remains passed; surface result still pending. Keep97 observer.
+
 ## Actual QuartzCore CPU layer probe passed on97; shared-surface probe next (2026-11-03 Minsk)
 
 - Signed layer diagnostic source8bb6b3ed2ef832f0a17d93d25621600f80de0c4e,

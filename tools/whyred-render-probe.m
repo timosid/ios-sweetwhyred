@@ -3,7 +3,23 @@
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
 #import <QuartzCore/QuartzCore.h>
+#if __has_include(<IOSurface/IOSurface.h>) && !defined(WHYRED_PROBE_IOSURFACE_DECLS)
 #import <IOSurface/IOSurface.h>
+#else
+/* The iPhoneOS SDK ships the dylib without its C headers. Keep this small
+ * declaration set aligned with the ABI of the tested IOSurface entry points. */
+typedef struct __IOSurface *IOSurfaceRef;
+extern const CFStringRef kIOSurfaceWidth, kIOSurfaceHeight;
+extern const CFStringRef kIOSurfaceBytesPerElement, kIOSurfaceBytesPerRow;
+extern const CFStringRef kIOSurfaceAllocSize, kIOSurfacePixelFormat;
+extern IOSurfaceRef IOSurfaceCreate(CFDictionaryRef);
+extern kern_return_t IOSurfaceLock(IOSurfaceRef, uint32_t, uint32_t *);
+extern kern_return_t IOSurfaceUnlock(IOSurfaceRef, uint32_t, uint32_t *);
+extern size_t IOSurfaceGetWidth(IOSurfaceRef), IOSurfaceGetHeight(IOSurfaceRef);
+extern size_t IOSurfaceGetBytesPerRow(IOSurfaceRef);
+extern void *IOSurfaceGetBaseAddress(IOSurfaceRef);
+
+#endif
 #import <TargetConditionals.h>
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
 #import <OpenGLES/EAGL.h>
@@ -132,12 +148,12 @@ static int surface_bitmap(void) {
     memcpy(expected, base, sizeof(expected));
     kr = IOSurfaceUnlock(surface, 0, &seed);
     if (kr) result = 1;
-    kern_return_t lock_kr = IOSurfaceLock(surface, kIOSurfaceLockReadOnly, &seed);
+    kern_return_t lock_kr = IOSurfaceLock(surface, 1 /* read-only lock */, &seed);
     int preserved = !lock_kr && IOSurfaceGetBaseAddress(surface) &&
         !memcmp(expected, IOSurfaceGetBaseAddress(surface), sizeof(expected));
     printf("WHYRED RENDER: surface unlock=0x%x relock=0x%x preserved=%d display_changed=0\n",
            kr, lock_kr, preserved);
-    if (!lock_kr) IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
+    if (!lock_kr) IOSurfaceUnlock(surface, 1 /* read-only lock */, NULL);
     CFRelease(surface);
     return result || !preserved ? 1 : 0;
 }
