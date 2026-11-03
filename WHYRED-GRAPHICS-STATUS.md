@@ -6,8 +6,10 @@ The user watched the repeated real-frame test and explicitly confirmed a white
 Apple logo on black on the phone. Capture-to-panel delivery therefore has a
 physical visible result. A functioning SpringBoard interface is still pending.
 
-SpringBoard waits for the LaunchServices store; fresh lsd samples advance from
-filesystem traversal to MobileGestalt queries. No permanent deadlock is proved.
+In later98b, lsd reached its ordinary event loop and SpringBoard advanced from
+store acquisition to an IconServices request for application icon images. This
+is startup progress, not a proved permanent deadlock or a ready interface.
+Current fresh98c has a new retained SSH shell and read-only startup monitoring.
 The earlier guarded identity-cache experiment failed its actual answer probe
 and was rolled back byte-for-byte. It was not repeated in98b.
 
@@ -15,6 +17,13 @@ USB logs and read-only startup/VM samples continue privately. The observed98b
 stream has no fatal eMMC recovery, crash or RAMFS pressure so far; unsupported
 attribute and startup missing-file probes still occur. Recovery0175 has not been
 exercised by an actual read failure. This is not a long-run stability result.
+
+Latest98c screen retry: the new explicit `whyred-display-wake panel-on` passed
+exact v98 UUID/display-ID/logical-dimension checks, requested our AppleCLCD
+selector12(1), and produced a new `display on` record. Fresh capture reached the
+panel through84 successful submissions before the30s child deadline. The user
+confirmed the Apple logo on black during this exact retry. This verifies the
+direct panel wake and visible real-frame path; it does not establish stock UI.
 
 ## Actual physical results
 
@@ -31,6 +40,7 @@ exercised by an actual read failure. This is not a long-run stability result.
 | Earlier97d one-frame presentation | Source/panel nonempty; user later reported backlit black | Submission and memory content did not establish visible output. |
 | Earlier98a repeated real-frame presentation | 101/101 successful queues; source RGB25,430, panel RGB21,674; 2,332,800 pixels copied | User missed this window; no visible result for98a. |
 | Fresh98b repeat watched by user | Same real logo captured and copied;99 successful queues before30s child deadline | User explicitly confirms Apple logo on black: this capture-to-panel path produces a visible image. |
+| Fresh98c direct panel-on and real-frame repeat | Exact guarded driver power request, new display-on record,84 successful queues before child deadline | User confirms logo; direct panel wake and captured-frame display work in this run. |
 
 Earlier captures and marker tests lacked the QuartzCore displayable-context and
 global-capture entitlements. Their transparent results were superseded by the

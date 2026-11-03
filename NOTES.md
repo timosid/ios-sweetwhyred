@@ -1,3 +1,38 @@
+## Active98c: direct panel-on and visible real logo CONFIRMED (2026-11-03 Minsk)
+
+- Fresh observer44399 finished after64 login attempts (~13min cold startup).
+  New retained SSH46379 at PRIVATE audit/graphics98c-device/held. Exact98 UUID,
+  diag2a276d3f/window9a1d6053/new wake17f8f28e uploads/readbacks all PASS.
+  Installed boot98/System95 unchanged. No flash/UART/new approval required.
+- User repeated request to send frame; notified immediately before explicit
+  show_graphics98c.py. Actual new guarded panel-on root tool exits0 in1.65s;
+  display-ID/dimensions/kernel guards pass; selector12 request0 and NEW
+  SWEET FB: display on observed. This IS physical use of tool17f8f28e from
+  sourcecf254ab/CI41691099406/job126109597215, not merely a candidate anymore.
+- Actual mobile fresh capture accepted1 RGB25430/alpha2332800;84 successful
+  queues of surface5. Run-mobile30s child bound then sendsSIGTERM/exit124 at
+  30.4s BEFORE all101 queues. Do NOT report101/101 or normal exit. User explicitly
+  confirmed “Логотип Apple на чёрном фоне” during this exact98c attempt. Captured
+  actual scene -> driver -> visible panel path works. Stock continuous rendering
+  and normal SpringBoard UI are STILL NOT established; no stale PNG injection.
+  Private audit/graphics98c-show.json and98c-device/requested-*.stdout retain
+  exact results. No synthetic HID pair needed for this successful direct request.
+- After show, retained shell still answers immediately. VM16KiB free20879,
+  active33261/inactive13417/wired12239/compressor0/no swap. Verified actual live
+  PIDs SpringBoard26/lsd95/backboard57 (PRIVATE graphics98c-live-pids.json).
+- Read-only monitor46870 now SOLE owner of held46379: VM + threads26/95 once/min,
+  max30 rounds. Status audit/graphics98c-memory-monitor.json; samples
+  graphics98c-memory-samples.log. To use shell create graphics98c-memory-stop
+  and wait phase stopped; if timeout/failed, inspect exact framing before reuse.
+  No automatic wake/capture/presentation. Passive UDP2488 unchanged.
+- Candidate0176/source5b7e210a8c96eceecff8b4b9f95c24ea22d68a73 remains OFFLINE,
+  full kernel CI41692808789/job126115470445 currently building. Local4826 checks,
+  exact negative control and actual ARM64 compile passed. No99 image/flash or
+  hardware-fix claim. Next inspect CI/checks; preserve current98c graphics run.
+- PRIMARY requested action is achieved: direct screen-on + new actual captured
+  frame shown and confirmed by user. Next UI work: inspect LaunchServices/Icon-
+  Services progression on current98c; do not reuse98b37904 or old waiting state.
+
 ## Active98c ordinary reboot for requested screen retry; late-ready candidate (2026-11-03 Minsk)
 
 - User CONFIRMED ordinary reboot after98b stall; no flash/UART. Recorded fresh
