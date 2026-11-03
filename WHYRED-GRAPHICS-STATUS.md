@@ -1,6 +1,9 @@
 # whyred graphics: measured boundary and next experiment
 
-Updated 2026-11-03 Minsk. Installed baseline: boot v97 / System v95, iOS 20F66.
+Updated 2026-11-03 Minsk. Installed baseline: boot v98 / System v95, iOS20F66.
+Boot98 has now been flashed and USB traffic returned; cold SSH and the next
+graphics measurement are pending. All physical graphics results below refer
+to earlier97 runs unless explicitly labeled98.
 The phone returned and was ordinarily rebooted after a Mac crash. Passive USB
 logging and a retained SSH session were recovered. No partition was written.
 Later, new SSH logins stopped answering at banner exchange and a transfer in the

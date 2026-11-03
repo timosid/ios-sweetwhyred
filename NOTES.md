@@ -1,3 +1,27 @@
+## Boot98 flashed; cold SSH/graphics observer running (2026-11-03 Minsk)
+
+- User confirmed Fastboot. PRIVATE tools/flash_kernel98.py --flash --ready-answer
+  rechecked image/kernel hashes, rollback, System95 completion, exact private
+  identity/product/unlocked64MiB boot. Boot SEND and WRITE each OKAY; reboot OKAY.
+  Installed baseline is NOW boot98/System95. No System or other partition write;
+  no UART. Private audit/kernel98-flash.json, boundary graphics98-boot-boundary.json.
+- Image SHA b3d6440ff1e050c52fa325dd88543965a23217fc33da27fa2287a8a505527473;
+  expected running UUID936C980F-9428-33A1-B076-CDB09ABDC855. Fresh USB datagrams
+  observed after reboot; early snapshot starts mid-record (best-effort UDP).
+  Exact running UUID and recovery behavior await SSH; no graphics claim.
+- Started PRIVATE ssh-v90/check_graphics98.py PID24959, phase waiting-for-ssh.
+  Status audit/graphics98-check.json, private log audit/graphics98-check.log,
+  outputs audit/graphics98-device. Sole old receiver2488 continues unchanged,
+  logfile audit/graphics97d-usb-session.log/current-whyred-usb.log alias.
+  Worker flashed=false means observer itself does no flash; actual flash above
+  completed. Typical current CMD17 cold startup takes10..15min. Keep active
+  observer; never start a second worker or reuse97e shell14309.
+- Next inspect observer until actual kernel guard/uploads/wake/capture result.
+  On real-frame submission promptly request visible screen confirmation.
+  If capture nonzero, do not substitute test art or call CPU submission working UI.
+  Need fresh RAMFS directory accounting while transport healthy. Previous98-tool
+  artifacts below are authenticated; no new permission needed for this test.
+
 ## Ready for user Fastboot:98 tools and next observer prepared (2026-11-03 Minsk)
 
 - Source ae72123da7f607e6e4ade37696192ca8f6be04b2 adds verified97/98 UUID
