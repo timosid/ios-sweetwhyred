@@ -1,3 +1,24 @@
+## Current98b live boot-status check: still Apple logo (2026-11-03 Minsk)
+
+- User asked whether UI has loaded. Stopped monitor38947 through its stop file;
+  confirmed phase stopped and completed framing before sole-shell use.
+- Live exact98 UUID still passes. Fresh capture-png exits0 in1.84s, accepted1,
+  RGB25430; viewed PNG is still white Apple logo on black, byte-identical to
+  earlier real scene (SHA d56ea3fea7985a580332da2a7e0cda48a43d84fc866880d324e6ab851a675789).
+  PRIVATE audit/graphics98b-device/now-capture.png and now-capture-png.stdout. No normal UI yet.
+- Latest thread monitor sample7 still has SpringBoard store-lock/syncXPC wait;
+  lsd95 worker continues hardware-query/traversal path with advancing counters.
+  Current USB segment has no CRASH/panic/fatal recovery/RAMFS pressure; eMMC
+  bytes1304526848/errors0. No new stable-recovery claim.
+- VM sample7 free7119/active30890/inactive25897/wired15896 pages (16KiB each),
+  compressor0. This decrease in FREE alone is not an OOM diagnosis; inactive
+  pages exist. No purge or daemon/cache mutation.
+- Resumed read-only collection with NEW followup monitor40151, sole owner of
+  SAME held98b shell37904. Status audit/graphics98b-followup-monitor.json,
+  samples graphics98b-followup-samples.log, maximum20 rounds. Stop/release with
+  audit/graphics98b-followup-stop and wait for stopped before shell commands.
+  Old memory monitor38947 is stopped. Passive USB receiver2488 still live.
+
 ## Current98b pkd EINVAL /dev probe classified (2026-11-03 Minsk)
 
 - User pasted pkd253 getattrlist common0x6/volume0x80060000/buffer64/options0,
