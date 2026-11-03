@@ -1,3 +1,32 @@
+## Ready for user Fastboot:98 tools and next observer prepared (2026-11-03 Minsk)
+
+- Source ae72123da7f607e6e4ade37696192ca8f6be04b2 adds verified97/98 UUID
+  allowlists to wake/render tools. Wake CI41672463674/job126044141756 all PASS;
+  render CI41672463382/job126044138478 all build/test/upload steps PASS.
+  Authenticated artifacts, CRC, exact source/report/binary digests, iOS platform,
+  ISA, strict signatures and exact rights checked. Private audit/graphics98-final-tools.json.
+- Wake artifact13248562336 ZIP21654B SHA630de17baedebcc0846d41dd2d0f82ef011cbfcc3f9f4f35d90f2db3b1dd119d;
+  binary69920B SHA449eed2ffc3e7399a4f3f4b14fd7d4ac103565ab25e14f1593f9f6bf26863977,
+  PRIVATE graphics-v98/wake98-final/whyred-display-wake.
+  Render artifact13247629259 ZIP111894B SHA3c494265fa581f867bf8bf561c90f89ce3dc048ce49a04ae2ca1c01c38c15547;
+  binary93760B SHA3d49e9f4e279c15676ac234bc8cc865f8bfa20679f78d39e987ed4797d6adae4,
+  PRIVATE graphics-v98/render98-final/whyred-render-probe. Neither final98 tool
+  uploaded yet; old97 HID result below is the actual observed wake.
+- Verified98 linked recovery disassembly contains the concrete function and
+ 3 command callsites (STOP, first CMD13, optional clean recheck); private
+  kernel-v98-recovery/linked-recovery-disassembly.txt. Complete kernel run is
+  SUCCESS; boot98 image ready as recorded below. No flash has occurred.
+- PRIVATE ssh-v90/check_graphics98.py syntax checked, NOT started. After verified
+  boot98 flash/reboot: mkdir audit/graphics98-device and start this worker with
+  private log redirection. It waits for cold SSH, retains fresh shell, verifies
+  exact98 UUID, uploads/authenticates diag and both FINAL98 tools, sends ONE
+  diagnostic HID wake, captures actual PNG then presents once only if capture
+  succeeds. No cache writes/daemon restarts. On timeout review outstanding FIFO
+  framing before reuse. Screen confirmation remains required after any present.
+- User Fastboot-ready question pending; latest scan sees no Fastboot. All boot
+  preparation is complete. Only boot is authorized for next flash; System95
+  remains installed. UART unnecessary. Do not use97e shell for a new boot.
+
 ## Boot98 authenticated and ready;97e storage failure after HID wake (2026-11-03 Minsk)
 
 - Installed still boot97/System95. User reports console clears, no interface
