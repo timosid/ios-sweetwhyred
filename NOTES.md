@@ -1,3 +1,50 @@
+## CPU capture path traced; cross-process surface test added offline (2026-11-03 Minsk)
+
+- Exact capture IPC40221 (reply40321) resolves from QuartzCore MIG subsystem
+  40200..40281 at1d5b34750, routine21 stub1885423ec ->1884691ac ->188469360
+  ->event20. CADisplayServer registers event20 callback1884ee784. Its concrete
+  virtual render-to-target slot180 ->1884ebcc0 ->1884ebd68 allocates software
+  renderer4fe0 with EXACT SAME vtable1d5b3d618 as software callback constructor.
+  Thus lack of EAGL alone DOES NOT explain the measured empty capture. Private
+  capture-event/renderer/MIG disassembly remains outside Git. Update gate still
+  unresolved; no proof that a startup presentation gate blocks this capture path.
+- Existing framebuffer GetID returns0; the earlier ID0 route is plausible, not
+  a proven defect. Named LCD comparison remains useful for actual identity proof.
+- Added tools/whyred-surface-ipc.m: parent creates own8x8 stride64 surface, passes
+  its Mach send right to separately spawned executable, child looks it up and
+  validates/replaces512 bytes, parent validates all changes. No display/service/
+  filesystem modifications. Child-only registered port via exact local XNU spawn
+  declaration; real bootstrap untouched. All IPC and child waits bounded.
+- Native warning-clean fallback-declaration build and actual two-process test
+  PASS. Initial bootstrap-channel prototype and incorrect count==1 assumption
+  failed locally; final uses registered ports (mach_ports_lookup returns3) and
+  accepts slot0 while releasing remaining lookup rights. These failures are host
+  helper development results, not handset/kernel failures. CI/iOS build pending.
+- Native CI adds actual cross-process pixel assertion, signed iOS helper,
+  platform/ISA/signature/digest report. No phone commands; user has the handset.
+
+## Signed named-route candidate ready; startup update gate found (2026-11-03 Minsk)
+
+- Public source54bf682ba00e66c770d885e4d2ce5eb8853fc353, CI41581070859 /
+  job125735783858 all steps passed, including host display refusals and CPU tests.
+  Artifact13206296406 ZIP63005B SHA31ab4e7bf2e15576c864cafaa26b831a93ea2c2b1790037aebb645c2d2cf8ac0.
+  Binary92080B SHAfd68b46a56e827ef05655046c6bc255388e9d9668f9d6407c436275c1afe601a.
+  ZIP digest/length/CRC, report source/binary digest/length, iOS platform, ISA and
+  strict signature verified. Private graphics-v98/named98. NO upload/device test.
+- Offline stock backboardd path10001d8ec passes true for exported
+  kCAWindowServerDisableUpdatesOnMainDisplay to serverWithOptions:, then sets
+  rendererFlags3. Exact ObjC stub selectors verified from preserved binary:
+  10009c360=serverWithOptions:,10009e440=setRendererFlags:,
+  10009cfc0=setDisablesUpdates:,1000978c0=disablesUpdates.
+- Overlay handling around1000825d8/1000826d0 logs disabling/enabling framebuffer
+  changes and calls setDisablesUpdates:. Thus startup deliberately gates updates;
+  actual current gate state is UNKNOWN. It may explain no presentation, but has
+  not been shown to explain empty server captures. Do not blindly clear it or
+  claim renderer/GPU diagnosis from this path. Next read-only server snapshot
+  should include the real display's update gate and display/context identity.
+- User's offline-only constraint remains active; installed boot97/System95
+  unchanged. Source/native/CI checks do not establish a physical graphics repair.
+
 ## Named LCD context comparison prepared offline (2026-11-03 Minsk)
 
 - Still no phone commands; user retains the handset. Original remote marker used

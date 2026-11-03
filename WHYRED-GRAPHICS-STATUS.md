@@ -53,6 +53,32 @@ servers. No additional flags have been decoded as a working software switch.
 The CPU software callback table and destination setter exist, but their presence
 does not establish that the window server selects them or can present their output.
 
+## Capture already has a CPU renderer path
+
+Offline tracing of capture request 40221 reaches the display-server event 20
+callback and concrete render-to-target implementation. That implementation
+creates the same software-renderer class (vtable `0x1d5b3d618`, allocation
+`0x4fe0`) as the exported software callbacks. Lack of an EAGL context therefore
+cannot alone explain our empty capture. Context population/routing and shared
+surface delivery still require independent checks.
+
+The new `whyred-surface-ipc` diagnostic passes an own IOSurface Mach send right
+between separately spawned processes and checks all 512 bytes in both directions.
+Its native Mac test passes. It has not tested the whyred kernel. It does not touch
+the display or register a system service; the IPC endpoint is child-only and all
+waits are bounded. The kernel's existing GetID result is 0, so ID 0 is plausible
+and has not been demonstrated wrong.
+
+## Startup presentation gate also needs measurement
+
+Stock backboardd passes true for `kCAWindowServerDisableUpdatesOnMainDisplay`
+when creating the server, then sets renderer flags to 3. Its overlay handling
+later calls `setDisablesUpdates:` on displays; both disabling and enabling paths
+are present. Exact selector stubs were resolved from the preserved binary.
+The live display's gate has not been read. This is an additional startup-state
+hypothesis, not proof of the empty capture's cause and not authorization to
+blindly clear the flag. Include it in the next read-only server inspection.
+
 ## The sampled MobileGestalt wait is identified
 
 The saved lsd stack contains the return chain
@@ -100,3 +126,10 @@ Private evidence, task snapshots, disassembly and downloaded Apple/cache bytes
 remain outside this repository. The current observer ended with SSH exit 255
 around the user taking the phone; that ending is not a newly diagnosed kernel fault
 or a completed long-duration stability test.
+
+The named-route candidate is built from source
+`54bf682ba00e66c770d885e4d2ce5eb8853fc353` in successful CI
+[41581070859](https://github.com/timosid/ios-sweetwhyred/actions/runs/41581070859).
+The signed iOS binary is 92,080 bytes, SHA256
+`fd68b46a56e827ef05655046c6bc255388e9d9668f9d6407c436275c1afe601a`.
+Archive, report, platform, ISA and signature checks pass. No phone execution yet.

@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/whyred-early-fb]
-    paths: [.github/workflows/whyred-render-probe.yml, tools/whyred-render-probe.m]
+    paths: [.github/workflows/whyred-render-probe.yml, tools/whyred-render-probe.m, tools/whyred-surface-ipc.m]
 permissions:
   contents: read
 jobs:
@@ -18,6 +18,7 @@ jobs:
         run: |
           mkdir -p out/render
           clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -o out/render/whyred-render-probe-native
+          clang -DWHYRED_PROBE_IOSURFACE_DECLS=1 -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-surface-ipc.m -framework Foundation -framework IOSurface -o out/render/whyred-surface-ipc-native
           python3 - <<'PY'
           import subprocess
           from pathlib import Path
@@ -27,13 +28,22 @@ jobs:
               assert p.returncode == 1 and 'requires the physical iOS target' in p.stdout and not p.stderr, (mode, p)
           for mode in ('layer', 'surface'):
               subprocess.run([b, mode], check=True, timeout=20)
+          ipc = str(Path('out/render/whyred-surface-ipc-native').resolve())
+          p = subprocess.run([ipc, 'run'], check=True, capture_output=True, text=True, timeout=25)
+          assert 'child lookup=1 initial_pixels=PASS' in p.stdout and 'parent shared_pixels=PASS' in p.stdout, p.stdout
+          Path('out/render/surface-ipc-native.txt').write_text(p.stdout)
           PY
       - name: Build signed iOS diagnostic
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -framework OpenGLES -o out/render/whyred-render-probe
+          clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-surface-ipc.m -framework Foundation -framework IOSurface -o out/render/whyred-surface-ipc
           codesign --force --sign - --timestamp=none out/render/whyred-render-probe
           codesign --verify --strict out/render/whyred-render-probe
+          codesign --force --sign - --timestamp=none out/render/whyred-surface-ipc
+          codesign --verify --strict out/render/whyred-surface-ipc
+          otool -l out/render/whyred-surface-ipc > out/render/ipc-load-commands.txt
+          xcrun llvm-objdump -d out/render/whyred-surface-ipc > out/render/ipc-isa.txt
           otool -l out/render/whyred-render-probe > out/render/load-commands.txt
           otool -L out/render/whyred-render-probe > out/render/dependencies.txt
           xcrun llvm-objdump -d out/render/whyred-render-probe > out/render/isa.txt
@@ -43,6 +53,10 @@ jobs:
           p=Path('out/render'); b=p/'whyred-render-probe'
           assert re.search(r'platform\s+(?:2|IOS)\b',(p/'load-commands.txt').read_text())
           assert not re.search(r'\b(?:cas[a-z]*|ldadd[a-z]*|swp[a-z]*|stadd[a-z]*)\s+[wx]',(p/'isa.txt').read_text())
+          ipc=p/'whyred-surface-ipc'
+          assert re.search(r'platform\s+(?:2|IOS)\b',(p/'ipc-load-commands.txt').read_text())
+          assert not re.search(r'\b(?:cas[a-z]*|ldadd[a-z]*|swp[a-z]*|stadd[a-z]*)\s+[wx]',(p/'ipc-isa.txt').read_text())
+          (p/'ipc-report.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'sha256':hashlib.sha256(ipc.read_bytes()).hexdigest(),'bytes':ipc.stat().st_size,'device_tested':False,'display_changed':False,'files_written':False},indent=2)+'\n')
           (p/'report.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'sha256':hashlib.sha256(b.read_bytes()).hexdigest(),'bytes':b.stat().st_size,'device_tested':False,'files_written':False,'bitmap_pixels':256},indent=2)+'\n')
           PY
       - uses: actions/upload-artifact@v4
