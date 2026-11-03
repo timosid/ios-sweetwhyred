@@ -1,4 +1,4 @@
-/* Explicit, reversible development-identity experiment on the volatile whyred97 cache.
+/* Explicit, reversible development-identity experiment on the volatile verified whyred97/98 cache.
  * Does not advertise a Wi-Fi controller or change any persistent partition. */
 #import <Foundation/Foundation.h>
 #import <TargetConditionals.h>
@@ -75,7 +75,8 @@ static int experiment(const char *mode, const char *expected) {
     puts("GESTALT: requires the physical iOS target"); return 1;
 #endif
     char uuid[80] = {0}; size_t size = sizeof(uuid);
-    if (sysctlbyname("kern.uuid", uuid, &size, NULL, 0) || strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0")) return 1;
+    if (sysctlbyname("kern.uuid", uuid, &size, NULL, 0) || (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
+        strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) return 1;
     NSData *identity = developmentID(); if (!identity) { puts("GESTALT: no platform host UUID"); return 1; }
     NSString *identityText = hex(identity.bytes, identity.length);
     if (!strcmp(mode, "probe")) {
