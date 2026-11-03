@@ -19,6 +19,7 @@ jobs:
           mkdir -p out/diag
           clang -O1 -g -Wall -Wextra -Werror -fno-omit-frame-pointer tools/whyreddiag.c -o out/diag/whyreddiag-native
           out/diag/whyreddiag-native selftest > out/diag/native-selftest.txt
+          grep -q '^PORTS selftest PASS own_message_preserved=1$' out/diag/native-selftest.txt
           grep -q 'state_kr=0' out/diag/native-selftest.txt
           grep -q '^1337421988765432$' out/diag/native-selftest.txt
           out/diag/whyreddiag-native kernel > out/diag/native-kernel.txt

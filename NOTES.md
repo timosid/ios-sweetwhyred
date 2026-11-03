@@ -1,3 +1,31 @@
+## Actual97d capture-to-panel passes; port-queue diagnostic prepared (2026-11-03 Minsk)
+
+- After requested ordinary reboot, root SSH recovered at14:36Z; retained shell
+  PID5106, private audit/graphics97d-device/held. Exact97 UUID and both helper
+  upload/readbacks passed. Present-once exit0, capture RGB25430 alpha2332800,
+  surface5/swap5 requested successfully. Driver source exact25430 RGB and
+ 2332800 copied pixels; panel RGB40113 (console raced), nonzero output verified.
+  User screen confirmation pending. This is one real boot-scene frame, NOT
+  repaired SpringBoard or continuous presentation. No flash/UART this turn.
+- Fresh backboard57 read-only inspection:4 displays, LCD2 render clients, same
+  concrete vtable, flags3 and CPU renderer. LCD flags12ec: disablesUpdates FALSE,
+  software-capture flag TRUE. All4 update gates false. Startup gate hypothesis
+  does not explain current blank stock swaps. Actual current cache slide2b788000.
+- Fresh SpringBoard26 reproduces database-store wait. lsd94 thread1 goes through
+  InstalledContentLibrary to listAllPersonaAttributesWithError: on UMUserManager;
+  it waits inside xpc_connection_resume. usermanagerd85/launchd1/notifyd89 thread
+  samples obtained read-only. No unique IPC failure cause established yet.
+  Bounded SpringBoard stack search found no NSXPCConnection among11 selected
+  low-heap candidates; absence is not evidence of no connection.
+- Added explicit whyreddiag ports PID: up to512 receive-right status queries,
+  <=16384-name guard, reports nonempty queues without receiving/extracting any
+  message or stopping tasks. Native warning-clean build/selftest proves one
+  own queued message remains after inspection. Cleanup only own test rights.
+  iOS build/phone port-queue measurements pending. Need distinguish server-side
+  queued messages from clients waiting for replies before proposing IPC fixes.
+- Old pre-reboot SIGBUS preserved separately. Fresh observed segment has no
+  common SIGBUS or eMMC read errors at this checkpoint; not a long stability proof.
+
 ## Presentation probe authenticated; LaunchServices wait identified (2026-11-03 Minsk)
 
 - Source b03952a947f529f7f0b009535e221d2efdf76b47 CI41653213351 /

@@ -42,6 +42,78 @@ static int memory_stats(void) {
     return 0;
 }
 
+/* Receive queue metadata only: no message receive, port extraction or task stop. */
+static int port_queues(pid_t pid) {
+    task_t task = mach_task_self();
+    kern_return_t kr;
+    if (pid != getpid()) {
+        kr = task_for_pid(mach_task_self(), pid, &task);
+        if (kr != KERN_SUCCESS) { fprintf(stderr, "ports task_for_pid: %d\n", kr); return 1; }
+    }
+    mach_port_name_array_t names = NULL;
+    mach_port_type_array_t types = NULL;
+    mach_msg_type_number_t nn = 0, nt = 0;
+    kr = mach_port_names(task, &names, &nn, &types, &nt);
+    unsigned receivers = 0, sampled = 0, failures = 0, nonempty = 0;
+    uint64_t messages = 0;
+    int result = 1;
+    if (kr == KERN_SUCCESS && nn == nt && nn <= 16384) {
+        for (unsigned i = 0; i < nn; i++) {
+            if (!(types[i] & MACH_PORT_TYPE_RECEIVE)) continue;
+            receivers++;
+            if (sampled + failures >= 512) continue;
+            mach_port_status_t status = {0};
+            mach_msg_type_number_t count = MACH_PORT_RECEIVE_STATUS_COUNT;
+            kr = mach_port_get_attributes(task, names[i], MACH_PORT_RECEIVE_STATUS,
+                (mach_port_info_t)&status, &count);
+            if (kr != KERN_SUCCESS || count != MACH_PORT_RECEIVE_STATUS_COUNT) { failures++; continue; }
+            sampled++; messages += status.mps_msgcount;
+            if (status.mps_msgcount) {
+                nonempty++;
+                printf("PORTQ pid=%d name=0x%x messages=%u limit=%u seq=%u sets=%u flags=0x%x\n",
+                    pid, names[i], status.mps_msgcount, status.mps_qlimit,
+                    status.mps_seqno, status.mps_pset, status.mps_flags);
+            }
+        }
+        result = sampled ? 0 : 1;
+    }
+    printf("PORTS pid=%d names=%u types=%u receivers=%u sampled=%u failures=%u nonempty=%u messages=%llu limited=%d read_only=1 drained=0\n",
+        pid, nn, nt, receivers, sampled, failures, nonempty,
+        (unsigned long long)messages, receivers > sampled + failures);
+    if (names) vm_deallocate(mach_task_self(), (vm_address_t)names, (vm_size_t)nn * sizeof(*names));
+    if (types) vm_deallocate(mach_task_self(), (vm_address_t)types, (vm_size_t)nt * sizeof(*types));
+    if (pid != getpid()) mach_port_deallocate(mach_task_self(), task);
+    return result;
+}
+
+static int queue_selftest(void) {
+    mach_port_t port = MACH_PORT_NULL;
+    kern_return_t kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &port);
+    if (kr != KERN_SUCCESS) return 1;
+    int result = 1;
+    kr = mach_port_insert_right(mach_task_self(), port, port, MACH_MSG_TYPE_MAKE_SEND);
+    if (kr == KERN_SUCCESS) {
+        mach_msg_header_t message = {0};
+        message.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0);
+        message.msgh_size = sizeof(message); message.msgh_remote_port = port;
+        message.msgh_id = 0x57515244;
+        kr = mach_msg(&message, MACH_SEND_MSG | MACH_SEND_TIMEOUT, sizeof(message), 0,
+            MACH_PORT_NULL, 1000, MACH_PORT_NULL);
+        if (kr == KERN_SUCCESS && !port_queues(getpid())) {
+            mach_port_status_t status = {0};
+            mach_msg_type_number_t count = MACH_PORT_RECEIVE_STATUS_COUNT;
+            kr = mach_port_get_attributes(mach_task_self(), port, MACH_PORT_RECEIVE_STATUS,
+                (mach_port_info_t)&status, &count);
+            if (kr == KERN_SUCCESS && count == MACH_PORT_RECEIVE_STATUS_COUNT && status.mps_msgcount == 1) {
+                puts("PORTS selftest PASS own_message_preserved=1"); result = 0;
+            }
+        }
+    }
+    mach_port_mod_refs(mach_task_self(), port, MACH_PORT_RIGHT_RECEIVE, -1);
+    mach_port_deallocate(mach_task_self(), port);
+    return result;
+}
+
 static int sample(pid_t pid) {
     task_t task = MACH_PORT_NULL;
     kern_return_t kr;
@@ -247,11 +319,11 @@ static int run_mobile(char **args) {
 }
 
 int main(int argc, char **argv) {
-    if ((argc == 3 && !strcmp(argv[1], "cache")) ||
+    if ((argc == 3 && (!strcmp(argv[1], "cache") || !strcmp(argv[1], "ports"))) ||
         (argc == 5 && !strcmp(argv[1], "region"))) {
         char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
         if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
-        if (argc == 3) return task_cache((pid_t)pid);
+        if (argc == 3) return !strcmp(argv[1], "ports") ? port_queues((pid_t)pid) : task_cache((pid_t)pid);
         if (argv[3][0] == '-' || argv[4][0] == '-') return 2;
         errno = 0; uint64_t address = strtoull(argv[3], &end, 0);
         if (errno || *end) return 2;
@@ -265,7 +337,7 @@ int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "memory")) return memory_stats();
     if (argc == 2 && !strcmp(argv[1], "selftest")) {
         static const unsigned char probe[] = {0x13,0x37,0x42,0x19,0x88,0x76,0x54,0x32};
-        return memory_stats() || sample(getpid()) || task_cache(getpid()) ||
+        return queue_selftest() || memory_stats() || sample(getpid()) || task_cache(getpid()) ||
             region_read(getpid(), (uintptr_t)probe, sizeof(probe));
     }
     if (argc == 3 && !strcmp(argv[1], "threads")) {
@@ -274,5 +346,5 @@ int main(int argc, char **argv) {
         return sample((pid_t)pid);
     }
     if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
 }
