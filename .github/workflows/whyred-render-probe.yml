@@ -17,13 +17,13 @@ jobs:
       - name: Compile native software renderer diagnostic
         run: |
           mkdir -p out/render
-          clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -o out/render/whyred-render-probe-native
+          clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework ImageIO -framework IOSurface -o out/render/whyred-render-probe-native
           clang -DWHYRED_PROBE_IOSURFACE_DECLS=1 -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-surface-ipc.m -framework Foundation -framework IOSurface -o out/render/whyred-surface-ipc-native
           python3 - <<'PY'
           import subprocess
           from pathlib import Path
           b = str(Path('out/render/whyred-render-probe-native').resolve())
-          for mode in ('capture', 'remote-layer', 'remote-layer-lcd'):
+          for mode in ('capture', 'capture-png', 'remote-layer', 'remote-layer-lcd'):
               p = subprocess.run([b, mode], capture_output=True, text=True, timeout=10)
               assert p.returncode == 1 and 'requires the physical iOS target' in p.stdout and not p.stderr, (mode, p)
           for mode in ('layer', 'surface'):
@@ -36,7 +36,7 @@ jobs:
       - name: Build signed iOS diagnostic
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -framework OpenGLES -o out/render/whyred-render-probe
+          clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework ImageIO -framework IOSurface -framework OpenGLES -o out/render/whyred-render-probe
           clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-surface-ipc.m -framework Foundation -framework IOSurface -o out/render/whyred-surface-ipc
           cat > out/render/render-entitlements.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>com.apple.QuartzCore.displayable-context</key><true/><key>com.apple.QuartzCore.global-capture</key><true/></dict></plist>

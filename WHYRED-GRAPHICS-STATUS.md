@@ -170,3 +170,13 @@ keys occur in this exact QuartzCore image. The diagnostic build is being updated
 to request those two rights and verify its signed entitlement set. Until that
 probe runs, authorization filtering remains a material limitation of the marker
 and capture results. No daemon, System or kernel bytes changed.
+
+## Authorization correction passed physically
+
+The same named marker test, signed with the two verified QuartzCore rights,
+now passes on boot v97: baseline 25,430 RGB pixels, then 26,454, including all
+1,024 marker pixels. The temporary context was invalidated. This supersedes the
+prior unentitled empty-capture inference. CPU composition into a captured image
+works; stock UI appearance and panel presentation remain separate questions.
+A PNG export mode is being prepared to inspect the actual image without phone
+file writes or display changes.

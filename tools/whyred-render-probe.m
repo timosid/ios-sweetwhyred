@@ -4,6 +4,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
 #import <QuartzCore/QuartzCore.h>
+#import <ImageIO/ImageIO.h>
 #if __has_include(<IOSurface/IOSurface.h>) && !defined(WHYRED_PROBE_IOSURFACE_DECLS)
 #import <IOSurface/IOSurface.h>
 #else
@@ -202,7 +203,7 @@ static int renderer_methods(void) {
 }
 
 static size_t last_capture_marker_pixels;
-static int capture_display(void) {
+static int capture_display(BOOL export_png) {
 #if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
     puts("WHYRED RENDER: display capture requires the physical iOS target");
     return 1;
@@ -242,9 +243,31 @@ static int capture_display(void) {
     printf("WHYRED RENDER: display capture accepted=%d rgb=%zu alpha=%zu pixels=%zu marker=%zu\n",
            accepted, rgb, alpha, width * height, marker);
     last_capture_marker_pixels = accepted ? marker : 0;
+    BOOL exported = !export_png;
+    if (export_png && accepted && rgb) {
+        /* Encode our locked capture surface, never the panel mapping. The
+         * caller receives base64 on stdout; no file is written on the phone. */
+        CGColorSpaceRef space = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, base, stride * height, NULL);
+        CGImageRef image = space && provider ? CGImageCreate(width, height, 8, 32, stride,
+            space, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst,
+            provider, NULL, false, kCGRenderingIntentDefault) : NULL;
+        NSMutableData *png = [NSMutableData data];
+        CGImageDestinationRef destination = image ? CGImageDestinationCreateWithData(
+            (__bridge CFMutableDataRef)png, CFSTR("public.png"), 1, NULL) : NULL;
+        if (destination) {
+            CGImageDestinationAddImage(destination, image, NULL);
+            exported = CGImageDestinationFinalize(destination);
+            if (exported) printf("WHYRED RENDER PNG: %s\n", [[png base64EncodedStringWithOptions:0] UTF8String]);
+            CFRelease(destination);
+        }
+        if (image) CGImageRelease(image);
+        if (provider) CGDataProviderRelease(provider);
+        if (space) CGColorSpaceRelease(space);
+    }
     kr = IOSurfaceUnlock(surface, 0, NULL);
     CFRelease(surface);
-    return accepted && rgb && !kr ? 0 : 1;
+    return accepted && rgb && exported && !kr ? 0 : 1;
 }
 
 static int remote_layer(BOOL named_display) {
@@ -277,7 +300,7 @@ static int remote_layer(BOOL named_display) {
         (__bridge NSString *)*ignore: @YES
     };
     printf("WHYRED RENDER: remote context baseline route=%s\n", named_display ? "name:LCD" : "id:0");
-    (void)capture_display();
+    (void)capture_display(NO);
     size_t baseline_marker = last_capture_marker_pixels;
     id context = [cls remoteContextWithOptions:options];
     printf("WHYRED RENDER: remote context created=%d\n", context != nil);
@@ -302,7 +325,7 @@ static int remote_layer(BOOL named_display) {
         [CATransaction flush];
         puts("WHYRED RENDER: remote marker submitted temporary=1 ignores_hit_test=1");
         usleep(1000000);
-        result = capture_display();
+        result = capture_display(NO);
         printf("WHYRED RENDER: remote marker baseline=%zu after=%zu\n",
                baseline_marker, last_capture_marker_pixels);
         if (last_capture_marker_pixels < baseline_marker + 900) result = 1;
@@ -324,10 +347,11 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "layer")) return layer_bitmap();
             if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
             if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
-            if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display();
+            if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display(NO);
+            if (argc == 2 && !strcmp(argv[1], "capture-png")) return capture_display(YES);
             if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO);
             if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES);
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | remote-layer | remote-layer-lcd\n", stderr);
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | remote-layer | remote-layer-lcd\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,

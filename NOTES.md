@@ -1,3 +1,25 @@
+## Entitled remote marker PASSES on phone97c; image export prepared (2026-11-03 Minsk)
+
+- Corrected ONLY diagnostic signature with2 exact QuartzCore entitlements.
+  Source396c0b1fc2bcb2d3c860df8fa5c828e872e74292, CI41648826350/job125961234726
+  ALL steps pass. Artifact13236571718 ZIP102903B SHA843341b770effa2228efdefe31115d7176f59ca5ec8c858379330ae561f29639.
+  Renderer92672B SHA27e49395e0d36b1d18eef32a91779858828d100393d284f5abb8c16b3c2e387a.
+  Digest/length/CRC, exact signed entitlement set, source/platform/ISA/signature
+  verified; exact upload/readback pass. Private graphics-v98/rights98.
+- ACTUAL mobile entitled test exit0: baseline RGB25430 alpha2332800, after RGB26454
+  alpha2332800, red marker EXACT1024px, context1156270260. Finally invalidated.
+  Same source previous unentitled capture was allzero; previous empty captures
+  are NOT reliable evidence of failed compositor. No GPU fabricated or daemon/
+  System/kernel changed. CPU server composition and own marker capture now proved;
+  stock UI/panel presentation still NOT established. User informed and screen
+  appearance question pending. Private audit/graphics97c-rights-check/device.
+- Corrected private rights status inherited old worker PID/time fields: retained
+  as initial-probe metadata, not fresh worker identity. Evidence/output unchanged.
+- Added capture-png: captures own surface and exports PNG as base64 stdout,
+  no phone file or display mutation. Uses ImageIO and locked BGRA mapping lifetime.
+  Native warning-clean build, all4 host capture/remote refusals pass. iOS build
+  pending. Next inspect actual image before proposing framebuffer changes.
+
 ## Fresh97c physical checks; diagnostic renderer rights missing (2026-11-03 Minsk)
 
 - User returned phone in Fastboot. Verified exact private baseline identity and
