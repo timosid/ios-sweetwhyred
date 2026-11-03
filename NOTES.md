@@ -1,3 +1,18 @@
+## Current98b pkd EINVAL /dev probe classified (2026-11-03 Minsk)
+
+- User pasted pkd253 getattrlist common0x6/volume0x80060000/buffer64/options0,
+  FSERR78 errno22. Exact masks decode to DEVID+FSID and VOL_INFO+CAPABILITIES+UUID.
+  Stock devfs_vfs_getattr supplies capabilities but not f_uuid; getvolattrlist
+  returns EINVAL for unsupported requested attrs without RETURNED_ATTRS.
+- Native Mac comparison using the same masks and64-byte buffer reproduces22.
+  Removing ONLY VOL_UUID (volume0x80020000) succeeds errno0. Private probe/output
+  audit/devfs-attr-probe.{c,stdout}. This is expected unsupported devfs UUID,
+  not demonstrated eMMC/RAMFS corruption or a new kernel regression.
+- At inspection current98b has only pkd253 spawn and this query failure, no
+  matching CRASH/exit record. Do not infer pkd abort from FSERR alone or suppress
+  EINVAL globally. No kernel/daemon/cache change. Read-only monitor38947 still
+  owns held FIFO; release via stop file per next section before commands.
+
 ## Active98b: visible Apple logo CONFIRMED by user (2026-11-03 Minsk)
 
 - User confirmed ordinary reboot; NO flash or UART this turn. Fresh worker35028
