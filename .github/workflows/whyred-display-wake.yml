@@ -21,8 +21,9 @@ jobs:
           python3 - <<'PY'
           import subprocess
           b='out/wake/whyred-display-wake-native'
-          p=subprocess.run([b,'wake'],capture_output=True,text=True,timeout=5)
-          assert p.returncode==1 and 'requires the physical iOS target' in p.stdout and not p.stderr
+          for mode in ['wake','unblank']:
+              p=subprocess.run([b,mode],capture_output=True,text=True,timeout=5)
+              assert p.returncode==1 and 'requires the physical iOS target' in p.stdout and not p.stderr
           for args in [[],['invalid'],['wake','extra']]:
               p=subprocess.run([b,*args],capture_output=True,text=True,timeout=5)
               assert p.returncode==2 and 'usage:' in p.stderr and not p.stdout
