@@ -1,3 +1,30 @@
+## IPC correlation rejects queued-reply guess; actual missing identity keys (2026-11-03 Minsk)
+
+- GPR helper02b54fd6983d8744c88cabcd1b20bc85e411a2d8 CI41656697790 /
+  job125988798863 all steps pass. Artifact13240720530 ZIP72878B
+  SHA1d5ac22ba4bd60396ac14a3dd15ebea9874ac7b7e6133fe23e31158405790d22;
+  binary73504B SHA2a276d3f3a3b60e9773f0e51482ad8137e61521b1d1afb00efbbdd217791e8d8.
+  Provenance/platform/ISA/signature/rights/upload/readback verified. Actual ARM64
+  GPR samples correlate x5>>32 with local mach_msg2 ABI: SpringBoard thread1
+  waits on0x4303, EMPTY; its queued0x2803 is NOT that port. No lost reply wakeup
+  proved. lsd advanced from UserManagement request to MG hardware lookup; CPU
+  counters and later worker exit demonstrate progress. Do not call it deadlocked.
+- Bounded read-only lsd stack constants decode exactly (MD5 MGCopyAnswer prefix,
+  checked against each actual hash): WifiAddressData/WifiAddress and
+  UniqueDeviceIDData/UniqueDeviceID. This is the actual hardware-query dependency.
+- Existing volatile systemgroup MobileGestalt cache is6838B, CacheVersion20F66,
+  CacheData5337B/CacheExtra33 entries. Both UniqueDeviceID keys and Wi-Fi address
+  keys absent. Original bytes preserved privately; no cache mutation yet.
+- Added explicit whyred-gestalt-cache seed/probe/rollback experiment. Exact97 UUID,
+  root identity, fixed path on whyredramfs, regular single-link file, version and
+  caller-supplied current SHA256 are required before seed. Adds ONLY2 development
+  identity answers derived from existing platform host UUID, preserves other
+  fields, creates original backup, atomic replace and restores owner/group/mode.
+  Rollback verifies current digest and restores original bytes. Probe prints only
+  match/timing, never identity values. No fake Wi-Fi service or partition write.
+  Native warning-clean build/all3 physical-target refusals pass; signed iOS build
+  and actual cache behavior pending. User informed of temporary experiment.
+
 ## Actual97d queued Mach messages; register sample candidate (2026-11-03 Minsk)
 
 - Ports helper838548e1694f3e53f148eaca4c621e6912c36dbb CI41656099646 /
