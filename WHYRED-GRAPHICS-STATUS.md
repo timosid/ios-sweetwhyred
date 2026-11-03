@@ -1,18 +1,15 @@
 # whyred graphics: measured boundary and next experiment
 
-Updated 2026-11-03 Minsk. Installed baseline: boot v98 / System v95, iOS20F66.
-Boot98 has now been flashed and USB traffic returned; cold SSH and the next
-graphics measurement are pending. All physical graphics results below refer
-to earlier97 runs unless explicitly labeled98.
-The phone returned and was ordinarily rebooted after a Mac crash. Passive USB
-logging and a retained SSH session were recovered. No partition was written.
-Later, new SSH logins stopped answering at banner exchange and a transfer in the
-retained session received no initial acknowledgment for 150 seconds. The user
-ordinarily rebooted again; fresh97e SSH recovered. Both diagnostic helpers were
-uploaded and verified, but the fixed identity-cache path is absent. The guarded
-experiment stopped before any cache write or daemon restart.
-Graphics remains unresolved. The user reports backlit black, and a short power
-press causes no response. Current capture is opaque black with display OFF.
+Updated2026-11-03 Minsk. Installed boot98/System95, iOS20F66. Flash/reboot and
+actual SSH kernel UUID were verified. USB logging and retained root shell work.
+At the latest ~24min checkpoint the observed stream has no eMMC errors, crashes
+or RAMFS pressure. Recovery0175 has not been exercised by a physical read error.
+
+Current real capture is still the Apple boot logo. A finite101-submission test
+copied that captured frame into panel memory at100ms intervals; user confirmation
+of visible output is pending. SpringBoard still waits for LaunchServices.
+The guarded MobileGestalt cache experiment failed its actual answer probe and
+was rolled back byte-for-byte. No lsd restart or persistent write occurred.
 
 ## Actual physical results
 
@@ -26,7 +23,8 @@ press causes no response. Current capture is opaque black with display OFF.
 | Entitled named LCD marker | Exactly 1,024 red marker pixels reach capture | Server CPU composition and remote context routing work for this test. |
 | Entitled LCD PNG capture | White Apple boot logo on black, 1125 by 2436 | The server has a real boot scene. This is not a working SpringBoard interface. |
 | Stock framebuffer swaps | Surface 3 contains zero RGB and alpha and is copied to the panel | Captured server scene and stock scanout contents differ. |
-| Explicit real-frame presentation | Surface 5 has 25,430 RGB pixels; all 2,332,800 panel pixels copied; panel becomes nonempty | The guarded capture-to-panel path works in this test. User reports backlit black; visible output was not established. |
+| Earlier97d one-frame presentation | Source/panel nonempty; user later reported backlit black | Submission and memory content did not establish visible output. |
+| Current98 repeated real-frame presentation | 101/101 successful queues; source RGB25,430, panel RGB21,674; 2,332,800 pixels copied | User observation of this exact test is pending; no visible-output claim. |
 
 Earlier captures and marker tests lacked the QuartzCore displayable-context and
 global-capture entitlements. Their transparent results were superseded by the
@@ -39,7 +37,7 @@ not committed. Stock panel source measurements were zero, while a later panel
 measurement also contained console text. No exact timestamp correlation between
 every user-observed black clear and those swaps has been established.
 
-## Current presentation experiment
+## Current finite presentation experiment
 
 `whyred-render-probe present-once` captures the actual LCD scene into its own
 IOSurface and submits it once through our existing AppleCLCD user client. It
@@ -47,7 +45,11 @@ checks the exact installed v97 kernel UUID, display ID 0 and logical size
 1125 by 2436 before calling the custom swap selectors. The driver retains the
 queued surface. It changes neither daemon configuration nor renderer flags.
 
-This is a single-frame test of capture-to-panel delivery, not a continuous
+The optional `present-window` repeats the same captured frame101 times at
+100ms intervals, then exits. It changes neither compositor settings nor daemon
+configuration. The actual98 test completed all101 submissions with exit0.
+
+These are finite tests of capture-to-panel delivery, not a continuous
 rendering solution. A successful submission alone does not establish visible
 panel output or a repaired interface. In fresh run 97d the driver measured the
 expected source contents and copied the frame, and the panel measurement became
@@ -81,7 +83,7 @@ seeding loop, or establish a new lsd crash. Fresh lsd/SpringBoard samples reprod
 advanced from a UserManagement query to a MobileGestalt hardware lookup, so the
 samples do not establish a permanent IPC deadlock.
 
-## Read-only server inspection
+## Earlier97 read-only server inspection
 
 Determine the task's actual cache identity and slide before interpreting a
 read. All addresses below are canonical addresses in the preserved 20F66 cache,
@@ -124,7 +126,7 @@ service to satisfy this observation.
 Private task snapshots, disassembly, PNGs, logs, keys and downloaded Apple bytes
 remain outside Git. Exact source/CI/artifact history is retained in NOTES.md.
 
-## Exact identity dependency and next bounded test
+## Identity dependency and rejected cache experiment
 
 Read-only lsd stack constants identify `UniqueDeviceID` / `UniqueDeviceIDData`
 calling through `WifiAddress` / `WifiAddressData`. Each obfuscated key was
@@ -166,8 +168,9 @@ After the earlier clean checkpoint,97d failed eMMC recovery on single-block
 CMD17 reads. Both recovery attempts saw failed CMD12 and status00400900. APFS
 then reported EIO and many tasks received SIGBUS. This is a demonstrated storage
 blocker, not proof that all earlier blank frames have the same cause. Candidate
-0175 requires a clean second card status and a fresh reread; only model/UBSan
-checks have passed so far. Installed boot97 remains unchanged.
+0175 requires a clean second card status and a fresh reread. Full CI and source/
+artifact/linked-code checks passed; boot98 is installed. No physical recovery
+has yet occurred in the observed98 run, so this branch remains unexercised.
 
 ## Fresh97e display power boundary
 
@@ -189,7 +192,21 @@ SIGBUS after the same fatal eMMC STOP/status recovery failure. No image or
 presentation success is claimed from that capture. Physical button polling is
 still absent; remote HID input is a diagnostic workaround.
 
-Boot98 with0175 has passed full CI and artifact/source/linked-code/boot-layout
-verification, but is not flashed yet. Actual recovery and visible UI remain
+Boot98 with0175 passed full CI and artifact/source/linked-code/boot-layout
+verification, was flashed and its actual running UUID was verified. Actual recovery and visible UI remain
 unverified. The next fresh run should use the new UUID-guarded helpers and
 capture promptly after a single remote wake, while storage remains healthy.
+
+## Actual98 identity-cache outcome
+
+The named cache appeared later in98. A guarded seed added exactly two development
+identity answers and preserved all other fields and an exact original backup.
+The actual mobile MGCopyAnswer probe returned matches0 after10,121ms. The original
+cache was restored and re-read byte-for-byte; no daemon was restarted. Do not
+repeat this rejected experiment or infer that arbitrary CacheExtra insertion can
+override these runtime hardware questions.
+
+A warm PNG retry succeeded in under a second after the initial30s child timeout;
+the image is byte-for-byte the earlier white Apple logo. SpringBoard26 still has
+five sampled threads, main on the CoreServices store lock, while lsd95 is in a
+MobileGestalt query. This identifies a remaining dependency, not its final fix.

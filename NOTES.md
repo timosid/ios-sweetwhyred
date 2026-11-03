@@ -1,3 +1,71 @@
+## Active98: real repeated frame completed; identity cache experiment rejected (2026-11-03 Minsk)
+
+- Installed boot98/System95 confirmed by actual SSH kernel UUID
+ 936C980F-9428-33A1-B076-CDB09ABDC855. Cold root SSH became available around
+ 13min, observer24959 attempts65. Current retained shell27053 at PRIVATE
+  audit/graphics98-device/held. Passive receiver2488 remains live. Worker has
+  finished, not running in background; protocol framing currently complete.
+- Final wake/render helper uploads and exact readbacks PASS. Initial diagnostic
+  HID pair returned normally; latest display state already ON, no new ON/OFF
+  transition observed from this pair. Do not blindly toggle a screen already ON.
+  Physical whyred keys still unsupported. Earlier97e OFF->ON remains actual
+  successful remote wake proof. Subsequent98 test checked last display state
+  and only sends a key if OFF; no additional toggle was needed.
+- Initial capture-png emitted accepted1 RGB25430 alpha2332800 of2740500, then
+  hit the30s run-mobile child limit (SIGTERM/124) BEFORE PNG output. Thus the
+  actual capture produced pixels; timeout does not establish capture failure.
+  Later warm retry returned0 in<1s and exported62639B PNG1125x2436. Viewed:
+  white Apple boot logo on black, EXACT byte match to prior97c capture; SHA
+  d56ea3fea7985a580332da2a7e0cda48a43d84fc866880d324e6ab851a675789.
+  PRIVATE audit/graphics98-device/capture-lcd-warm.png. No normal UI yet.
+- New finite present-window source87bf4ee564853b6c72dd46c91f0e87537f8379b9,
+  CI41674768570/job126052329724 ALL steps PASS. Artifact13248659353 ZIP112045B
+  SHAe8d091a772bb3aea9b984db91cbbb20ae0aa8e60313d6a6106f7d219bd324faf;
+  signed binary93664B SHA9a1d6053ede2813f8d53d269a87dabde8d3ac00373a7c01c011a788b95bbe131.
+  All provenance/archive/platform/ISA/signature/exact2rights checks and upload/
+  readback/exact98 UUID PASS. Actual mobile present-window EXIT0,101/101 queues,
+  same captured surface8 repeated100ms intervals (~10s). Driver source RGB25430;
+  panel RGB21674, bbox429,820..609,1006, copied2332800 pixels. These are memory/
+  submission results, NOT visible display proof. User screen-observation question
+  for this exact window is still pending; never reuse97d black-screen answer.
+  Private graphics98-window-test.json and present-window.stdout. No test art,
+  renderer flags, daemon configuration or kernel changes in this helper.
+- Health readback after first capture: page16KiB, free22687 (~354.5MiB), active
+ 32774/inactive11921/wired12349, no swap. Per-directory RAMFS allocation read
+  totals recorded privately; examples db3489792B, mobile8306688B, root4538368B,
+  Keychains2490368B. This early snapshot is far below128MiB and is NOT long-run
+  quota proof. No purge/quota change. Fresh full usage script completed safely.
+- Current98 exact cache slide1c6c4000. SpringBoard26 has5 threads: main waits
+  on CoreServices store lock, another sync NSXPC; lsd95 has8 threads, worker in
+  MobileGestalt hardware query. backboard57 has13 sampled threads. This repeats
+  earlier startup dependency;97e eventually reached main run loop without an
+  identity workaround, so do not call this uniquely proved permanent deadlock.
+  PRIVATE graphics-v98/*-98-symbols.json, exact live samples in98-device.
+- Named MobileGestalt cache now exists6838B (was absent early97e). Added98 UUID
+  ONLY to guarded experiment; sourcebc325f71090ccdfe788876b3cde751d09cb88458,
+  CI41677592018/job126062268344 ALL PASS. Artifact13251861348 ZIP36640B
+  SHA589fafec719f3103c94ab70e03e1822094787f74c672bb68c1a1e796d52a348e;
+  binary90512B SHA8caef2f4f9b1411ca8c8af6b91cafddaeb604b4f2bc199d048b5bd9a4d3abe7c.
+  All artifact/source/platform/ISA/strict signature/exact2protected-keys checks,
+  upload/readback/kernel guard PASS. Actual platform UUID provider works.
+- Actual guarded seed succeeded; exact2-key delta/types and original backup
+  verified. Actual mobile MGCopyAnswer probe FAILED (matches0,10121.445ms).
+  CacheExtra insertion did not supply these runtime answers. AUTOMATIC rollback
+  succeeded and exact original bytes re-read. Original SHA
+ 5b1dd09b0b74f4046c9ef7a14bb5378d3d7b912519d46bd43cd0d26e3f1f9d37,
+  temporary SHA5bac2dbf516afd7f9c38f70f8b5427aa3d85f05fc3c153198d49cab1b54be635.
+  Private graphics98-gestalt-check.json phase rolled-back-shell-retained,
+  cache_written=false/restored_exactly=true/daemon_restarted=false. Backup remains
+  for audit; helper deliberately refuses overwriting an existing backup. Do NOT
+  repeat this unsuccessful seed or restart lsd on its basis. No persistent write.
+- At latest checkpoint ~24min: eMMC bytes1316016128/requests32185/errors0,
+  no fatal recovery/common SIGBUS/CRASH/pressure records in observed98 segment.
+  No recovery has occurred, so0175 extra-status branch remains physically
+  UNEXERCISED. Do not claim a long stability proof or a demonstrated repair.
+- Sole shell27053 is free after warm PNG retry. Next: obtain user's actual panel
+  result for101-frame test; distinguish mapping/visibility from startup state.
+  Cache experiment is rolled back. No lsd restart, extra flash or UART this turn.
+
 ## Boot98 flashed; cold SSH/graphics observer running (2026-11-03 Minsk)
 
 - User confirmed Fastboot. PRIVATE tools/flash_kernel98.py --flash --ready-answer
