@@ -1,6 +1,7 @@
 /* Bounded developer graphics probes. Bitmap/capture modes do not present frames.
  * Explicit remote-layer creates and invalidates one small visible test layer.
  * Explicit present modes queue a real server capture on the verified whyred97/98 framebuffer.
+ * Explicit live modes capture each new frame into fresh immutable surface storage.
  * No files, renderer configuration or daemon changes. */
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
@@ -36,6 +37,8 @@ extern uint32_t IOSurfaceGetID(IOSurfaceRef);
 #include <dlfcn.h>
 #include <objc/runtime.h>
 #include <unistd.h>
+#include <signal.h>
+#include <time.h>
 #include <sys/sysctl.h>
 
 @interface NSObject (WhyredContextProbe)
@@ -206,7 +209,19 @@ static int renderer_methods(void) {
     return 0;
 }
 
-static size_t last_capture_marker_pixels;
+static size_t last_capture_marker_pixels, last_capture_rgb, last_capture_alpha;
+static uint32_t last_capture_hash;
+static BOOL live_quiet, live_allow_black;
+#if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
+static volatile sig_atomic_t live_stop;
+static void stop_live(int signal_number) { (void)signal_number; live_stop = 1; }
+static double monotonic_seconds(void) {
+    struct timespec t = {0};
+    if (clock_gettime(CLOCK_MONOTONIC, &t)) return -1;
+    return (double)t.tv_sec + (double)t.tv_nsec / 1000000000.0;
+}
+
+#endif
 static int present_surface(IOSurfaceRef surface) {
     /* Public IOKit C ABI; selector/record layout belongs to our own driver.
      * Fail closed before accessing an incompatible installed kernel. */
@@ -254,7 +269,7 @@ static int present_surface(IOSurfaceRef surface) {
         memcpy(record + 0x104, &set, 4); memcpy(record + 0x108, &clear, 4);
         size_t output_size = 0;
         kr = structure(connection, 5, record, sizeof(record), NULL, &output_size);
-        printf("WHYRED RENDER: real capture queued swap=%u surface=%u kr=0x%x presentation_requested=%d\n",
+        if (!live_quiet) printf("WHYRED RENDER: real capture queued swap=%u surface=%u kr=0x%x presentation_requested=%d\n",
                swap, id, kr, kr == KERN_SUCCESS);
         result = kr != KERN_SUCCESS;
     }
@@ -290,19 +305,27 @@ static int capture_display(BOOL export_png, unsigned present_count) {
         CFRelease(surface); return 1;
     }
     memset(IOSurfaceGetBaseAddress(surface), 0, stride * height);
-    puts("WHYRED RENDER: display capture LCD begin display_changed=0");
+    if (!live_quiet) puts("WHYRED RENDER: display capture LCD begin display_changed=0");
     int accepted = render(MACH_PORT_NULL, CFSTR("LCD"), surface, 0, 0);
     size_t rgb = 0, alpha = 0, marker = 0;
+    uint32_t hash = 2166136261U;
     const unsigned char *base = IOSurfaceGetBaseAddress(surface);
     for (size_t y = 0; y < height; y++) for (size_t x = 0; x < width; x++) {
         const unsigned char *p = base + y * stride + x * 4;
+        if (live_quiet) hash = (hash ^ ((uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24)) * 16777619U;
         rgb += (p[0] | p[1] | p[2]) != 0;
         alpha += p[3] != 0;
         marker += p[2] >= 210 && p[1] >= 30 && p[1] <= 90 && p[0] <= 80 && p[3] >= 240;
     }
-    printf("WHYRED RENDER: display capture accepted=%d rgb=%zu alpha=%zu pixels=%zu marker=%zu\n",
+    if (!live_quiet) printf("WHYRED RENDER: display capture accepted=%d rgb=%zu alpha=%zu pixels=%zu marker=%zu\n",
            accepted, rgb, alpha, width * height, marker);
     last_capture_marker_pixels = accepted ? marker : 0;
+    last_capture_rgb = accepted ? rgb : 0;
+    last_capture_alpha = accepted ? alpha : 0;
+    last_capture_hash = accepted ? hash : 0;
+    /* Opaque black is a valid fresh scene. An untouched transparent destination
+     * is not evidence that the server drew anything. Existing probes stay strict. */
+    BOOL drawn = accepted && (rgb || (live_allow_black && alpha));
     BOOL exported = !export_png;
     if (export_png && accepted && rgb) {
         /* Encode our locked capture surface, never the panel mapping. The
@@ -326,23 +349,84 @@ static int capture_display(BOOL export_png, unsigned present_count) {
         if (space) CGColorSpaceRelease(space);
     }
     BOOL presented = !present_count;
-    if (present_count && accepted && rgb) {
+    if (present_count && drawn) {
         /* A finite observation window: repeat the same real captured frame.
          * No renderer/daemon changes, no synthetic content or persistent loop. */
         unsigned completed = 0;
         if (present_count > 101) { IOSurfaceUnlock(surface, 0, NULL); CFRelease(surface); return 1; }
-        printf("WHYRED RENDER: observation begin submissions=%u interval_ms=100 fixed_capture=1 visible_output_unverified=1\n", present_count);
+        if (!live_quiet) printf("WHYRED RENDER: observation begin submissions=%u interval_ms=100 fixed_capture=1 visible_output_unverified=1\n", present_count);
         for (unsigned n = 0; n < present_count; n++) {
             if (n) usleep(100000);
             if (present_surface(surface)) break;
             completed++;
         }
         presented = completed == present_count;
-        printf("WHYRED RENDER: observation end completed=%u requested=%u visible_output_unverified=1\n", completed, present_count);
+        if (!live_quiet) printf("WHYRED RENDER: observation end completed=%u requested=%u visible_output_unverified=1\n", completed, present_count);
     }
     kr = IOSurfaceUnlock(surface, 0, NULL);
     CFRelease(surface);
-    return accepted && rgb && exported && presented && !kr ? 0 : 1;
+    return drawn && exported && presented && !kr ? 0 : 1;
+}
+
+/* Real server CPU capture -> own framebuffer, at most one new frame/second.
+ * Every capture owns NEW surface storage; the kernel retains queued surfaces
+ * until replacement/presentation. Never rewrite memory that scanout may read.
+ * No stored screenshot, test layer, power override, renderer flag or fake GPU.
+ * live-window is the finite pilot; live runs only when explicitly invoked. */
+static int live_display(BOOL continuous) {
+#if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
+    (void)continuous;
+    puts("WHYRED RENDER: live display requires the physical iOS target"); return 1;
+#else
+    char uuid[80] = {0}; size_t length = sizeof(uuid);
+    if (sysctlbyname("kern.uuid", uuid, &length, NULL, 0) ||
+        (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
+         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
+        puts("WHYRED DISPLAY: incompatible kernel; no frame submitted"); return 1;
+    }
+    double start = monotonic_seconds();
+    if (start < 0) return 1;
+    struct sigaction action = {0}; action.sa_handler = stop_live;
+    sigemptyset(&action.sa_mask);
+    if (sigaction(SIGTERM, &action, NULL) || sigaction(SIGINT, &action, NULL)) return 1;
+    /* Terminate a stuck individual capture. Default SIGALRM cleanup is handled
+     * by process teardown, including its IOKit/IOSurface rights. */
+    signal(SIGALRM, SIG_DFL);
+    live_quiet = YES; live_allow_black = YES; live_stop = 0;
+    unsigned frames = 0, errors = 0, consecutive_errors = 0;
+    uint32_t previous_hash = 0; unsigned changes = 0;
+    puts("WHYRED DISPLAY: live begin new_capture_per_frame=1 max_fps=1 power_override=0");
+    while (!live_stop && (continuous || monotonic_seconds() - start < 40)) {
+        double before = monotonic_seconds();
+        if (before < 0) { errors++; consecutive_errors = 3; break; }
+        alarm(45);
+        int result;
+        @autoreleasepool { result = capture_display(NO, 1); }
+        alarm(0);
+        double after = monotonic_seconds();
+        if (after < 0) { errors++; consecutive_errors = 3; break; }
+        if (!result) {
+            if (frames && last_capture_hash != previous_hash) changes++;
+            previous_hash = last_capture_hash;
+            frames++; consecutive_errors = 0;
+        } else { errors++; consecutive_errors++; }
+        if (frames <= 3 || frames % 10 == 0 || result)
+            printf("WHYRED DISPLAY: frames=%u errors=%u rgb=%zu alpha=%zu hash=%08x changes=%u capture_ms=%.1f\n",
+                frames, errors, last_capture_rgb, last_capture_alpha, last_capture_hash,
+                changes, (after - before) * 1000.0);
+        if (consecutive_errors >= 3) break;
+        while (!live_stop) {
+            double now = monotonic_seconds();
+            if (now < 0) { errors++; consecutive_errors = 3; live_stop = 1; break; }
+            if (now - before >= 1.0) break;
+            usleep(100000);
+        }
+    }
+    live_quiet = NO; live_allow_black = NO;
+    printf("WHYRED DISPLAY: live end frames=%u errors=%u changes=%u stopped=%d elapsed_s=%.2f\n",
+           frames, errors, changes, live_stop != 0, monotonic_seconds() - start);
+    return (continuous ? frames != 0 && consecutive_errors < 3 : frames >= 3 && !errors) ? 0 : 1;
+#endif
 }
 
 static int remote_layer(BOOL named_display) {
@@ -426,9 +510,11 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "capture-png")) return capture_display(YES, NO);
             if (argc == 2 && !strcmp(argv[1], "present-once")) return capture_display(NO, 1);
             if (argc == 2 && !strcmp(argv[1], "present-window")) return capture_display(NO, 101);
+            if (argc == 2 && !strcmp(argv[1], "live-window")) return live_display(NO);
+            if (argc == 2 && !strcmp(argv[1], "live")) return live_display(YES);
             if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO);
             if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES);
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | present-window | remote-layer | remote-layer-lcd\n", stderr);
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | present-window | live-window | live | remote-layer | remote-layer-lcd\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,

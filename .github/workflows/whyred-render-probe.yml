@@ -23,7 +23,7 @@ jobs:
           import subprocess
           from pathlib import Path
           b = str(Path('out/render/whyred-render-probe-native').resolve())
-          for mode in ('capture', 'capture-png', 'present-once', 'present-window', 'remote-layer', 'remote-layer-lcd'):
+          for mode in ('capture', 'capture-png', 'present-once', 'present-window', 'live-window', 'live', 'remote-layer', 'remote-layer-lcd'):
               p = subprocess.run([b, mode], capture_output=True, text=True, timeout=10)
               assert p.returncode == 1 and 'requires the physical iOS target' in p.stdout and not p.stderr, (mode, p)
           for mode in ('layer', 'surface'):

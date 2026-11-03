@@ -1,3 +1,31 @@
+## Active98c automatic CPU display bridge candidate (2026-11-03 Minsk)
+
+- User explicitly asks to FIX display output. Stopped read-only monitor46870 via
+  graphics98c-memory-stop; phase stopped verified. Held46379 is now free after
+  fresh read-only threads26/95/57 and actual cache-slide38248000. SpringBoard26
+  still has5 threads in earlier CoreServices store wait; do NOT reuse late98b
+  IconServices progression as if it were current98c. lsd95 has8 sampled threads.
+  Private98c-device/output-fix-*-threads-*.stdout and cache snapshot.
+- Preparing explicit live-window / live modes in existing entitled render helper.
+  Each iteration obtains a NEW real LCD capture in fresh own IOSurface memory,
+  queues it once and drops userspace reference. Driver0150 retains pending and
+  workloop surface objects; never rewrite a queued surface. Per-frame autorelease
+  pool bounds temporary objects. At most1new frame/sec; sparse summaries/hash
+  counts; no stored PNG, test content, guessed renderer flags or fake GPU.
+- Opaque black captures are valid in LIVE modes; untouched transparent surfaces
+  are rejected. Existing finite probes remain strict. Exact97/98 UUID and ABI
+  guard remains before live capture/presentation. Signal stop;45s per-capture
+  watchdog; stop after3consecutive failures. Finite pilot40s requires3clean frames;
+  continuous mode only explicit invocation, no power-state override/autostart yet.
+- Native warning-clean compile, physical-target refusals for new/retained modes
+  and retained CPU CALayer/IOSurface tests PASS. iOS CI/upload/live performance,
+  memory/visible changing-scene proof and persistent integration PENDING. This is
+  functional CPU fallback plumbing, not a claim that stock GPU path is repaired.
+- Primary next: signed CI artifact verification/readback, finite live pilot via
+  current held shell, measure capture latency/surface lifetime and frame changes.
+  Only after real pilot success start supervised automatic updates. No extra
+  phone reboot or flash requested at this stage. Kernel0176 CI separate/offline.
+
 ## Active98c: direct panel-on and visible real logo CONFIRMED (2026-11-03 Minsk)
 
 - Fresh observer44399 finished after64 login attempts (~13min cold startup).
