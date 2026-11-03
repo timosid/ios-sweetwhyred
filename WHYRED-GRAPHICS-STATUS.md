@@ -1,182 +1,110 @@
 # whyred graphics: measured boundary and next experiment
 
-Updated 2026-11-03. Installed baseline: boot v97 / System v95, iOS 20F66.
-The user has taken the phone; current work is offline. No new boot or System
-image is a verified graphics fix.
+Updated 2026-11-03 Minsk. Installed baseline: boot v97 / System v95, iOS 20F66.
+The phone has returned. After a Mac crash, passive USB logging was restored and
+an ordinary phone reboot was requested to recover SSH. No partition was written.
+Graphics is still unresolved: the user sees console text and occasional black
+clears with the backlight on.
 
-## Measured boundary
+## Actual physical results
 
-| Path | Actual phone result | Implication |
+| Path | Observed result | What it establishes |
 | --- | --- | --- |
-| CALayer into CPU bitmap | Exact 192 red / 64 green pixels | CPU layer drawing works for this simple tree. |
-| Same tree into own IOSurface | Exact pixels survive unlock/relock | CPU surface mapping and preservation work for this test. |
+| CALayer into CPU bitmap | Exact 192 red / 64 green pixels | Simple CPU layer drawing works. |
+| Same tree into own IOSurface | Pixels survive unlock/relock | Own CPU surface mapping works. |
+| Two-process IOSurface IPC | All 512 shared bytes pass in both directions | Tested cross-process surface delivery works on whyred. |
 | EAGL API 2 and 3 | Neither context created | No demonstrated GL renderer. |
-| CoreImage with software option | NULL indirect callback; reproduced in mediaserverd | This option is not a working fallback on this iOS path. |
-| Server display capture | Request accepted, all pixels transparent | Failure precedes panel copying; acceptance does not prove rendering. |
-| Temporary remote CAContext marker | Context created, captures remain transparent | Even a simple submitted remote tree has not reached the captured output. The original marker used display ID 0, whereas capture names LCD; their equivalence is unverified. |
+| CoreImage software option | NULL indirect callback, also seen in mediaserverd | This particular fallback is unusable. |
+| Entitled named LCD marker | Exactly 1,024 red marker pixels reach capture | Server CPU composition and remote context routing work for this test. |
+| Entitled LCD PNG capture | White Apple boot logo on black, 1125 by 2436 | The server has a real boot scene. This is not a working SpringBoard interface. |
+| Stock framebuffer swaps | Surface 3 contains zero RGB and alpha and is copied to the panel | Captured server scene and stock scanout contents differ. |
 
-The marker context was invalidated. Its result is not a working stock interface.
-Empty capture does not distinguish context routing, server state and renderer
-initialization by itself. Panel changes alone cannot resolve that uncertainty.
+Earlier captures and marker tests lacked the QuartzCore displayable-context and
+global-capture entitlements. Their transparent results were superseded by the
+entitled test; they do not establish a broken or empty compositor. The temporary
+marker was invalidated. No invented GPU capabilities or fake interface were added.
 
-## Offline QuartzCore findings
+The named LCD marker changed RGB pixel count from 25,430 to 26,454, including
+all 1,024 marker pixels. The successful PNG is a private audit artifact and is
+not committed. Stock panel source measurements were zero, while a later panel
+measurement also contained console text. No exact timestamp correlation between
+every user-observed black clear and those swaps has been established.
 
-All addresses below are **canonical cache addresses for the preserved 20F66
-arm64 cache**, not addresses to write to a running process. Determine that task's
-actual cache identity and slide before interpreting any later read.
+## Current presentation experiment
 
-`-[CAWindowServer _detectDisplays]` at `0x1884da264` visits exactly three entries.
-Count functions at `0x1d5b428d0` and factories at `0x1d5b428b0` are:
+`whyred-render-probe present-once` captures the actual LCD scene into its own
+IOSurface and submits it once through our existing AppleCLCD user client. It
+checks the exact installed v97 kernel UUID, display ID 0 and logical size
+1125 by 2436 before calling the custom swap selectors. The driver retains the
+queued surface. It changes neither daemon configuration nor renderer flags.
 
-| Entry | Count | Factory | Underlying type |
-| --- | --- | --- | --- |
-| 0 | `0x1883a639c` | `0x1883a60a0` | 0 |
-| 1 | `0x1883a6460` | `0x1883a63a4` | 1 |
-| 2 | `0x1883a65b0` | `0x1883a6468` | 2 |
+This is a single-frame test of capture-to-panel delivery, not a continuous
+rendering solution. A successful submission alone will not establish visible
+panel output or a repaired interface. Require driver source/panel measurements
+and the user's actual screen observation.
 
-The shared count routine filters the display inventory by its type field.
-These are display types, **not three proven rendering engines**. The factory
-calls the display object's virtual slot `0x5f8` to create a display server.
-Types 0 and 1 share factory `0x1883a3320`. It chooses the `LCD` or `TVOut` name
-using bit 8 of the display's field at `+0x9f2`. The base display constructor
-sets that bit from the display type; this is **not a software-renderer bit**.
+The initial iOS build failed because `mach_task_self` depended on a transitive
+header available only in the desktop build. An explicit Mach header fixes it.
+Source `b03952a947f529f7f0b009535e221d2efdf76b47` passed every step of CI
+[41653213351](https://github.com/timosid/ios-sweetwhyred/actions/runs/41653213351).
+Artifact digest, length, ZIP CRC, report source, binary digest, iOS platform,
+ISA, strict signature and the exact two-entitlement set were checked locally.
+The signed binary is 93,760 bytes, SHA256
+`9b0a77d5394de0987aa0313ee3a0d63578b9d1318ebd37e4f00aec4640fb7091`.
+Physical execution is pending restored SSH after the requested reboot.
 
-The previously identified `beginExternalUpdate:usingSoftwareRenderer:` reaches
-virtual slot `0x58`. For the concrete server vtable `0x1d5b35a98`, implementation
-`0x1884f7d38` sets/clears bit `0x80` of the underlying display field at `+0x251`.
-The base vtable's implementation is a no-op. This explains one state mutation;
-it does not establish a supported persistent software-compositor configuration.
-Do not call it on the live window server just because of its selector name.
+## SpringBoard startup is a separate remaining blocker
 
-`setRendererFlags:` ORs its argument with 3 and propagates it to display
-servers. No additional flags have been decoded as a working software switch.
-The CPU software callback table and destination setter exist, but their presence
-does not establish that the window server selects them or can present their output.
+The preserved 97c main-thread sample waits through CoreServices while
+ControlCenterServices resolves `initWithBundleIdentifier:allowPlaceholder:error:`.
+Another thread makes a synchronous NSXPC request with the exact selector
+`getServerStoreBlockingWithCompletionHandler:`. The main thread waits on the
+corresponding CoreServices store lock. These selectors were decoded from the
+exact cache stubs, not inferred from a distant nearest exported symbol.
 
-## Capture already has a CPU renderer path
+This identifies a LaunchServices database-store acquisition wait. It does not
+yet identify why the server has not supplied that store, prove a permanent
+seeding loop, or establish a new lsd crash. Fresh lsd/SpringBoard samples and
+store/connection state are the next read-only checks after panel delivery.
 
-Offline tracing of capture request 40221 reaches the display-server event 20
-callback and concrete render-to-target implementation. That implementation
-creates the same software-renderer class (vtable `0x1d5b3d618`, allocation
-`0x4fe0`) as the exported software callbacks. Lack of an EAGL context therefore
-cannot alone explain our empty capture. Context population/routing and shared
-surface delivery still require independent checks.
+## Read-only server inspection
 
-The new `whyred-surface-ipc` diagnostic passes an own IOSurface Mach send right
-between separately spawned processes and checks all 512 bytes in both directions.
-Its native Mac test passes. It has not tested the whyred kernel. It does not touch
-the display or register a system service; the IPC endpoint is child-only and all
-waits are bounded. The kernel's existing GetID result is 0, so ID 0 is plausible
-and has not been demonstrated wrong.
+Determine the task's actual cache identity and slide before interpreting a
+read. All addresses below are canonical addresses in the preserved 20F66 cache,
+not live addresses or instructions to write memory.
 
-## Accepted capture can skip drawing
+In physical run 97c, the actual LCD had two render clients, nonzero root layer
+IDs/cached roots and a constructed CPU renderer. Its concrete server vtable was
+`0x1d5b45c68`; render-to-target first attempts GPU setup and has a verified CPU
+fallback. Thus an empty LCD list is ruled out for that snapshot.
 
-The capture event sets its handled/success bit before checking the concrete
-server's render-client count at `+0x80`. If that count is zero, it unlocks and
-returns without constructing a renderer or drawing. The outer work routine and
-IPC reply can still report success, which the public wrapper exposes as
-`accepted=1`. This proves a possible code path, not that the live phone had an
-empty list. Read the actual server's list (`+0x70`) and count alongside the
-context route; do not treat capture acceptance as proof that drawing occurred.
+The capture request 40221 reaches display-server event 20 and a renderer with
+vtable `0x1d5b3d618`, allocation `0x4fe0`. Capture acceptance alone is insufficient:
+the event marks the request handled before checking render-client count, and a
+zero-client path can return without drawing. The entitled pixel result, rather
+than API acceptance alone, establishes drawing in the successful physical test.
 
-## Startup presentation gate also needs measurement
+Display inventory entries visited by `_detectDisplays` are display types, not
+three established rendering engines. The factory's LCD/TVOut choice uses type
+bit 8 at display `+0x9f2`; this is not a software-renderer switch.
+`beginExternalUpdate:usingSoftwareRenderer:` changes bit `0x80` at display
+`+0x251` through the concrete external-update method. That fact does not by
+itself establish a persistent software-compositor configuration.
 
-Stock backboardd passes true for `kCAWindowServerDisableUpdatesOnMainDisplay`
-when creating the server, then sets renderer flags to 3. Its overlay handling
-later calls `setDisablesUpdates:` on displays; both disabling and enabling paths
-are present. Exact selector stubs were resolved from the preserved binary.
-The live display's gate has not been read. This is an additional startup-state
-hypothesis, not proof of the empty capture's cause and not authorization to
-blindly clear the flag. Include it in the next read-only server inspection.
+Stock backboardd initially passes true for
+`kCAWindowServerDisableUpdatesOnMainDisplay`, then sets renderer flags to 3.
+Overlay handling later enables and disables updates. The actual live gate has
+not been read. Do not blindly clear it or call an external-update method solely
+because its selector mentions software rendering.
 
-## The sampled MobileGestalt wait is identified
+## Earlier MobileGestalt sample
 
-The saved lsd stack contains the return chain
-`0x19c54d6e4 -> 0x19c54d910 -> 0x19c54d320 -> 0x19c547214`.
-This identifies the actual caller, rather than attributing a large offset to
-the nearest exported symbol (`MGSetAnswer`).
+The saved lsd return chain identifies an IONetworkController match whose
+callback accepts `sdio`, `wlan` or `marconi-wifi`. That caller supplies a five
+second run-loop timeout. The outer semaphore wait synchronizes the worker; it
+is not evidence of an infinite query. The missing ADT product/options nodes
+were not the target of that sampled match. Do not fabricate a Wi-Fi or Apple GPU
+service to satisfy this observation.
 
-That caller requests an `IONetworkController` match. Its callback accepts
-registry names `sdio`, `wlan` or `marconi-wifi`; other names are skipped.
-The helper uses `MobileGestaltRunLoopMode`, with exact imported calls
-`CFRunLoopGetCurrent`, `CFRunLoopAddCommonMode` and `CFRunLoopRunInMode`.
-This caller supplies a **5-second run-loop timeout**. The outer semaphore wait
-synchronizes the worker; it is not evidence that this sampled query waits
-forever. Repeated callbacks or queries still require measurement.
-
-The ADT lacks `/product` and `/options`, but those omissions are **not the
-identified match in this lsd sample**. Do not add a fictitious Wi-Fi service or
-copy Apple GPU capabilities into the device tree to satisfy this observation.
-No causal link from this wait to the empty compositor capture is established.
-
-## Concrete next check when the phone returns
-
-The signed read-only `whyreddiag` helper from source
-`4ead866d66553908e9f02f314441489832c9db48` is prepared locally. CI run
-[41531195903](https://github.com/timosid/ios-sweetwhyred/actions/runs/41531195903)
-passed every step. Its binary is 72,960 bytes, SHA256
-`a9ebd0d26b2f36a34ee28b8b53c4cafe457661a8d9e28e77f9a813fd10993c5c`.
-It has not been uploaded or run on the phone.
-
-1. Verify running kernel UUID, current task PIDs and cache slide. Do not reuse
-   old PIDs or assume all tasks have an unchanged slide after a reboot.
-2. Read the window-server global at canonical `0x1dcf3c160` in backboardd.
-   A missing server is a different failure from a server with an unusable backend.
-3. Follow the actual object and concrete vtable using bounded read-only regions;
-   compare the discovered factory path with the tables above. Treat racing or
-   unmapped reads as unavailable evidence; never turn them into writes.
-4. Run the prepared `remote-layer-lcd` comparison only on the returned iOS target.
-   It uses the same LCD name as capture and reports the context ID. Compare with
-   the retained ID-0 command; neither has yet demonstrated visible output.
-5. Relate that backend and display identity to an accepted but empty capture
-   before designing a renderer change. Require a known marker to reach capture,
-   then stock UI content and physical presentation, as separate success criteria.
-
-Private evidence, task snapshots, disassembly and downloaded Apple/cache bytes
-remain outside this repository. The current observer ended with SSH exit 255
-around the user taking the phone; that ending is not a newly diagnosed kernel fault
-or a completed long-duration stability test.
-
-The named-route candidate is built from source
-`54bf682ba00e66c770d885e4d2ce5eb8853fc353` in successful CI
-[41581070859](https://github.com/timosid/ios-sweetwhyred/actions/runs/41581070859).
-The signed iOS binary is 92,080 bytes, SHA256
-`fd68b46a56e827ef05655046c6bc255388e9d9668f9d6407c436275c1afe601a`.
-Archive, report, platform, ISA and signature checks pass. No phone execution yet.
-
-Cross-process surface helper source
-`d3b8f817c6f496df8d2bcd875c1bfb4b1a64e104` passed CI
-[41622795476](https://github.com/timosid/ios-sweetwhyred/actions/runs/41622795476),
-including the actual native IPC pixel check and signed iOS build. The iOS IPC
-binary is 88,176 bytes, SHA256
-`18d9f84e8e443985c277663aa2d65bf7da8d942e79b49f862fa3894fd6d9484e`.
-It remains untested on the phone.
-
-## Fresh physical run 97c
-
-The phone was returned in Fastboot and rebooted without flashing. Kernel UUID
-v97 and foreground session 501 were verified. The cross-process IOSurface test
-now **passes on whyred** (all 512 bytes, child exit 0). The named LCD marker
-still produced transparent captures, with no crash and proper invalidation.
-
-Read-only backboardd inspection shows the actual LCD has two render clients,
-nonzero root layer IDs/cached roots and a constructed CPU renderer. This rules
-out an empty LCD client list in that snapshot. The concrete server subclass is
-vtable `0x1d5b45c68`; its render-target method has a verified software fallback.
-
-The original diagnostic signature lacked `com.apple.QuartzCore.displayable-context`
-and `com.apple.QuartzCore.global-capture`. Stock backboardd has both, and both
-keys occur in this exact QuartzCore image. The diagnostic build is being updated
-to request those two rights and verify its signed entitlement set. Until that
-probe runs, authorization filtering remains a material limitation of the marker
-and capture results. No daemon, System or kernel bytes changed.
-
-## Authorization correction passed physically
-
-The same named marker test, signed with the two verified QuartzCore rights,
-now passes on boot v97: baseline 25,430 RGB pixels, then 26,454, including all
-1,024 marker pixels. The temporary context was invalidated. This supersedes the
-prior unentitled empty-capture inference. CPU composition into a captured image
-works; stock UI appearance and panel presentation remain separate questions.
-A PNG export mode is being prepared to inspect the actual image without phone
-file writes or display changes.
+Private task snapshots, disassembly, PNGs, logs, keys and downloaded Apple bytes
+remain outside Git. Exact source/CI/artifact history is retained in NOTES.md.

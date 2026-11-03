@@ -1,3 +1,29 @@
+## Presentation probe authenticated; LaunchServices wait identified (2026-11-03 Minsk)
+
+- Source b03952a947f529f7f0b009535e221d2efdf76b47 CI41653213351 /
+  job125976558662 ALL steps pass. Artifact13239250056 ZIP111473B
+  SHA888e8523f14bbadb4eb043c913eaeb70803ae840f12472d853e240d3bcb1a6a8.
+  Signed binary93760B SHA9b0a77d5394de0987aa0313ee3a0d63578b9d1318ebd37e4f00aec4640fb7091.
+  Source/report/digest/length/CRC/platform/ISA/signature/exact2rights checked.
+  No physical present result yet: ordinary reboot confirmed; cold CMD17 startup
+  still underway. Private serially coordinated restore/present/sample/backend
+  workers wait for one retained shell; no concurrent commands on its FIFO.
+- Exact97c CoreServices stubs resolve synchronousRemoteObjectProxyWithErrorHandler:
+  and getServerStoreBlockingWithCompletionHandler:. ControlCenter caller uses
+  initWithBundleIdentifier:allowPlaceholder:error:. Main waits on shared store
+  lock while another thread requests database store over NSXPC. Why the server
+  has not supplied it remains unresolved. No new lsd diagnosis claimed.
+- Decoded actual CAWindowServerDisplay disablesUpdates getter1884deb74: follows
+  native server+60 to display, tests bit8 of unaligned16bit field+251. Setter
+ 1884deae8 changes bit0x100; external software/capture path uses separate0x80.
+  Prepared bounded read-only measurement, not a live flag change. Previous
+  direct-load scan found no references because access uses add+ldrh; corrected
+  scan and exact ObjC method list resolve the getter. Private cache bytes kept.
+- Rewrote WHYRED-GRAPHICS-STATUS.md so superseded unentitled empty-capture results
+  are clearly distinguished from actual entitled marker/Apple-logo successes.
+  Post-reboot observed log segment has no CRASH records or eMMC errors so far;
+  early pre-USB boot was not captured. Pre-reboot SIGBUS lines kept separately.
+
 ## Resumed after Mac crash; present helper compile fix (2026-11-03 Minsk)
 
 - User reports Mac crash and asks to continue graphics. Source HEAD4f15ca8a and
