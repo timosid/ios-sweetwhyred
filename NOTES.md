@@ -1,3 +1,61 @@
+## Active98b requested screen wake: guarded panel-on candidate (2026-11-03 Minsk)
+
+- Pending prior capture LATER completed END1: accepted1 RGB0/full alpha, no PNG;
+  display had gone OFF. Held37904 framing is COMPLETE, no monitor owner now.
+  User explicitly asked to turn screen on and submit a frame. Exact98 UUID passes.
+- Sent ONE diagnostic power-key pair while last state OFF: helper/child exit0,
+  but no ON within8s. Then idempotent BackBoard unblank request exited0, no ON
+  within15s. No repeated toggle, frame or visible-image success claimed.
+  Private audit/graphics98b-wake-present.json and98b-device/requested-*.stdout.
+- Added explicit whyred-display-wake panel-on mode: exact97/98 UUID guard,
+  AppleCLCD service, displayID0 and1125x2436 checks BEFORE own driver scalar12(1).
+  It changes driver power state only; does not unlock iOS, invent pixels, change
+  renderer flags or imply compositor wake. ABI checked against installed patches
+  0079 and0150. Native warning-clean compile and4 physical-target refusals plus
+  invalid-argument cases PASS. Added new mode to existing CI refusal/provenance
+  checks. iOS build/upload/actual panel-on still PENDING. No flash required.
+- NEXT: authenticate signed CI artifact, exact upload/readback; exact98 kernel,
+  panel-on once, require new display-on record, then fresh capture/presentation.
+  A blank captured scene is not proof of working stock UI. No stale-logo injection.
+
+## Active98b: LaunchServices wait PASSED; IconServices now sampled (2026-11-03 Minsk)
+
+- User supplied new installd/PosterBoard, SpringBoard privilege1007 denied and
+  display-off records. Fresh read-only exact98 UUID passes. SpringBoard26 now
+  has13 threads; its main no longer waits for CoreServices store acquisition:
+  synchronous Foundation/XPC through IconServices -> SBHGetApplicationIconImage
+  -> SpringBoardHome. lsd95 has2 threads and main CFRunLoopRun. This establishes
+  progress past the old store wait; NOT a proved permanent IconServices deadlock
+  or a ready UI. Same cache slide4a018000. Exact fresh symbolication privately in
+  graphics-v98/26-98b-progress-symbols.json and95 counterpart; source snapshots
+  audit/graphics98b-device/progress-*-threads-26/95.stdout. Initial symbolication
+  accidentally selected older post-threads inputs; corrected filenames and
+  regenerated. Only corrected13-thread/2-thread result above is current.
+- Fresh process list includes pkd253 STILL RUNNING, suggestd256, PosterBoard324,
+  installd318. The earlier pkd /dev UUID EINVAL did not immediately abort this
+  instance. No fake replacement or service restart was performed.
+- PRIV1007 is PRIV_DARKBOOT (bsd/sys/priv.h): sysctl_darkboot writing checks this
+  privilege. A denied change to kern.darkboot does not itself prove a process
+  crash or explain normal display timeout. Do NOT grant all privileges or equate
+  darkboot with this separate display-off record. No kernel modification yet.
+- Monitor41907 stopped at sample2 memory timeout20s. That command LATER completed
+  END0; exact framing verified before reuse. Late VM:16KiB pages, free4540,
+  active31176/inactive29001/wired15019/compressor0. Free alone not OOM proof.
+  Retained shell37904 then served exact kernel, threads and ps in1.86/8.54/2.66/
+  16.17s. Fresh SSH root identity also eventually returned successfully; no reboot
+  or lost transport conclusion. NO monitor now owns the held shell.
+- Last display transition is ON (OFF followed by ON). No synthetic power toggle
+  was sent. Fresh capture request exceeded local45s deadline BEFORE initial
+  renderer text arrived. Command framing token is
+  WHYRED_SESSION_517979235c7fedfc5d4a9cdece3282fb; outstanding until matching END.
+  Do NOT send another FIFO command until its completion is verified. Bounded
+  late watcher is collecting this same response, not issuing a second capture;
+  outputs audit/graphics98b-device/late-progress-capture.stdout/.png if complete.
+- Passive UDP receiver2488 stays live. Observed current98b stream has no CRASH,
+  panic, fatal recovery or RAMFS pressure so far. Do not claim a fresh screenshot
+  or visible UI until the pending capture/user observation provides it. No UART,
+  flash, MG cache edit, daemon restart or permanent presentation loop this turn.
+
 ## Current98b live boot-status check: still Apple logo (2026-11-03 Minsk)
 
 - User asked whether UI has loaded. Stopped monitor38947 through its stop file;

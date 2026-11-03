@@ -21,7 +21,7 @@ jobs:
           python3 - <<'PY'
           import subprocess
           b='out/wake/whyred-display-wake-native'
-          for mode in ['wake','unblank','power-key']:
+          for mode in ['wake','unblank','power-key','panel-on']:
               p=subprocess.run([b,mode],capture_output=True,text=True,timeout=5)
               assert p.returncode==1 and 'requires the physical iOS target' in p.stdout and not p.stderr
           for args in [[],['invalid'],['wake','extra']]:
@@ -48,7 +48,7 @@ jobs:
           assert not re.search(r'\b(?:cas[a-z]*|ldadd[a-z]*|swp[a-z]*|stadd[a-z]*)\s+[wx]',(p/'isa.txt').read_text())
           ent=(p/'signed-entitlements.plist').read_bytes()
           assert plistlib.loads(ent)=={'com.apple.private.hid.client.event-dispatch':True,'com.apple.hid.system.user-access-service':True}
-          (p/'report.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'sha256':hashlib.sha256(b.read_bytes()).hexdigest(),'bytes':b.stat().st_size,'device_tested':False,'modes':['wake','unblank','power-key'],'automatic_retry':False,'persistent_partition_write':False,'renderer_flags_changed':False},indent=2)+'\n')
+          (p/'report.json').write_text(json.dumps({'source':os.environ['GITHUB_SHA'],'sha256':hashlib.sha256(b.read_bytes()).hexdigest(),'bytes':b.stat().st_size,'device_tested':False,'modes':['wake','unblank','power-key','panel-on'],'automatic_retry':False,'persistent_partition_write':False,'renderer_flags_changed':False},indent=2)+'\n')
           PY
       - uses: actions/upload-artifact@v4
         with:

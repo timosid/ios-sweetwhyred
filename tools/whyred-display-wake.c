@@ -9,13 +9,14 @@
 #include <dlfcn.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <mach/mach_time.h>
+#include <mach/mach.h>
 #include <time.h>
 #include <errno.h>
 
 int main(int argc, char **argv)
 {
-    if (argc != 2 || (strcmp(argv[1], "wake") && strcmp(argv[1], "unblank") && strcmp(argv[1], "power-key"))) {
-        fputs("usage: whyred-display-wake {wake|unblank|power-key}\n", stderr); return 2;
+    if (argc != 2 || (strcmp(argv[1], "wake") && strcmp(argv[1], "unblank") && strcmp(argv[1], "power-key") && strcmp(argv[1], "panel-on"))) {
+        fputs("usage: whyred-display-wake {wake|unblank|power-key|panel-on}\n", stderr); return 2;
     }
 #if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
     puts("WHYRED WAKE: requires the physical iOS target"); return 1;
@@ -25,6 +26,42 @@ int main(int argc, char **argv)
         (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
          strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
         puts("WHYRED WAKE: incompatible kernel; no request sent"); return 1;
+    }
+    /* Explicit panel wake through OUR verified AppleCLCD ABI. This does not
+     * unlock iOS or claim that the compositor itself has resumed. */
+    if (!strcmp(argv[1], "panel-on")) {
+        void *library = dlopen("/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit", RTLD_NOW | RTLD_LOCAL);
+        CFMutableDictionaryRef (*matching)(const char *) = library ? dlsym(library, "IOServiceMatching") : NULL;
+        uint32_t (*getService)(uint32_t, CFDictionaryRef) = library ? dlsym(library, "IOServiceGetMatchingService") : NULL;
+        int (*openService)(uint32_t, mach_port_t, uint32_t, uint32_t *) = library ? dlsym(library, "IOServiceOpen") : NULL;
+        int (*releaseService)(uint32_t) = library ? dlsym(library, "IOObjectRelease") : NULL;
+        int (*closeService)(uint32_t) = library ? dlsym(library, "IOServiceClose") : NULL;
+        int (*scalar)(uint32_t, uint32_t, const uint64_t *, uint32_t, uint64_t *, uint32_t *) = library ? dlsym(library, "IOConnectCallScalarMethod") : NULL;
+        if (!matching || !getService || !openService || !releaseService || !closeService || !scalar) {
+            puts("WHYRED WAKE: panel API absent; no request sent");
+            if (library) dlclose(library);
+            return 1;
+        }
+        CFMutableDictionaryRef match = matching("AppleCLCD");
+        uint32_t service = match ? getService(0, match) : 0, connection = 0;
+        if (!service) { dlclose(library); return 1; }
+        int kr = openService(service, mach_task_self(), 0, &connection);
+        releaseService(service);
+        if (kr) { dlclose(library); return 1; }
+        uint64_t value[2] = {0}; uint32_t count = 1;
+        kr = scalar(connection, 7, NULL, 0, value, &count);
+        if (!kr && count == 1 && value[0] == 0) {
+            count = 2;
+            kr = scalar(connection, 8, NULL, 0, value, &count);
+            if (!kr && count == 2 && value[0] == 1125 && value[1] == 2436) {
+                uint64_t on = 1;
+                puts("WHYRED WAKE: requesting panel-on through verified AppleCLCD selector12"); fflush(stdout);
+                kr = scalar(connection, 12, &on, 1, NULL, NULL);
+                printf("WHYRED WAKE: panel request_status=0x%x compositor_and_visible_output_unverified=1\n", (unsigned)kr);
+            } else { kr = -1; puts("WHYRED WAKE: unexpected panel dimensions; no request sent"); }
+        } else { kr = -1; puts("WHYRED WAKE: unexpected display ID; no request sent"); }
+        closeService(connection); dlclose(library);
+        return kr ? 1 : 0;
     }
     /* Dispatch API and entitlement reference: Apple's IOHIDFamily tools/
      * IOHIDEventSystemMonitor.c and IOHIDEventSystemMonitor-Entitlements.plist.
