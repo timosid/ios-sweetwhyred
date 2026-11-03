@@ -1,6 +1,6 @@
 /* Bounded developer graphics probes. Bitmap/capture modes do not present frames.
  * Explicit remote-layer creates and invalidates one small visible test layer.
- * Explicit present-once queues one real server capture on the verified whyred97 framebuffer.
+ * Explicit present modes queue a real server capture on the verified whyred97/98 framebuffer.
  * No files, renderer configuration or daemon changes. */
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
@@ -263,7 +263,7 @@ done:
     return result;
 }
 
-static int capture_display(BOOL export_png, BOOL present_once) {
+static int capture_display(BOOL export_png, unsigned present_count) {
 #if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
     puts("WHYRED RENDER: display capture requires the physical iOS target");
     return 1;
@@ -325,8 +325,21 @@ static int capture_display(BOOL export_png, BOOL present_once) {
         if (provider) CGDataProviderRelease(provider);
         if (space) CGColorSpaceRelease(space);
     }
-    BOOL presented = !present_once;
-    if (present_once && accepted && rgb) presented = present_surface(surface) == 0;
+    BOOL presented = !present_count;
+    if (present_count && accepted && rgb) {
+        /* A finite observation window: repeat the same real captured frame.
+         * No renderer/daemon changes, no synthetic content or persistent loop. */
+        unsigned completed = 0;
+        if (present_count > 101) { IOSurfaceUnlock(surface, 0, NULL); CFRelease(surface); return 1; }
+        printf("WHYRED RENDER: observation begin submissions=%u interval_ms=100 fixed_capture=1 visible_output_unverified=1\n", present_count);
+        for (unsigned n = 0; n < present_count; n++) {
+            if (n) usleep(100000);
+            if (present_surface(surface)) break;
+            completed++;
+        }
+        presented = completed == present_count;
+        printf("WHYRED RENDER: observation end completed=%u requested=%u visible_output_unverified=1\n", completed, present_count);
+    }
     kr = IOSurfaceUnlock(surface, 0, NULL);
     CFRelease(surface);
     return accepted && rgb && exported && presented && !kr ? 0 : 1;
@@ -411,10 +424,11 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
             if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display(NO, NO);
             if (argc == 2 && !strcmp(argv[1], "capture-png")) return capture_display(YES, NO);
-            if (argc == 2 && !strcmp(argv[1], "present-once")) return capture_display(NO, YES);
+            if (argc == 2 && !strcmp(argv[1], "present-once")) return capture_display(NO, 1);
+            if (argc == 2 && !strcmp(argv[1], "present-window")) return capture_display(NO, 101);
             if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO);
             if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES);
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | remote-layer | remote-layer-lcd\n", stderr);
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | present-window | remote-layer | remote-layer-lcd\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
