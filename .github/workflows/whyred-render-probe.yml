@@ -38,8 +38,12 @@ jobs:
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -framework OpenGLES -o out/render/whyred-render-probe
           clang -target arm64-apple-ios16.4 -isysroot "$SDK" -mcpu=generic+crypto -mno-outline-atomics -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-surface-ipc.m -framework Foundation -framework IOSurface -o out/render/whyred-surface-ipc
-          codesign --force --sign - --timestamp=none out/render/whyred-render-probe
+          cat > out/render/render-entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>com.apple.QuartzCore.displayable-context</key><true/><key>com.apple.QuartzCore.global-capture</key><true/></dict></plist>
+          PLIST
+          codesign --force --sign - --timestamp=none --entitlements out/render/render-entitlements.plist out/render/whyred-render-probe
           codesign --verify --strict out/render/whyred-render-probe
+          codesign -d --entitlements :- out/render/whyred-render-probe > out/render/signed-render-entitlements.plist
           codesign --force --sign - --timestamp=none out/render/whyred-surface-ipc
           codesign --verify --strict out/render/whyred-surface-ipc
           otool -l out/render/whyred-surface-ipc > out/render/ipc-load-commands.txt
@@ -48,11 +52,13 @@ jobs:
           otool -L out/render/whyred-render-probe > out/render/dependencies.txt
           xcrun llvm-objdump -d out/render/whyred-render-probe > out/render/isa.txt
           python3 - <<'PY'
-          import hashlib,json,os,re
+          import hashlib,json,os,re,plistlib
           from pathlib import Path
           p=Path('out/render'); b=p/'whyred-render-probe'
           assert re.search(r'platform\s+(?:2|IOS)\b',(p/'load-commands.txt').read_text())
           assert not re.search(r'\b(?:cas[a-z]*|ldadd[a-z]*|swp[a-z]*|stadd[a-z]*)\s+[wx]',(p/'isa.txt').read_text())
+          entitlements=plistlib.loads((p/'signed-render-entitlements.plist').read_bytes())
+          assert entitlements == {'com.apple.QuartzCore.displayable-context':True,'com.apple.QuartzCore.global-capture':True}
           ipc=p/'whyred-surface-ipc'
           assert re.search(r'platform\s+(?:2|IOS)\b',(p/'ipc-load-commands.txt').read_text())
           assert not re.search(r'\b(?:cas[a-z]*|ldadd[a-z]*|swp[a-z]*|stadd[a-z]*)\s+[wx]',(p/'ipc-isa.txt').read_text())

@@ -69,6 +69,16 @@ the display or register a system service; the IPC endpoint is child-only and all
 waits are bounded. The kernel's existing GetID result is 0, so ID 0 is plausible
 and has not been demonstrated wrong.
 
+## Accepted capture can skip drawing
+
+The capture event sets its handled/success bit before checking the concrete
+server's render-client count at `+0x80`. If that count is zero, it unlocks and
+returns without constructing a renderer or drawing. The outer work routine and
+IPC reply can still report success, which the public wrapper exposes as
+`accepted=1`. This proves a possible code path, not that the live phone had an
+empty list. Read the actual server's list (`+0x70`) and count alongside the
+context route; do not treat capture acceptance as proof that drawing occurred.
+
 ## Startup presentation gate also needs measurement
 
 Stock backboardd passes true for `kCAWindowServerDisableUpdatesOnMainDisplay`
@@ -133,3 +143,30 @@ The named-route candidate is built from source
 The signed iOS binary is 92,080 bytes, SHA256
 `fd68b46a56e827ef05655046c6bc255388e9d9668f9d6407c436275c1afe601a`.
 Archive, report, platform, ISA and signature checks pass. No phone execution yet.
+
+Cross-process surface helper source
+`d3b8f817c6f496df8d2bcd875c1bfb4b1a64e104` passed CI
+[41622795476](https://github.com/timosid/ios-sweetwhyred/actions/runs/41622795476),
+including the actual native IPC pixel check and signed iOS build. The iOS IPC
+binary is 88,176 bytes, SHA256
+`18d9f84e8e443985c277663aa2d65bf7da8d942e79b49f862fa3894fd6d9484e`.
+It remains untested on the phone.
+
+## Fresh physical run 97c
+
+The phone was returned in Fastboot and rebooted without flashing. Kernel UUID
+v97 and foreground session 501 were verified. The cross-process IOSurface test
+now **passes on whyred** (all 512 bytes, child exit 0). The named LCD marker
+still produced transparent captures, with no crash and proper invalidation.
+
+Read-only backboardd inspection shows the actual LCD has two render clients,
+nonzero root layer IDs/cached roots and a constructed CPU renderer. This rules
+out an empty LCD client list in that snapshot. The concrete server subclass is
+vtable `0x1d5b45c68`; its render-target method has a verified software fallback.
+
+The original diagnostic signature lacked `com.apple.QuartzCore.displayable-context`
+and `com.apple.QuartzCore.global-capture`. Stock backboardd has both, and both
+keys occur in this exact QuartzCore image. The diagnostic build is being updated
+to request those two rights and verify its signed entitlement set. Until that
+probe runs, authorization filtering remains a material limitation of the marker
+and capture results. No daemon, System or kernel bytes changed.

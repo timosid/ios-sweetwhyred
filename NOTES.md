@@ -1,3 +1,57 @@
+## Fresh97c physical checks; diagnostic renderer rights missing (2026-11-03 Minsk)
+
+- User returned phone in Fastboot. Verified exact private baseline identity and
+  whyred product; fastboot reboot OKAY, NO partition write. Private immutable
+  audit/graphics97c-reboot.json boundary9705721. Cold CMD17 startup took ~13min
+  before pinned SSH accepted commands; observed eMMC errors0/fallbacks0 throughout.
+- Worker72449/held shell74871 completed new audit/graphics97c-device checks.
+  Actual kernel UUID97 and sessionflags1f5/multiuser0 verified. All3 reviewed
+  helper uploads byte-for-byte verified. Actual mobile two-process IOSurface
+  test PASSES all512 shared bytes, lookup1, child exit0. This is a phone result.
+- Named LCD remote-layer still transparent before/after, contextID833566179,
+  exit1 without crash, context invalidated. No visible marker claimed.
+- Bounded read-only backboard57 snapshot: actual slide4ea3c000, server exists,
+ 4 displays. Verified NSArrayM metadata/layout in exact preserved cache. First
+  expected-vtable guard stopped: real class vtable1d5b45c68, NOT guessed oldbase.
+  Decoded its slot180 ->18835cc54 with CPU fallback1884ebcc0, then separate
+  backend2 snapshot supports this verified subclass. Original stopped outputs kept.
+- LCD (exact nameCFString1d5b59178) has2 render clients, flags3, nonzero cached
+  software renderer/wrapper; both contexts have nonzero rootIDs/cached roots.
+  Other3 displays each have1 client. This rules out empty LCD list in this snapshot.
+- Crucial probe limitation: stock backboardd signature has QuartzCore
+  displayable-context/global-capture entitlements; previous helper had neither.
+  BOTH exact key strings exist in preserved QuartzCore. Prior marker/capture
+  results cannot yet exclude authorization filtering. Updated diagnostic workflow
+  grants ONLY these2 keys to render helper, verifies signed entitlements exactly.
+  No daemon/System/kernel change. Rebuild/retest pending; shell remains usable.
+
+## Surface IPC candidate authenticated; empty-list capture can succeed (2026-11-03 Minsk)
+
+- Source d3b8f817c6f496df8d2bcd875c1bfb4b1a64e104, CI41622795476 /
+  job125872489652 ALL steps passed, including actual two-process IOSurface data
+  assertion on native CI runner and signed arm64 iOS build/platform/ISA checks.
+  Artifact13224571482 ZIP101869B SHAd3b4f8d6a9052901d8afe8ff073735e124ed369bff2d2b7eb6642879f758db46.
+- Download length/digest/CRC, report source/both binary digests/lengths, platform,
+  ISA checked; new IPC strict signature verified locally. Private graphics-v98/ipc98.
+  IPC binary88176B SHA18d9f84e8e443985c277663aa2d65bf7da8d942e79b49f862fa3894fd6d9484e.
+  Bundled named-render binary92080B SHA8afa15198474c715fae0318e3bbf4a741e616585eb9636d38f4c7ab602b17052.
+  Native CI record: child registered_ports3, lookup1 initial_pixelsPASS, parent
+  shared_pixelsPASS512B. NOT a phone result. No upload/flash/SSH/serial calls.
+- Offline capture-event1884ee784 FIRST sets request+60 bit8 (handled/success),
+  THEN tests concrete server+80 render-client count. Zero branches to unlock/return
+  at1884ee830 WITHOUT renderer construction/drawing. Work188469360 returns0
+  on the set bit; MIG reply succeeds and public wrapper normalizes nonzero
+  result to accepted1. Thus an empty display client list can produce our exact
+  accepted-but-transparent result. This is a demonstrated code path, not an
+  observation that the phone's list was actually empty.
+- Prioritize bounded read-only concrete display-server+70 list/+80 count alongside
+  context routing and cached software renderer+c0/c8. Do not infer GPU failure
+  or clear update gates before checking this. Presentation gate effect on capture
+  still unproven. Kernel GetID0 supports, but doesn't prove, original context route.
+- Existing framebuffer callbacks were reviewed: notification arrays are per user
+  client and VSYNC type5 matches stock wrapper. No claimed new driver fix from
+  those checks. Graphics remains unresolved; prepared tests require returned phone.
+
 ## CPU capture path traced; cross-process surface test added offline (2026-11-03 Minsk)
 
 - Exact capture IPC40221 (reply40321) resolves from QuartzCore MIG subsystem
