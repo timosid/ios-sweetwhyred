@@ -1,6 +1,6 @@
 /* Bounded developer graphics probes. Bitmap/capture modes do not present frames.
  * Explicit remote-layer creates and invalidates one small visible test layer.
- * Explicit present modes queue a real server capture on the verified whyred97/98 framebuffer.
+ * Explicit present modes queue a real server capture on the verified whyred97/98/99 framebuffer.
  * Explicit live modes capture each new frame into fresh immutable surface storage.
  * No files, renderer configuration or daemon changes. */
 #import <Foundation/Foundation.h>
@@ -228,7 +228,8 @@ static int present_surface(IOSurfaceRef surface) {
     char uuid[80] = {0}; size_t uuid_size = sizeof(uuid);
     if (sysctlbyname("kern.uuid", uuid, &uuid_size, NULL, 0) ||
         (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
-         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
+         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855") &&
+         strcmp(uuid, "2ED4E8A4-6D1C-3C3C-980B-8533C25978D1"))) {
         puts("WHYRED RENDER: present refused incompatible kernel"); return 1;
     }
     typedef uint32_t IOName;
@@ -381,7 +382,8 @@ static int live_display(BOOL continuous) {
     char uuid[80] = {0}; size_t length = sizeof(uuid);
     if (sysctlbyname("kern.uuid", uuid, &length, NULL, 0) ||
         (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
-         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
+         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855") &&
+         strcmp(uuid, "2ED4E8A4-6D1C-3C3C-980B-8533C25978D1"))) {
         puts("WHYRED DISPLAY: incompatible kernel; no frame submitted"); return 1;
     }
     double start = monotonic_seconds();

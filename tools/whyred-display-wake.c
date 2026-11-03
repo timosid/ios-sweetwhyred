@@ -1,4 +1,4 @@
-/* Explicit single wake request for the verified whyred97/98 development kernels.
+/* Explicit single wake request for the exact allowlisted whyred development kernels.
  * Uses existing display services or one explicit diagnostic HID key pair.
  * No physical key driver, pixel drawing, renderer flags, unlocking or partition writes. */
 #include <TargetConditionals.h>
@@ -24,7 +24,8 @@ int main(int argc, char **argv)
     char uuid[80] = {0}; size_t size = sizeof(uuid);
     if (sysctlbyname("kern.uuid", uuid, &size, NULL, 0) ||
         (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
-         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
+         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855") &&
+         strcmp(uuid, "2ED4E8A4-6D1C-3C3C-980B-8533C25978D1"))) {
         puts("WHYRED WAKE: incompatible kernel; no request sent"); return 1;
     }
     /* Explicit panel wake through OUR verified AppleCLCD ABI. This does not

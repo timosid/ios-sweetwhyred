@@ -1,3 +1,50 @@
+## Boot99 packaged and matched tools compiling (2026-11-03 Minsk)
+
+- Full package authentication PASSED, including authoritative run/jobs/digests,
+  ZIP CRCs/kernel SHA, all retained source/body/test proofs, exact new0176 source,
+  4826 host checks, linked no-LSE/no-PAN, USB cache barriers, masked idle, foreground
+  setter, boot-art and payload bounds. Runtime-source delta versus98 is ONLY
+  bsd/dev/whyred_emmc_pio_probe.c; framebuffer ABI/boot args unchanged.
+- PRIVATE port/out/whyred-ios-root-v99-late-ready-41692808789: image
+  e2c8a0066f8b651d79e7d8e158d57a0806a53e16421c4d80c39e8633c05e28ff, 22347776B;
+  kernel961ee9a4f92e4fd595c3825ffa470a5efed1604ad7ba819fa6cadff879adfc1c;
+  UUID2ED4E8A4-6D1C-3C3C-980B-8533C25978D1. Manifest has bounded FIFO-ready
+  recheck flag/max1; payload21537520B. No flash/hardware99 test yet.
+- Prepared PRIVATE tools/flash_kernel99.py: exact image/kernel/source/flags,
+  verified98 rollback image, installed System95/81-slice proof, private identity,
+  whyred/unlocked/64MiB boot guards. Requires fresh physical Fastboot-ready answer.
+  NOT run yet. Matched live/wake99 UUID guards native compile/refusal PASS;
+  signed builds pending. Finish them and ask Fastboot only when concrete retry
+  is ready. User's goal remains automatic fresh-frame output, not just a logo.
+
+## Active98c second storage fallback; boot99 and matching live tools preparing (2026-11-03 Minsk)
+
+- User supplied fresh CMD17 incomplete LBA3068157/int20/present01f80af6/FIFO512.
+  Same clean second CMD13 prior00400900 ->00000900/recheck1, followed by baseline
+  clock restore. This is NOT kernel panic. Current98c graphics pilot is deferred
+  while this read fallback can stall SSH. No99 flash happened; no live daemon
+  installed. Last display-off was logged separately, not a proven read-failure cause.
+- Automatic new-frame helper source dd7ab3f5130589a0551886a421a99b1f5cadd797
+  passed ALL CI41697274483/job126131003017 build/native refusal/signature/audit
+  steps. Not uploaded or physically tested yet. Fresh new IOSurface per frame,
+  no reused screenshot/unsafe rewrite; live-window40s and explicit live1fps modes.
+- Kernel0176 source5b7e210a8c96eceecff8b4b9f95c24ea22d68a73 now passed ALL full
+  CI41692808789/job126115470445 steps (incl4826 eMMC checks and all retained
+  framebuffer/APFS/RAMFS/USB/AKS/idle checks). Authoritative kernel artifact
+  13260537519 ZIP79279001B SHA209d91b3449941b1d0a29f1d16075696691e0a7760382d6eaef3316f667947b7.
+  Buildtree13262505066 ZIP25442046B SHA3111327d764921a79a9d9d68148d5f068028f53ed09cd7ba25fc692151141bc9.
+  Both downloaded privately to kernel-v99-late-ready/artifact. Kernel ZIP digest/
+  CRC passed; embedded UUID2ED4E8A4-6D1C-3C3C-980B-8533C25978D1 and kernel SHA
+  961ee9a4f92e4fd595c3825ffa470a5efed1604ad7ba819fa6cadff879adfc1c.
+- Added ONLY this exact99 UUID to wake and BOTH present/live guards; API remains
+  same ID0/1125x2436. Rebuilt signed matching tools pending. Boot99 packaging
+  reuses all98 source/artifact/layout/rollback checks, updates4826 and requires
+  new0176 patch/coverage/source match. Not ready for flash until packaging passes.
+- NEXT: finish verified boot99 package and matching signed helpers BEFORE asking
+  user to enter Fastboot. Only boot flash needed to test new polling logic; keep
+  System95. Then fresh99 observer and actual finite live pilot; require measured
+  fresh frame changes/performance/memory before persistent automatic integration.
+
 ## Active98c automatic CPU display bridge candidate (2026-11-03 Minsk)
 
 - User explicitly asks to FIX display output. Stopped read-only monitor46870 via
