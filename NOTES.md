@@ -1,3 +1,69 @@
+## Active98b: visible Apple logo CONFIRMED by user (2026-11-03 Minsk)
+
+- User confirmed ordinary reboot; NO flash or UART this turn. Fresh worker35028
+  completed pinned root SSH, exact98 kernel UUID and full upload/readbacks of
+  diag2a276d3f, renderer9a1d6053 and wake449eed2f. Worker is FINISHED. Installed
+  baseline remains boot98/System95. Fresh held SSH37904 at PRIVATE
+  audit/graphics98b-device/held; passive UDP receiver2488 remains live.
+- After notifying user immediately before presentation, repeated the real LCD
+  scene. Actual capture accepted1, RGB25430, alpha2332800. Driver source and
+  panel samples match earlier actual Apple-logo capture: panel RGB21674,
+  bbox429,820..609,1006; copied2332800 pixels. User responded “да есть же”, then
+  explicitly selected “Логотип Apple на чёрном фоне”. This IS physical visible
+  output evidence for this exact98b test. It does NOT establish stock UI or
+  continuous compositor presentation. Old98a window was missed, not a failure.
+- Exact repeat:99 successful queues, then run-mobile's30s child deadline sent
+  SIGTERM; exit124 after31.408s, no101 completion. Do not report101/101 or exit0
+  for98b. This timeout does not undo user's visible result. Private
+  audit/graphics98b-window-test.json and98b-device/present-window.stdout retain
+  exact counts and observation. Last display state was ON, so no power toggle
+  was sent. No permanent screenshot loop, daemon setting or renderer flag change.
+- Fresh read-only snapshots: shared-cache slide4a018000; SpringBoard26 remains
+  on CoreServices store lock plus sync NSXPC. lsd95 changed from InstalledContent
+  directory traversal/open to later MobileGestalt query; CPU counters advance.
+  MobileGestaltHelper96 writes its cache; backboard57 has13 sampled threads in
+  runloops/render IPC. This is startup dependency/progress, NOT a proved permanent
+  deadlock. No identity cache edit or daemon restart in98b. Prior failed cache
+  experiment stays rejected; do not seed it again.
+- Post-test VM:16KiB pages, free37656 (~588MiB), active30541/inactive673/wired10897,
+  compressor0, no swap. Observed stream at~983MiB eMMC reads has errors0, no fatal
+  recovery/CRASH/panic/RAMFS pressure. FSERR records still include unsupported
+  /dev volume-attribute probe EINVAL and startup missing-path probes; do not call
+  all logged errors fatal or all filesystem issues fixed.0175 recovery remains
+  physically UNEXERCISED in98b. No late-stability claim.
+- PRIVATE read-only monitor38947 now owns the held FIFO: samples VM, threads26
+  and95 once/minute, maximum30 rounds. Status audit/graphics98b-memory-monitor.json;
+  raw samples graphics98b-memory-samples.log; worker log has same monitor prefix.
+  To take the shell: create audit/graphics98b-memory-stop, wait for phase stopped;
+  if failed-shell-review-required inspect final framing before reuse. Never send
+  commands concurrently. Monitor does NOT wake/capture/present/restart anything.
+- NEXT: inspect startup samples for LaunchServices completion, then capture the
+  current real scene and trace why stock swaps differ from the working explicit
+  capture-to-panel path. Visible logo now rules out a universally broken panel
+  mapping for this test; it does not fix stock rendering. No new kernel needed
+  merely to repeat this successful display path.
+
+## Earlier98b ordinary reboot for a repeat the user can watch (2026-11-03 Minsk)
+
+- User missed the prior101-frame test while away; this is NOT a negative visible
+  result. Asked to repeat after returning. At ~17:26Z old98 held shell27053
+  accepted BEGIN but kernel-uuid command never completed within20s. Fresh SSH
+  banner timed out8s. USB heartbeat still arriving; observed stream has no fatal
+  eMMC/SIGBUS/CRASH records. Cause of lost userspace access remains unproved.
+  Do NOT reuse98-device/held: outstanding command framing is incomplete.
+- User confirmed ordinary reboot, no new flash/UART. Prepared/started PRIVATE
+  ssh-v90/check_graphics98b.py PID35028. Status audit/graphics98b-check.json,
+  log graphics98b-check.log, outputs graphics98b-device. Fresh boundary in
+  audit/graphics98b-reboot.json. Installed boot98/System95 unchanged.
+- Fresh worker waits for cold SSH, opens NEW retained shell, verifies exact98
+  UUID, uploads/readbacks GPR diag, window renderer9a1d6053 and final wake449eed2f.
+  It STOPS at prepared-shell-retained, NO automatic wake/capture/presentation.
+  Notify user with “смотри сейчас” immediately before running the ~10s window.
+  Check last current display ON/OFF and only send a power event if OFF.
+- Prior98 repeated-frame success is memory/submission evidence only; physical
+  output still unknown. No repeat succeeded in this turn yet. Cache experiment
+  remains reverted; do not seed it again or restart lsd based on its failed probe.
+
 ## Active98: real repeated frame completed; identity cache experiment rejected (2026-11-03 Minsk)
 
 - Installed boot98/System95 confirmed by actual SSH kernel UUID

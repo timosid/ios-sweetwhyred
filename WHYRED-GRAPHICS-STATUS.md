@@ -1,15 +1,20 @@
 # whyred graphics: measured boundary and next experiment
 
-Updated2026-11-03 Minsk. Installed boot98/System95, iOS20F66. Flash/reboot and
-actual SSH kernel UUID were verified. USB logging and retained root shell work.
-At the latest ~24min checkpoint the observed stream has no eMMC errors, crashes
-or RAMFS pressure. Recovery0175 has not been exercised by a physical read error.
+Updated2026-11-03 Minsk. Installed boot98/System95, iOS20F66. In fresh
+ordinary-reboot run98b, exact kernel UUID and helper uploads/readbacks passed.
+The user watched the repeated real-frame test and explicitly confirmed a white
+Apple logo on black on the phone. Capture-to-panel delivery therefore has a
+physical visible result. A functioning SpringBoard interface is still pending.
 
-Current real capture is still the Apple boot logo. A finite101-submission test
-copied that captured frame into panel memory at100ms intervals; user confirmation
-of visible output is pending. SpringBoard still waits for LaunchServices.
-The guarded MobileGestalt cache experiment failed its actual answer probe and
-was rolled back byte-for-byte. No lsd restart or persistent write occurred.
+SpringBoard waits for the LaunchServices store; fresh lsd samples advance from
+filesystem traversal to MobileGestalt queries. No permanent deadlock is proved.
+The earlier guarded identity-cache experiment failed its actual answer probe
+and was rolled back byte-for-byte. It was not repeated in98b.
+
+USB logs and read-only startup/VM samples continue privately. The observed98b
+stream has no fatal eMMC recovery, crash or RAMFS pressure so far; unsupported
+attribute and startup missing-file probes still occur. Recovery0175 has not been
+exercised by an actual read failure. This is not a long-run stability result.
 
 ## Actual physical results
 
@@ -24,7 +29,8 @@ was rolled back byte-for-byte. No lsd restart or persistent write occurred.
 | Entitled LCD PNG capture | White Apple boot logo on black, 1125 by 2436 | The server has a real boot scene. This is not a working SpringBoard interface. |
 | Stock framebuffer swaps | Surface 3 contains zero RGB and alpha and is copied to the panel | Captured server scene and stock scanout contents differ. |
 | Earlier97d one-frame presentation | Source/panel nonempty; user later reported backlit black | Submission and memory content did not establish visible output. |
-| Current98 repeated real-frame presentation | 101/101 successful queues; source RGB25,430, panel RGB21,674; 2,332,800 pixels copied | User observation of this exact test is pending; no visible-output claim. |
+| Earlier98a repeated real-frame presentation | 101/101 successful queues; source RGB25,430, panel RGB21,674; 2,332,800 pixels copied | User missed this window; no visible result for98a. |
+| Fresh98b repeat watched by user | Same real logo captured and copied;99 successful queues before30s child deadline | User explicitly confirms Apple logo on black: this capture-to-panel path produces a visible image. |
 
 Earlier captures and marker tests lacked the QuartzCore displayable-context and
 global-capture entitlements. Their transparent results were superseded by the
@@ -41,13 +47,17 @@ every user-observed black clear and those swaps has been established.
 
 `whyred-render-probe present-once` captures the actual LCD scene into its own
 IOSurface and submits it once through our existing AppleCLCD user client. It
-checks the exact installed v97 kernel UUID, display ID 0 and logical size
+checks the exact installed v97/v98 kernel UUID, display ID 0 and logical size
 1125 by 2436 before calling the custom swap selectors. The driver retains the
 queued surface. It changes neither daemon configuration nor renderer flags.
 
 The optional `present-window` repeats the same captured frame101 times at
 100ms intervals, then exits. It changes neither compositor settings nor daemon
-configuration. The actual98 test completed all101 submissions with exit0.
+configuration. Earlier98a completed all101 submissions with exit0; user missed
+that window. In98b, CPU contention extended the test to its30s child deadline:
+99 successful submissions were recorded before SIGTERM/exit124. During this
+exact repeat the user confirmed the visible logo. Do not report101 completions
+or exit0 for98b, or reinterpret that deadline as a failure to display the image.
 
 These are finite tests of capture-to-panel delivery, not a continuous
 rendering solution. A successful submission alone does not establish visible
