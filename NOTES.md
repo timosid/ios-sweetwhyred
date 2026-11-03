@@ -1,3 +1,52 @@
+## Named LCD context comparison prepared offline (2026-11-03 Minsk)
+
+- Still no phone commands; user retains the handset. Original remote marker used
+  display ID0, while capture targets LCD by name. Their equivalence was never
+  measured; an empty marker capture cannot by itself prove renderer failure.
+- Added remote-layer-lcd with exact exported kCAContextDisplayName and LCD,
+  retaining remote-layer ID0 for controlled comparison. Both now verify the
+  runtime contextId ABI and print actual context ID. Finally invalidation remains.
+  No renderer flag, daemon, System or boot changes. This is a diagnostic candidate,
+  NOT an observed graphics repair or proof that ID0 was wrong.
+- Native and simulator capture/remote commands now refuse before accessing a
+  display. Warning-clean native build with iOS IOSurface declaration fallback,
+  all3 host refusals and exact CPU layer/surface preservation checks pass.
+  CI workflow now executes those checks. Signed iOS build/device execution pending.
+- Further offline investigation: no direct intra-QuartzCore callers to exported
+  CARenderOGLNew/_New_ or software callback constructor were found (except wrapper
+  forwarding); this limited scan does not prove absence of indirect/cross-image
+  use. Private context-init and renderer-caller slices retained outside git.
+
+## Offline graphics investigation; phone taken by user (2026-11-03 Minsk)
+
+- User explicitly requested work without the phone. No subsequent phone commands,
+  SSH uploads or flashes. Local observer25904/shell27792 were already gone when
+  checked. Latest97b status: failed, samples27, last state0, SSH exit255. This
+  coincides with user taking the device; do not classify it as a new spontaneous
+  kernel/storage fault or a completed65min test. Passive UDP receiver may stay.
+  Private graphics-v98/user-offline-request.json preserves the boundary.
+- Authenticated read-only diag source4ead866d66553908e9f02f314441489832c9db48:
+  CI41531195903/job125571544548 all steps passed. Artifact13181273512 ZIP62132B
+  SHA2780c262495e7f7d6e092a28fbe864e29de9889fd8a20395118f0fc1c7f764e1;
+  binary72960B SHAa9ebd0d26b2f36a34ee28b8b53c4cafe457661a8d9e28e77f9a813fd10993c5c.
+  ZIP length/digest/CRC, report source/binary digest/length and strict signature
+  verified locally. Prepared graphics-v98/diag-region98; NOT uploaded/run on phone.
+- Offline display-discovery decode found exactly3 type-specific inventory paths,
+  not3 established renderer engines. Factory1883a3320 chooses LCD/TVOut using
+  display+9f2 bit8, set by display type; not a software bit. Concrete external-
+  update vtable slot58 ->1884f7d38 toggles display+251 bit80. Base slot is no-op.
+  No supported persistent software-server configuration has yet been established.
+- Exact saved lsd return chain19c54d6e4/d910/d320 ->19c547214 identifies an
+  IONetworkController wait, names sdio/wlan/marconi-wifi, caller timeout5seconds.
+  CFRunLoop imports resolved exactly, not nearest redacted export. The outer
+  semaphore wait is worker synchronization, not proof of an infinite MG query.
+  Missing ADT product/options are NOT the matching target of this saved sample.
+- Added WHYRED-GRAPHICS-STATUS.md with measured boundaries, guarded backend paths
+  and next bounded read-only experiment. No graphics fix claimed and no new
+  image built. Next actual hardware step only after user returns the phone:
+  cache identity/slide -> actual server global/object/vtable -> backend/context
+  routing, before proposing state mutation. Private disassembly remains outside git.
+
 ## Remote marker failed to reach server capture; read-only backend inspection prepared (2026-11-03 Minsk)
 
 - User explicitly requested continued graphics work. Exact remote-layer probe

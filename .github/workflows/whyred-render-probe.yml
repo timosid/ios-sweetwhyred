@@ -18,6 +18,16 @@ jobs:
         run: |
           mkdir -p out/render
           clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework IOSurface -o out/render/whyred-render-probe-native
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          b = str(Path('out/render/whyred-render-probe-native').resolve())
+          for mode in ('capture', 'remote-layer', 'remote-layer-lcd'):
+              p = subprocess.run([b, mode], capture_output=True, text=True, timeout=10)
+              assert p.returncode == 1 and 'requires the physical iOS target' in p.stdout and not p.stderr, (mode, p)
+          for mode in ('layer', 'surface'):
+              subprocess.run([b, mode], check=True, timeout=20)
+          PY
       - name: Build signed iOS diagnostic
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)

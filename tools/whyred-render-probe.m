@@ -37,6 +37,7 @@ extern void *IOSurfaceGetBaseAddress(IOSurfaceRef);
 + (id)remoteContextWithOptions:(NSDictionary *)options;
 - (void)setLayer:(CALayer *)layer;
 - (void)setLevel:(float)level;
+- (uint32_t)contextId;
 - (void)invalidate;
 @end
 
@@ -202,6 +203,10 @@ static int renderer_methods(void) {
 
 static size_t last_capture_marker_pixels;
 static int capture_display(void) {
+#if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
+    puts("WHYRED RENDER: display capture requires the physical iOS target");
+    return 1;
+#endif
     /* Same five-argument call used by this system's backboardd screenshot path.
      * The destination is our own surface; this does not present a frame. */
     typedef int (*RenderDisplay)(mach_port_t, CFStringRef, IOSurfaceRef, int, int);
@@ -242,12 +247,16 @@ static int capture_display(void) {
     return accepted && rgb && !kr ? 0 : 1;
 }
 
-static int remote_layer(void) {
+static int remote_layer(BOOL named_display) {
+#if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
+    puts("WHYRED RENDER: remote layer requires the physical iOS target");
+    return 1;
+#endif
     Class cls = objc_getClass("CAContext");
     if (!cls) return 1;
-    const char *names[] = {"remoteContextWithOptions:", "setLayer:", "invalidate"};
-    const char *types[] = {"@24@0:8@16", "v24@0:8@16", "v16@0:8"};
-    for (unsigned i = 0; i < 3; i++) {
+    const char *names[] = {"remoteContextWithOptions:", "setLayer:", "invalidate", "contextId"};
+    const char *types[] = {"@24@0:8@16", "v24@0:8@16", "v16@0:8", "I16@0:8"};
+    for (unsigned i = 0; i < 4; i++) {
         SEL sel = sel_registerName(names[i]);
         Method method = i ? class_getInstanceMethod(cls, sel) : class_getClassMethod(cls, sel);
         if (!method || strcmp(method_getTypeEncoding(method), types[i])) {
@@ -255,16 +264,19 @@ static int remote_layer(void) {
             return 1;
         }
     }
-    CFStringRef *display = dlsym(RTLD_DEFAULT, "kCAContextDisplayId");
+    /* Match the capture's LCD name explicitly in the named variant. Keep the
+     * original ID=0 command available for an otherwise identical comparison. */
+    CFStringRef *display = dlsym(RTLD_DEFAULT,
+                               named_display ? "kCAContextDisplayName" : "kCAContextDisplayId");
     CFStringRef *displayable = dlsym(RTLD_DEFAULT, "kCAContextDisplayable");
     CFStringRef *ignore = dlsym(RTLD_DEFAULT, "kCAContextIgnoresHitTest");
     if (!display || !*display || !displayable || !*displayable || !ignore || !*ignore) return 1;
     NSDictionary *options = @{
-        (__bridge NSString *)*display: @0,
+        (__bridge NSString *)*display: named_display ? (id)@"LCD" : (id)@0,
         (__bridge NSString *)*displayable: @YES,
         (__bridge NSString *)*ignore: @YES
     };
-    puts("WHYRED RENDER: remote context baseline");
+    printf("WHYRED RENDER: remote context baseline route=%s\n", named_display ? "name:LCD" : "id:0");
     (void)capture_display();
     size_t baseline_marker = last_capture_marker_pixels;
     id context = [cls remoteContextWithOptions:options];
@@ -272,6 +284,10 @@ static int remote_layer(void) {
     if (!context) return 1;
     int result = 1;
     @try {
+        uint32_t context_id = [context contextId];
+        printf("WHYRED RENDER: remote context id=%u route=%s\n", context_id,
+               named_display ? "name:LCD" : "id:0");
+        if (!context_id) return 1;
         CALayer *root = [CALayer layer];
         root.frame = CGRectMake(0, 0, 1125, 2436);
         CALayer *marker = [CALayer layer];
@@ -309,8 +325,9 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
             if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
             if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display();
-            if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer();
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | remote-layer\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO);
+            if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES);
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | remote-layer | remote-layer-lcd\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
