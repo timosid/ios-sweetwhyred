@@ -1,3 +1,14 @@
+## Development identity tool iOS SDK correction (2026-11-03 Minsk)
+
+- Candidate f8bb612af48e7953b65d2ada7c9cae340e8bd505 CI41658525007 /
+  job125995235395 FAILED: gethostuuid unavailable on iOS. No candidate uploaded
+  or cache written. Replaced that SDK-disallowed API with read-only IOKit
+  IOPlatformExpertDevice.IOPlatformUUID, then NSUUID validation. This is the
+  existing generated platform UUID (local XNU IOPlatformExpert.cpp), not a new
+  device identity source or simulated network service. Missing value fails closed.
+- Native warning-clean compile and all3 physical target guards retested. Actual
+  cache write, MG probe, lsd restart and UI improvement remain UNTESTED.
+
 ## IPC correlation rejects queued-reply guess; actual missing identity keys (2026-11-03 Minsk)
 
 - GPR helper02b54fd6983d8744c88cabcd1b20bc85e411a2d8 CI41656697790 /

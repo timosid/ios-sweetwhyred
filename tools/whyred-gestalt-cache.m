@@ -25,8 +25,25 @@ static NSString *digest(NSData *data) {
     CC_SHA256(data.bytes, (CC_LONG)data.length, bytes); return hex(bytes, sizeof(bytes));
 }
 static NSData *developmentID(void) {
-    uuid_t uuid = {0}, zero = {0}; struct timespec timeout = {1, 0};
-    if (gethostuuid(uuid, &timeout) || !memcmp(uuid, zero, sizeof(uuid))) return nil;
+    /* Read the existing platform UUID directly. gethostuuid is unavailable in
+     * the iOS SDK and can apply process-specific fallback policy. */
+    uuid_t uuid = {0}, zero = {0};
+    void *library = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_LOCAL);
+    CFMutableDictionaryRef (*matching)(const char *) = library ? dlsym(library, "IOServiceMatching") : NULL;
+    uint32_t (*serviceForMatch)(uint32_t, CFDictionaryRef) = library ? dlsym(library, "IOServiceGetMatchingService") : NULL;
+    CFTypeRef (*property)(uint32_t, CFStringRef, CFAllocatorRef, uint32_t) = library ? dlsym(library, "IORegistryEntryCreateCFProperty") : NULL;
+    int (*releaseService)(uint32_t) = library ? dlsym(library, "IOObjectRelease") : NULL;
+    if (!matching || !serviceForMatch || !property || !releaseService) { if (library) dlclose(library); return nil; }
+    CFMutableDictionaryRef match = matching("IOPlatformExpertDevice");
+    uint32_t service = match ? serviceForMatch(0, match) : 0;
+    id value = service ? CFBridgingRelease(property(service, CFSTR("IOPlatformUUID"), kCFAllocatorDefault, 0)) : nil;
+    if (service) releaseService(service);
+    dlclose(library);
+    if (![value isKindOfClass:NSString.class]) return nil;
+    NSUUID *platform = [[NSUUID alloc] initWithUUIDString:value];
+    if (!platform) return nil;
+    [platform getUUIDBytes:uuid];
+    if (!memcmp(uuid, zero, sizeof(uuid))) return nil;
     NSMutableData *input = [[@"whyred-development-identity-v1:" dataUsingEncoding:NSUTF8StringEncoding] mutableCopy];
     [input appendBytes:uuid length:sizeof(uuid)];
     unsigned char bytes[CC_SHA1_DIGEST_LENGTH];
