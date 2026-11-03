@@ -28,7 +28,7 @@ static NSData *developmentID(void) {
     /* Read the existing platform UUID directly. gethostuuid is unavailable in
      * the iOS SDK and can apply process-specific fallback policy. */
     uuid_t uuid = {0}, zero = {0};
-    void *library = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW | RTLD_LOCAL);
+    void *library = dlopen("/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit", RTLD_NOW | RTLD_LOCAL);
     CFMutableDictionaryRef (*matching)(const char *) = library ? dlsym(library, "IOServiceMatching") : NULL;
     uint32_t (*serviceForMatch)(uint32_t, CFDictionaryRef) = library ? dlsym(library, "IOServiceGetMatchingService") : NULL;
     CFTypeRef (*property)(uint32_t, CFStringRef, CFAllocatorRef, uint32_t) = library ? dlsym(library, "IORegistryEntryCreateCFProperty") : NULL;

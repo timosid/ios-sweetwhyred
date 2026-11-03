@@ -1,3 +1,21 @@
+## Retained-shell transfer prepared; exact IOKit cache path corrected (2026-11-03 Minsk)
+
+- Source721de172968684e14bf53159dfbf752334dd2012 CI41658918789 all steps PASS;
+  artifact13240003682 ZIP36116B SHA50a4042d1dd82a3b28f264c090b81aa69e6511db26c7de73c8ae57c75629e8c5,
+  binary90512B SHA4d0debc184754959b6aeba8d802e8703ad36ea7536e22a24f98350854c81f3ab.
+  Digest/length/CRC/source/platform/ISA/signature/exact entitlements verified.
+  NOT uploaded: fresh SSH stalled at banner exchange, SCP refused before data.
+  Cache remains unchanged, no lsd restart. Actual retained kernel read still works.
+- Exact preserved cache inventory uses IOKit.framework/Versions/A/IOKit; corrected
+  explicit dlopen path before testing, rather than assuming the unversioned alias.
+  Signed rebuilt tool pending. Root stat command exceeded60s but eventually
+  completed both ENOENT results and its end marker; shell is not abandoned.
+- Private persistent_scp.py transfers through existing shell using SCP C/E records,
+  checked exact Dropbear sink behavior. Actual native dash+scp/FIFO test PASS on
+ 131106 bytes including binary and shell-looking text, mode0755 and exact bytes;
+  subsequent framed shell command succeeds. No phone transfer with this utility
+  yet. This avoids requiring new root authentication, not a general SSH fix.
+
 ## Development identity tool iOS SDK correction (2026-11-03 Minsk)
 
 - Candidate f8bb612af48e7953b65d2ada7c9cae340e8bd505 CI41658525007 /
