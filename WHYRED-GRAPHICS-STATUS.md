@@ -1,8 +1,11 @@
 # whyred graphics: measured boundary and next experiment
 
 Updated 2026-11-03 Minsk. Installed baseline: boot v97 / System v95, iOS 20F66.
-The phone has returned. After a Mac crash, passive USB logging was restored and
-an ordinary phone reboot was requested to recover SSH. No partition was written.
+The phone returned and was ordinarily rebooted after a Mac crash. Passive USB
+logging and a retained SSH session were recovered. No partition was written.
+Later, new SSH logins stopped answering at banner exchange and a transfer in the
+retained session received no initial acknowledgment for 150 seconds. Another
+ordinary reboot has been requested. The identity cache remains unchanged.
 Graphics is still unresolved: the user sees console text and occasional black
 clears with the backlight on.
 
@@ -18,6 +21,7 @@ clears with the backlight on.
 | Entitled named LCD marker | Exactly 1,024 red marker pixels reach capture | Server CPU composition and remote context routing work for this test. |
 | Entitled LCD PNG capture | White Apple boot logo on black, 1125 by 2436 | The server has a real boot scene. This is not a working SpringBoard interface. |
 | Stock framebuffer swaps | Surface 3 contains zero RGB and alpha and is copied to the panel | Captured server scene and stock scanout contents differ. |
+| Explicit real-frame presentation | Surface 5 has 25,430 RGB pixels; all 2,332,800 panel pixels copied; panel becomes nonempty | The guarded capture-to-panel path works in this test. Visible screen confirmation is pending. |
 
 Earlier captures and marker tests lacked the QuartzCore displayable-context and
 global-capture entitlements. Their transparent results were superseded by the
@@ -39,9 +43,11 @@ checks the exact installed v97 kernel UUID, display ID 0 and logical size
 queued surface. It changes neither daemon configuration nor renderer flags.
 
 This is a single-frame test of capture-to-panel delivery, not a continuous
-rendering solution. A successful submission alone will not establish visible
-panel output or a repaired interface. Require driver source/panel measurements
-and the user's actual screen observation.
+rendering solution. A successful submission alone does not establish visible
+panel output or a repaired interface. In fresh run 97d the driver measured the
+expected source contents and copied the frame, and the panel measurement became
+nonempty. Console writes raced with that measurement. The user's actual screen
+confirmation remains pending; no repaired SpringBoard interface is claimed.
 
 The initial iOS build failed because `mach_task_self` depended on a transitive
 header available only in the desktop build. An explicit Mach header fixes it.
@@ -51,7 +57,8 @@ Artifact digest, length, ZIP CRC, report source, binary digest, iOS platform,
 ISA, strict signature and the exact two-entitlement set were checked locally.
 The signed binary is 93,760 bytes, SHA256
 `9b0a77d5394de0987aa0313ee3a0d63578b9d1318ebd37e4f00aec4640fb7091`.
-Physical execution is pending restored SSH after the requested reboot.
+Physical execution passed in run 97d: exit 0, surface 5, swap 5, expected source
+RGB count and full-panel copy. This is a one-frame result.
 
 ## SpringBoard startup is a separate remaining blocker
 
@@ -64,8 +71,9 @@ exact cache stubs, not inferred from a distant nearest exported symbol.
 
 This identifies a LaunchServices database-store acquisition wait. It does not
 yet identify why the server has not supplied that store, prove a permanent
-seeding loop, or establish a new lsd crash. Fresh lsd/SpringBoard samples and
-store/connection state are the next read-only checks after panel delivery.
+seeding loop, or establish a new lsd crash. Fresh lsd/SpringBoard samples reproduced the store wait. lsd subsequently
+advanced from a UserManagement query to a MobileGestalt hardware lookup, so the
+samples do not establish a permanent IPC deadlock.
 
 ## Read-only server inspection
 
@@ -93,9 +101,10 @@ itself establish a persistent software-compositor configuration.
 
 Stock backboardd initially passes true for
 `kCAWindowServerDisableUpdatesOnMainDisplay`, then sets renderer flags to 3.
-Overlay handling later enables and disables updates. The actual live gate has
-not been read. Do not blindly clear it or call an external-update method solely
-because its selector mentions software rendering.
+Overlay handling later enables and disables updates. The actual getter tests bit 8 of the 16-bit field at display `+0x251`. In run
+97d all four display gates were false; LCD flags were `0x12ec`, with the separate
+software-capture bit `0x80` set. A forgotten update-disable gate does not explain
+the blank stock swaps in this snapshot. No gate was changed.
 
 ## Earlier MobileGestalt sample
 
@@ -108,3 +117,37 @@ service to satisfy this observation.
 
 Private task snapshots, disassembly, PNGs, logs, keys and downloaded Apple bytes
 remain outside Git. Exact source/CI/artifact history is retained in NOTES.md.
+
+## Exact identity dependency and next bounded test
+
+Read-only lsd stack constants identify `UniqueDeviceID` / `UniqueDeviceIDData`
+calling through `WifiAddress` / `WifiAddressData`. Each obfuscated key was
+matched against its exact MD5-derived key. The volatile MobileGestalt cache
+exists with version 20F66 and 33 extra answers, but none of these four keys.
+The port has no functioning Wi-Fi driver. Repeated hardware-query waits are a
+concrete dependency to investigate; they have not yet been proved to be the only
+reason the store has not been supplied.
+
+Queue diagnostics found 120 queued messages among 512 of launchd's 514 receive
+rights, and 36 in lsd. They were not the reply port on which SpringBoard was
+waiting: its actual mach_msg2 receive name was `0x4303`, whose queue was empty.
+The earlier queued-reply hypothesis was rejected. Counts alone must not be called
+a lost-wakeup bug or a broken IPC implementation.
+
+`whyred-gestalt-cache` is an explicit, reversible RAMFS experiment. It requires
+root, the exact v97 kernel UUID, the fixed existing cache on `whyredramfs`, a
+single-link regular file, version 20F66 and the current SHA256 supplied by the
+caller. It adds only two development-identity answers derived from the existing
+IOPlatformUUID. It creates an original backup, replaces atomically and restores
+ownership and permissions. Probe verifies the actual MobileGestalt answers
+without printing identity values. Rollback restores the original bytes. No Wi-Fi
+service or physical network address is invented, and no persistent partition is
+written. A successful probe is required before restarting lsd.
+
+The final candidate source `b242eb47248d501fde328370c226dc1858f8a38e` passed CI
+[41660019245](https://github.com/timosid/ios-sweetwhyred/actions/runs/41660019245).
+The signed binary is 90,512 bytes, SHA256
+`3356f566f223beca159668fbe2f216c4eeefb2f80a1d1f52ae22daacefc95119`.
+Provenance, archive integrity, iOS platform, ISA and exact signature rights were
+verified. This candidate has NOT been uploaded or executed. Cache writes and
+lsd restarts have NOT occurred. The next test requires recovered phone access.

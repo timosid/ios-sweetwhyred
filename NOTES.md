@@ -1,3 +1,36 @@
+## Current stop: phone access stalled, no identity-cache change (2026-11-03 Minsk)
+
+- Final tool source b242eb47248d501fde328370c226dc1858f8a38e CI41660019245 /
+  job126000441380 ALL steps pass. Artifact13242030669 ZIP36123B
+  SHA9b16cd30f08a1bd754cc8aa8c9e73752f25d3577fbd66ec0cbf0ea1d7aec9546;
+  binary90512B SHA3356f566f223beca159668fbe2f216c4eeefb2f80a1d1f52ae22daacefc95119.
+  All archive/provenance/report/platform/ISA/signature/exact rights checks passed.
+  Native final path build and host refusal pass. Candidate PRIVATE graphics-v98/
+  gestalt-path98. NOT uploaded/run; cache remains byte-for-byte unmodified.
+- Fresh login with ConnectTimeout60 failed255 before root identity. Original
+  SCP attempt failed at banner before payload. Retained-shell tiny SCP test
+  waited150s without its FIRST acknowledgment: no C record or file payload sent.
+  audit/graphics97d-held-transfer.json is failed-protocol-review-required.
+  Last session-log suffix is WHYRED_SCP_e9ce42d320f3d80db2d3ed525ddce07f_BEGIN only.
+  Do NOT issue framed shell commands into this session while sink state is
+  uncertain. No successful phone use of persistent_scp.py claimed.
+- User asked for ordinary reboot, USB attached, UART unnecessary. Await answer;
+  no second reboot/flash performed. Earlier optional visible-logo question also
+  unanswered. USB receiver2488 continues audit/graphics97d-usb-session.log.
+- Prepared PRIVATE ssh-v90/check_graphics97e.py, syntax checked, NOT launched:
+  create fresh audit/graphics97e-device before launch; fresh pinned root shell,
+  exact97 UUID, authenticated GPR diag and FINAL gestalt-path98 tool uploads,
+  fresh original cache read/hash, guarded seed, exact2-key delta/backup check,
+  actual mobile MG probe; automatic exact rollback on a completed failed probe.
+  It deliberately does NOT restart lsd: inspect passing result first, then use
+  freshly verified PID. On timeout, review outstanding command before any reuse.
+- Next after user's ordinary reboot (or verified Fastboot reboot, NO flash):
+  record new log boundary, launch fresh97e worker, inspect MG probe. Only after
+  it passes, restart actual lsd and observe SpringBoard/real server capture and
+  physical presentation. Prior cache/graphical scene not a final UI repair.
+- Updated WHYRED-GRAPHICS-STATUS.md to reflect actual one-frame presentation,
+  false update gates, rejected queued-reply guess and exact identity dependency.
+
 ## Retained-shell transfer prepared; exact IOKit cache path corrected (2026-11-03 Minsk)
 
 - Source721de172968684e14bf53159dfbf752334dd2012 CI41658918789 all steps PASS;
