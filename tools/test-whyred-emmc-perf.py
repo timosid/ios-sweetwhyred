@@ -97,6 +97,7 @@ def main():
                       'preflight mismatch and multiblock rejection',
                       'runtime recovery/reread and unrecoverable rejection',
                       'completion resampled after a scheduling delay at deadline',
+                      'late CMD17 FIFO readiness requires clean fresh status and full exact transfer',
                       'baseline CMD17 recovery and batch-then-baseline transient errors',
                       'CMD12 timeout latch reset, CMD13 retry and rejection of unsafe status',
                       'transient illegal STOP status requires a clean second CMD13 and fresh exact reread',

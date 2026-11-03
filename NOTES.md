@@ -1,3 +1,34 @@
+## Active98c ordinary reboot for requested screen retry; late-ready candidate (2026-11-03 Minsk)
+
+- User CONFIRMED ordinary reboot after98b stall; no flash/UART. Recorded fresh
+  audit/graphics98c-reboot.json boundary3617040. Started PRIVATE
+  ssh-v90/check_graphics98c.py PID44399, status graphics98c-check.json, outputs
+  graphics98c-device. It waits for cold root SSH, NEW held shell, exact98 UUID,
+  full uploads/readbacks of diag2a276d3f/window9a1d6053/new wake17f8f28e, then
+  stops prepared-shell-retained. No automatic display request yet. USB2488 live.
+  Early fresh98c telemetry errors0/XO1/multi0. Installed boot98/System95 unchanged.
+- NEXT PRIMARY ACTION: when observer prepared, use NEW held shell only. Notify
+  user immediately; run new wake tool panel-on and verify display-on, then mobile
+  renderer present-window for actual current scene. If RGB0, no real image can
+  be claimed. Request actual user observation. Do NOT reflash merely for this.
+- While waiting, investigated98b FIFO512/int20/present01f80af6 read-ready failure.
+  This is consistent with descheduling after an empty readiness sample and
+  before deadline check; not uniquely proved on hardware. Existing0170 rechecks
+  command/DATA_END completion, but CMD17 FIFO-readiness loop lacked that guard.
+- Candidate0176 re-samples INT_STATUS/PRESENT_STATE ONCE when FIFO readiness
+  wait expires. Only clean freshly ready FIFO proceeds through existing full
+  512-byte drain/DATA_END/no-inhibit/empty-FIFO checks. Still-unready or hardware
+  error rejects. No wait extension, clock change, fabricated data or media write.
+- New deterministic model reenacts ready arriving after empty sample while CPU
+  exceeds its deadline; requires full byte-exact sector, guards intact, no CMD12/
+  CMD13/recovery. Additional late hardware-error and still-unready cases reject
+  without modifying output. Patched actual driver functions PASS4826 checks;
+  unmodified98 fails specifically clean late-ready case (negative control direct
+  exported-function line verified). Patch applies cleanly to98. Actual full
+  driver ARM64 compile with98 generated headers passes; private
+  kernel-v99-late-ready/{checks,negative-old,compile.json}. This is a candidate,
+  NOT a proven physical cause/fix or an installed kernel. Full CI pending.
+
 ## Current98b screen retry blocked by storage; ordinary reboot requested (2026-11-03 Minsk)
 
 - Direct panel-on source cf254ab165f0f3750364facd4494db9bc6ecba1f passed ALL CI

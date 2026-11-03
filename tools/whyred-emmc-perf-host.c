@@ -48,6 +48,7 @@ static uint64_t timer;
 /* A device completion arriving while the polling CPU is descheduled. */
 static int late_response,late_armed,late_counter;
 static uint32_t late_status;
+static int late_ready_mode,late_ready_hidden,late_ready_counter;
 static uint64_t test_frequency=19200000;
 static int fail_cmd23,fail_cmd18,fail_data,fail_single,missing_end,early_end,corrupt_xo;
 static int end_delay,end_delay_left,active_cmd;
@@ -60,7 +61,16 @@ static uint16_t clock_register=0xc0c7;
 static uint32_t test_checks;
 static uint8_t guarded[64+65536+64];
 
-static uint64_t whyred_emmc_counter(void){timer+=1000;if(late_counter){timer+=200000;status=late_status;late_counter=0;}return timer;}
+static uint64_t whyred_emmc_counter(void){
+    timer+=1000;
+    if(late_counter){timer+=200000;status=late_status;late_counter=0;}
+    if(late_ready_counter){
+        timer+=200000;late_ready_counter=0;
+        if(late_ready_mode!=3)late_ready_hidden=0;
+        if(late_ready_mode==2)status|=0x00208000U;
+    }
+    return timer;
+}
 static uint64_t whyred_emmc_timeout_ticks(void){return 100000;}
 static void whyred_emmc_delay_us(uint32_t n){timer+=n*20+1;}
 static uint32_t pattern_word(uint32_t lba,uint32_t word){return 0x91827364U^(lba*0x1020305U)^(word*0x03030303U);}
@@ -88,6 +98,7 @@ static uint32_t whyred_emmc_read32(volatile uint8_t *b,unsigned o)
         if(o==SDHCI_PRESENT_STATE){
             if(commands[13] && status_present_fault)return status_present_fault;
             if(command_latched)return SDHCI_PSTATE_CMD_INHIBIT;
+            if(active_count&&late_ready_hidden){late_ready_counter=1;return 0;}
             if(active_count)return SDHCI_PSTATE_DATA_AVAILABLE;
             if(end_delay_left>0){end_delay_left--;return 3;}
             return 0;
@@ -120,7 +131,11 @@ static void whyred_emmc_write32(volatile uint8_t *b,unsigned o,uint32_t v)
         if(o==0x2c){update_writes++;command_register=(fail_update==2||(fail_update==1&&update_writes==1))?v:(v&~1U);return;}
         bad_commands++;return; /* No PLL, branch-enable or other GCC write allowed. */
     }
-    if(o==SDHCI_INT_STATUS){status&=~v;return;}
+    if(o==SDHCI_INT_STATUS){
+        status&=~v;
+        if(v==SDHCI_INT_RESPONSE&&active_cmd==17&&late_ready_mode)late_ready_hidden=1;
+        return;
+    }
     for(unsigned n=0;n<4;n++)b[o+n]=(uint8_t)(v>>(n*8));
 }
 static void whyred_emmc_write16(volatile uint8_t *b,unsigned o,uint16_t v)
@@ -191,7 +206,8 @@ static void reset_model(void)
     memset(commands,0,sizeof(commands));memset(&whyred_emmc_perf,0,sizeof(whyred_emmc_perf));
     memset(guarded,0xa5,sizeof(guarded));memset(whyred_gpt_parts,0,sizeof(whyred_gpt_parts));
     status=response=active_lba=active_count=active_word=card_count=bad_commands=mmio_writes=0;
-    timer=0;late_response=late_armed=late_counter=0;late_status=0;fail_cmd23=fail_cmd18=fail_data=fail_single=missing_end=early_end=corrupt_xo=0;
+    timer=0;late_response=late_armed=late_counter=0;late_status=0;
+    late_ready_mode=late_ready_hidden=late_ready_counter=0;fail_cmd23=fail_cmd18=fail_data=fail_single=missing_end=early_end=corrupt_xo=0;
     active_cmd=end_delay=end_delay_left=0;
     fail_update=update_writes=clock_delay=card_delay=stuck_card=fault_reset=map_failed=0;
     stop_timeouts=status_timeouts=command_latched=status_illegal_once=0;card_status=0x900;status_present_fault=status_fifo_fault=0;
@@ -230,6 +246,19 @@ int whyred_perf_late_poll_checks(void)
     late_armed=1;late_status=SDHCI_INT_RESPONSE|SDHCI_INT_DATA_AVAILABLE;
     CHECK(whyred_emmc_wait_status(host_bytes,SDHCI_INT_RESPONSE,start,100000,&observed)==0);
     CHECK(observed==0x21U&&timer-start>=100000&&mmio_writes==0);
+    /* FIFO becomes ready after an empty sample, while the polling CPU loses
+     * longer than its timeout. A final ready/error sample distinguishes this
+     * from a real timeout without issuing recovery or accepting partial data. */
+    reset_model();late_ready_mode=1;
+    CHECK(whyred_emmc_read_sector(&whyred_emmc_live_io,67,guarded+64)==0);
+    CHECK(data_ok(guarded+64,67,1)&&guards_ok(512)&&commands[17]==1);
+    CHECK(commands[12]==0&&commands[13]==0&&active_count==0&&status==0);
+    reset_model();late_ready_mode=2;
+    CHECK(whyred_emmc_read_sector(&whyred_emmc_live_io,67,guarded+64)!=0);
+    CHECK(guards_ok(0)&&active_count==1&&commands[17]==1); /* late CRC error is not data */
+    reset_model();late_ready_mode=3;
+    CHECK(whyred_emmc_read_sector(&whyred_emmc_live_io,67,guarded+64)!=0);
+    CHECK(guards_ok(0)&&active_count==1&&commands[17]==1); /* FIFO still unavailable */
     reset_model();late_response=1;
     CHECK(whyred_emmc_read_sector(&whyred_emmc_live_io,67,guarded+64)==0);
     CHECK(data_ok(guarded+64,67,1)&&guards_ok(512)&&commands[17]==1);
