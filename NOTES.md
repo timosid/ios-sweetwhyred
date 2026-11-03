@@ -1,3 +1,28 @@
+## Actual server PNG shows Apple boot logo; one-shot CPU presentation prepared (2026-11-03 Minsk)
+
+- User reports console text with occasional clears to backlit black. Existing
+  current97c FB logs independently show source3 RGB0/alpha0 copied to panel on
+  swaps4/7/10/13. No exact timestamp match to each user observation claimed.
+- PNG helper source98d9a5b946ac3d8de4a3776f9b252317274fed89, CI41649429775 /
+  job125963367270 all steps pass. Artifact13236617252 ZIP106157B
+  SHAa404d52c692bd7c12a2781fb1adcefa6fbc8d5b779498b1576381ff8fea08e84;
+  binary93488B SHAa21e48060343da4613c758e4af3c075c7245a128f8308049908c916d53547531.
+  Source/digest/length/CRC/platform/ISA/signature/entitlements and exact upload
+  readback verified. Physical capture-png exit0:62639B PNG1125x2436, viewed locally:
+  real WHITE APPLE BOOT LOGO on black, not console or a synthesized test image.
+  Private audit/graphics97c-device/capture-lcd.png, do not commit image/bytes.
+- Actual SpringBoard thread sample still main CoreServices/ControlCenter wait,
+  another syncXPC through CoreServices/Foundation. Backboard render/MIG/runloops
+  present. No proved identity of waited-on service. Private corrected97c cache
+  slide symbolication saved; large nearest-export offsets NOT treated as names.
+- Added explicit present-once, only for exact running97 UUID, using PUBLIC IOKit
+  C ABI and our custom framebuffer selectors4/5/7/8 (layout source-reviewed).
+  Captures real LCD into own IOSurface, verifies displayID0 and1125x2436, queues
+  it as layer0 with full source/destination rects. Driver retains surface. No
+  invented UI, renderer flags, daemon changes or partition writes. This is only
+  a one-frame test, not continuous UI rendering. Native warning-clean build and
+  host refusal pass; signed iOS CI/physical presentation pending.
+
 ## Entitled remote marker PASSES on phone97c; image export prepared (2026-11-03 Minsk)
 
 - Corrected ONLY diagnostic signature with2 exact QuartzCore entitlements.

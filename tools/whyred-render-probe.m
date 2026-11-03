@@ -1,5 +1,6 @@
 /* Bounded developer graphics probes. Bitmap/capture modes do not present frames.
  * Explicit remote-layer creates and invalidates one small visible test layer.
+ * Explicit present-once queues one real server capture on the verified whyred97 framebuffer.
  * No files, renderer configuration or daemon changes. */
 #import <Foundation/Foundation.h>
 #import <CoreImage/CoreImage.h>
@@ -20,6 +21,7 @@ extern kern_return_t IOSurfaceUnlock(IOSurfaceRef, uint32_t, uint32_t *);
 extern size_t IOSurfaceGetWidth(IOSurfaceRef), IOSurfaceGetHeight(IOSurfaceRef);
 extern size_t IOSurfaceGetBytesPerRow(IOSurfaceRef);
 extern void *IOSurfaceGetBaseAddress(IOSurfaceRef);
+extern uint32_t IOSurfaceGetID(IOSurfaceRef);
 
 #endif
 #import <TargetConditionals.h>
@@ -33,6 +35,7 @@ extern void *IOSurfaceGetBaseAddress(IOSurfaceRef);
 #include <dlfcn.h>
 #include <objc/runtime.h>
 #include <unistd.h>
+#include <sys/sysctl.h>
 
 @interface NSObject (WhyredContextProbe)
 + (id)remoteContextWithOptions:(NSDictionary *)options;
@@ -203,7 +206,62 @@ static int renderer_methods(void) {
 }
 
 static size_t last_capture_marker_pixels;
-static int capture_display(BOOL export_png) {
+static int present_surface(IOSurfaceRef surface) {
+    /* Public IOKit C ABI; selector/record layout belongs to our own driver.
+     * Fail closed before accessing an incompatible installed kernel. */
+    char uuid[80] = {0}; size_t uuid_size = sizeof(uuid);
+    if (sysctlbyname("kern.uuid", uuid, &uuid_size, NULL, 0) ||
+        strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0")) {
+        puts("WHYRED RENDER: present refused incompatible kernel"); return 1;
+    }
+    typedef uint32_t IOName;
+    CFMutableDictionaryRef (*matching)(const char *) = dlsym(RTLD_DEFAULT, "IOServiceMatching");
+    IOName (*get_service)(mach_port_t, CFDictionaryRef) = dlsym(RTLD_DEFAULT, "IOServiceGetMatchingService");
+    kern_return_t (*open_service)(IOName, mach_port_t, uint32_t, IOName *) = dlsym(RTLD_DEFAULT, "IOServiceOpen");
+    kern_return_t (*release_object)(IOName) = dlsym(RTLD_DEFAULT, "IOObjectRelease");
+    kern_return_t (*close_service)(IOName) = dlsym(RTLD_DEFAULT, "IOServiceClose");
+    kern_return_t (*scalar)(IOName, uint32_t, const uint64_t *, uint32_t, uint64_t *, uint32_t *) =
+        dlsym(RTLD_DEFAULT, "IOConnectCallScalarMethod");
+    kern_return_t (*structure)(IOName, uint32_t, const void *, size_t, void *, size_t *) =
+        dlsym(RTLD_DEFAULT, "IOConnectCallStructMethod");
+    if (!matching || !get_service || !open_service || !release_object || !close_service || !scalar || !structure) return 1;
+    CFMutableDictionaryRef match = matching("AppleCLCD");
+    if (!match) return 1;
+    IOName service = get_service(MACH_PORT_NULL, match), connection = 0;
+    if (!service) return 1;
+    kern_return_t kr = open_service(service, mach_task_self(), 0, &connection);
+    release_object(service);
+    if (kr) return 1;
+    int result = 1;
+    uint64_t values[2] = {0}; uint32_t count = 1;
+    kr = scalar(connection, 7, NULL, 0, values, &count);
+    if (kr || count != 1 || values[0] != 0) goto done;
+    count = 2;
+    kr = scalar(connection, 8, NULL, 0, values, &count);
+    if (kr || count != 2 || values[0] != 1125 || values[1] != 2436) goto done;
+    count = 1;
+    kr = scalar(connection, 4, NULL, 0, values, &count);
+    if (kr || count != 1 || values[0] > UINT32_MAX) goto done;
+    {
+        uint32_t id = IOSurfaceGetID(surface), swap = (uint32_t)values[0];
+        if (!id) goto done;
+        uint8_t record[0x46c] = {0};
+        uint32_t set = 1, clear = 0xe, rect[4] = {0, 0, 1125, 2436};
+        memcpy(record + 0x50, &swap, 4); memcpy(record + 0x54, &id, 4);
+        memcpy(record + 0x64, rect, sizeof(rect)); memcpy(record + 0xc4, rect, sizeof(rect));
+        memcpy(record + 0x104, &set, 4); memcpy(record + 0x108, &clear, 4);
+        size_t output_size = 0;
+        kr = structure(connection, 5, record, sizeof(record), NULL, &output_size);
+        printf("WHYRED RENDER: real capture queued swap=%u surface=%u kr=0x%x presentation_requested=%d\n",
+               swap, id, kr, kr == KERN_SUCCESS);
+        result = kr != KERN_SUCCESS;
+    }
+done:
+    close_service(connection);
+    return result;
+}
+
+static int capture_display(BOOL export_png, BOOL present_once) {
 #if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
     puts("WHYRED RENDER: display capture requires the physical iOS target");
     return 1;
@@ -265,9 +323,11 @@ static int capture_display(BOOL export_png) {
         if (provider) CGDataProviderRelease(provider);
         if (space) CGColorSpaceRelease(space);
     }
+    BOOL presented = !present_once;
+    if (present_once && accepted && rgb) presented = present_surface(surface) == 0;
     kr = IOSurfaceUnlock(surface, 0, NULL);
     CFRelease(surface);
-    return accepted && rgb && exported && !kr ? 0 : 1;
+    return accepted && rgb && exported && presented && !kr ? 0 : 1;
 }
 
 static int remote_layer(BOOL named_display) {
@@ -300,7 +360,7 @@ static int remote_layer(BOOL named_display) {
         (__bridge NSString *)*ignore: @YES
     };
     printf("WHYRED RENDER: remote context baseline route=%s\n", named_display ? "name:LCD" : "id:0");
-    (void)capture_display(NO);
+    (void)capture_display(NO, NO);
     size_t baseline_marker = last_capture_marker_pixels;
     id context = [cls remoteContextWithOptions:options];
     printf("WHYRED RENDER: remote context created=%d\n", context != nil);
@@ -325,7 +385,7 @@ static int remote_layer(BOOL named_display) {
         [CATransaction flush];
         puts("WHYRED RENDER: remote marker submitted temporary=1 ignores_hit_test=1");
         usleep(1000000);
-        result = capture_display(NO);
+        result = capture_display(NO, NO);
         printf("WHYRED RENDER: remote marker baseline=%zu after=%zu\n",
                baseline_marker, last_capture_marker_pixels);
         if (last_capture_marker_pixels < baseline_marker + 900) result = 1;
@@ -347,11 +407,12 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "layer")) return layer_bitmap();
             if (argc == 2 && !strcmp(argv[1], "surface")) return surface_bitmap();
             if (argc == 2 && !strcmp(argv[1], "methods")) return renderer_methods();
-            if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display(NO);
-            if (argc == 2 && !strcmp(argv[1], "capture-png")) return capture_display(YES);
+            if (argc == 2 && !strcmp(argv[1], "capture")) return capture_display(NO, NO);
+            if (argc == 2 && !strcmp(argv[1], "capture-png")) return capture_display(YES, NO);
+            if (argc == 2 && !strcmp(argv[1], "present-once")) return capture_display(NO, YES);
             if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO);
             if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES);
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | remote-layer | remote-layer-lcd\n", stderr);
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | remote-layer | remote-layer-lcd\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
