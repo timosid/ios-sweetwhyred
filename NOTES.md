@@ -1,3 +1,102 @@
+## Boot98 authenticated and ready;97e storage failure after HID wake (2026-11-03 Minsk)
+
+- Installed still boot97/System95. User reports console clears, no interface
+  after test. Do NOT claim working visible logo/UI. Physical key still unsupported.
+- Actual guarded HID helper ba80a653c024407b3dfab8cd25101ccf9b5e7d18,
+  CI41671434692/job126040535199 ALL steps PASS. Artifact13248107726 ZIP21230B
+  SHAa58a8cb5c97aa2ddec611453224540096a88efd84c44aab42b171a367aff15ed;
+  binary69920B SHA3fe413a4713d96637c8dfd8294900f3134d4310197954dc9f273cfda30c89015.
+  Provenance/archive/platform/ISA/strict signature/exact2 HID rights verified;
+  upload/readback/exact97 kernel PASS. ONE diagnostic power down/up100ms through
+  existing SweetHIDButtons sender produced actual SWEET FB: display on. Public
+  Apple IOHIDFamily monitor/entitlement examples and exact20F66 ABI reviewed.
+  This is remote diagnostic input, not an implemented physical key driver.
+- Earlier unblank helper3975952 source CI41670889270/job126038611872 all PASS,
+  artifact13247038757 ZIP15022B SHA17b91583e2a896d402c64edae40651712a8adacbbd96d6da884e56a5415d36a9,
+  binary68976B SHA8972b230f771e8660b8ebcd96b6b3e32740e6f565fe61c86714c85d35988e8f0.
+  Verified/uploaded/read back; unblank returned but NO display-on, flags16ec and
+  opaque black unchanged. Only HID pair actually changed display state.
+- During capture AFTER actual wake,97e repeated the fatal CMD17 recovery:
+  incomplete lba6974501, FIFO512, both CMD12 error00018000 and CMD13=00400900,
+  then transport rejection/APFS EIO/mass SIGBUS. Capture command exit138, no PNG,
+  no present submitted. Private storage-failure-context.txt in97e-device.
+  Current held shell14309 has completed framing, but failing disk means do not
+  rely on further process samples/uploads. HID worker complete-shell-retained
+  means protocol complete only; last display-flags command ALSO exit138.
+- RAMFS pressure also recurred:8192/8192 pages,128MiB, low free-page samples.
+  Read-only usage before disk failure: diagnostics6176768B, uuidtext25182208B,
+  mobile Library/Caches5799936B, root Library/Caches8683520B. This is incomplete
+  directory accounting, not sole quota ownership. No purge/quota change done.
+- Full0175 kernel source4878ce141d4ccd692024584000b2e463c7c73089,
+  CI41669886409/job126035105627 ALL steps success, including4819 eMMC checks
+  and retained ASan+UBSan/USB/RAMFS/graphics/etc. Both artifact length/digest/CRC,
+  run/source identity, all reviewed runtime sources and reports, applied0175,
+  linked new diagnostics, zero LSE/PAN, cache clean/idle/commpage disassembly,
+  loader/stock DTB/ADT/layout/size guards PASS. Physical recovery still UNTESTED.
+  Kernel artifact13247418940 ZIP79480813B SHA6cf40da1cdd1ab20a3bda891ce7a29730db55616c4eff2f266905cd0b5624f97;
+  tree13247259365 ZIP25439713B SHA211b3400716592f0d56920c8fda998280171034eccdf62609404f5dab58f30cd.
+- Packaged PRIVATE port/out/whyred-ios-root-v98-status-recheck-41669886409:
+  boot22347776B payload21537520B, image SHA
+  b3d6440ff1e050c52fa325dd88543965a23217fc33da27fa2287a8a505527473;
+  kernel SHAf1f2eb6f474027931d0cb88ebaf07716e1b0131973509f8576f9ea9616edf770,
+  UUID936C980F-9428-33A1-B076-CDB09ABDC855. Keeps XO CMD17 and installed System95;
+  only bounded clean second status/fresh reread candidate changes kernel behavior.
+- PRIVATE tools/flash_kernel98.py prepared, syntax checked; image/System95 proof,
+  v94 rollback hash and manifest checks pass. Read-only Fastboot scan did NOT
+  find target; no flash. User asked to enter Fastboot (pending response).
+  Run ONLY after ready: python3 tools/flash_kernel98.py --flash --ready-answer.
+  It verifies exact private serial/product/unlocked64MiB boot before boot-only
+  flash/reboot. No UART. Never print private identity/keys.
+- Pending tool-source update adds ONLY verified98 UUID to wake/render allowlists
+  (97 retained), because framebuffer ABI/System95 are identical. Gestalt mutator
+  remains97-only and is NOT needed; no cache write. Need signed new builds and
+  exact upload/readback after98 cold startup before any new present attempt.
+- Passive USB receiver2488 remains live. Current logfile/private key path and
+  old97e artifacts retained. Next reboot needs NEW boundary/shell; NEVER reuse
+ 97d5106. No98 hardware boot or successful graphics claimed yet.
+
+## Fresh97e reaches SpringBoard run loop; physical key path missing (2026-11-03 Minsk)
+
+- Actual97e read-only samples, exact shared-cache slide2fefc000: SpringBoard26
+  main is now CFRunLoop/GSEventRunModal/UIKit, rather than the earlier
+  LaunchServices store wait. lsd95 main is idle in CFRunLoopRun. Thus the old
+  MobileGestalt workaround is NOT required to reach this state. Fixed named
+  cache path is still absent, no cache mutation or lsd restart performed.
+- Authenticated present helper9b0a77d5 uploaded/read back. Actual root and mobile
+  captures accepted1, RGB0, alpha2740500/2740500. No PNG exported, no new present
+  submitted. Last logged display transition is OFF. Read-only backboard57 LCD
+  has6 clients, CPU renderer/wrapper nonzero, flags16ec, disablesUpdates false.
+  Private audit/graphics97e-device/backend2.json. A black sleeping scene is not
+  evidence by itself of broken scanout or compositor.
+- User short-pressed power with no reaction. Source confirms sweet_keys_init
+  is called only from sweet_ufs.c; whyred uses the eMMC path instead. Current
+  stream has no SWEET KEYS or HID key events. No physical whyred button polling
+  implemented. Do not request repeated button presses as if wake were supported.
+- Added exact97 physical-target guarded whyred-display-wake. Native refusal/
+  argument checks PASS. Source7f66eb5f0024afddec72d0d216da4d1ee0b1559b,
+  CI41670478848/job126037193120 all PASS. Artifact13247607554 ZIP14200B
+  SHAa7b2ccc9637510ca9565f454ba2e310d65f7e79cf0a9ba92e2ad9f592529cfc8,
+  binary68976B SHAeb0e0755e1398266ba6f9c9a1e364c0f515ab2986878a90d044009f6aad32a6d.
+  Exact provenance/digest/length/CRC/platform/ISA/strict signature/no-rights
+  checks PASS. Upload/readback/exact97 UUID PASS. Actual mobile SBSUndimScreen
+  returns request_status0, but NO display-on event; capture remains opaque black.
+  This is a request result, not successful wake. Retained97e shell14309 is free.
+- Source3975952da98472d2e7eff55be7b062c8b83e4a42 adds separate explicit unblank
+  via exact20F66 BKSDisplayServicesSetScreenBlanked(false). Does not interpret
+  its unspecified C return as success; require observed display/capture change.
+  Native guards PASS; signed iOS CI41670889270 pending, not tested yet.
+- Recovery0175 source4878ce141d4ccd692024584000b2e463c7c73089 full kernel
+  CI41669886409/job126035105627 building. Local exact current C/header ARM64
+  compile passes with generated79 headers; zero disallowed LSE/PAN instructions,
+  no >4KiB frame warning. Expected legacy declaration warnings retained. First
+  invocation used wrong cwd and failed meta_features.h; corrected BSD generated
+  cwd compile passed. Private kernel-v98-recovery/emmc98-compile.json.
+- Current97e observed stream has no common SIGBUS or fatal eMMC recovery so far.
+  Actual mediaserverd null-PC crashes symbolize to CoreImage via CMCapture,
+  separate from storage. Known CoreImage null callback remains unresolved;
+  searchd SIGABRT also retained. No hardware/software renderer success inferred.
+- Installed boot97/System95 unchanged. Logs continue privately, no UART/flash.
+
 ## Active97e and late97d storage failure; recovery candidate0175 (2026-11-03 Minsk)
 
 - User confirms backlit BLACK after the actual one-frame97d experiment. Nonempty

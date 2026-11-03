@@ -1,6 +1,6 @@
-/* Explicit single wake request for the installed whyred97 development kernel.
- * Uses the existing SpringBoard undim or BackBoard unblank service. No keys,
- * pixel drawing, renderer flags, device unlocking or partition writes. */
+/* Explicit single wake request for the verified whyred97/98 development kernels.
+ * Uses existing display services or one explicit diagnostic HID key pair.
+ * No physical key driver, pixel drawing, renderer flags, unlocking or partition writes. */
 #include <TargetConditionals.h>
 #include <sys/sysctl.h>
 #include <stdint.h>
@@ -22,7 +22,8 @@ int main(int argc, char **argv)
 #else
     char uuid[80] = {0}; size_t size = sizeof(uuid);
     if (sysctlbyname("kern.uuid", uuid, &size, NULL, 0) ||
-        strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0")) {
+        (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
+         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
         puts("WHYRED WAKE: incompatible kernel; no request sent"); return 1;
     }
     /* Dispatch API and entitlement reference: Apple's IOHIDFamily tools/

@@ -8,8 +8,8 @@ retained session received no initial acknowledgment for 150 seconds. The user
 ordinarily rebooted again; fresh97e SSH recovered. Both diagnostic helpers were
 uploaded and verified, but the fixed identity-cache path is absent. The guarded
 experiment stopped before any cache write or daemon restart.
-Graphics is still unresolved: the user sees console text and occasional black
-clears with the backlight on.
+Graphics remains unresolved. The user reports backlit black, and a short power
+press causes no response. Current capture is opaque black with display OFF.
 
 ## Actual physical results
 
@@ -125,8 +125,8 @@ remain outside Git. Exact source/CI/artifact history is retained in NOTES.md.
 
 Read-only lsd stack constants identify `UniqueDeviceID` / `UniqueDeviceIDData`
 calling through `WifiAddress` / `WifiAddressData`. Each obfuscated key was
-matched against its exact MD5-derived key. The volatile MobileGestalt cache
-exists with version 20F66 and 33 extra answers, but none of these four keys.
+matched against its exact MD5-derived key. In the earlier97d run, the volatile MobileGestalt cache
+existed with version20F66 and33 extra answers, but none of these four keys.
 The port has no functioning Wi-Fi driver. Repeated hardware-query waits are a
 concrete dependency to investigate; they have not yet been proved to be the only
 reason the store has not been supplied.
@@ -152,8 +152,10 @@ The final candidate source `b242eb47248d501fde328370c226dc1858f8a38e` passed CI
 The signed binary is 90,512 bytes, SHA256
 `3356f566f223beca159668fbe2f216c4eeefb2f80a1d1f52ae22daacefc95119`.
 Provenance, archive integrity, iOS platform, ISA and exact signature rights were
-verified. This candidate has NOT been uploaded or executed. Cache writes and
-lsd restarts have NOT occurred. The next test requires recovered phone access.
+verified. The final candidate was uploaded and read back in97e, but the fixed
+existing-cache guard could not be satisfied because the path was absent. No
+cache write or lsd restart occurred. Fresh SpringBoard independently reached its
+main event loop; do not assume the earlier sampled store wait persists.
 
 ## Late storage failure can invalidate graphics observations
 
@@ -163,3 +165,28 @@ then reported EIO and many tasks received SIGBUS. This is a demonstrated storage
 blocker, not proof that all earlier blank frames have the same cause. Candidate
 0175 requires a clean second card status and a fresh reread; only model/UBSan
 checks have passed so far. Installed boot97 remains unchanged.
+
+## Fresh97e display power boundary
+
+SpringBoard26 main now runs CFRunLoop/GSEventRunModal and lsd95 is idle in its
+run loop. The LCD has six render clients and a CPU renderer. Both mobile and
+root captures have zero RGB with full alpha while the last display state is OFF.
+The actual button driver is wired through SWEET/UFS initialization and does not
+start on the whyred eMMC path; the user's power press produces no logged key.
+A guarded one-shot SBSUndimScreen request returns status0 but neither produces
+a display-on record nor changes the capture. Separate BackBoard unblank testing
+is pending. These results do not establish visible UI or a scanout fix.
+
+## Actual HID wake and next boot98
+
+A guarded single diagnostic power-key pair, dispatched through the existing
+HID buttons service, produced `display on` and renewed framebuffer swaps. The
+user still saw console clears and no interface. The following capture died with
+SIGBUS after the same fatal eMMC STOP/status recovery failure. No image or
+presentation success is claimed from that capture. Physical button polling is
+still absent; remote HID input is a diagnostic workaround.
+
+Boot98 with0175 has passed full CI and artifact/source/linked-code/boot-layout
+verification, but is not flashed yet. Actual recovery and visible UI remain
+unverified. The next fresh run should use the new UUID-guarded helpers and
+capture promptly after a single remote wake, while storage remains healthy.

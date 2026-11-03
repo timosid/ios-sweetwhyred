@@ -212,7 +212,8 @@ static int present_surface(IOSurfaceRef surface) {
      * Fail closed before accessing an incompatible installed kernel. */
     char uuid[80] = {0}; size_t uuid_size = sizeof(uuid);
     if (sysctlbyname("kern.uuid", uuid, &uuid_size, NULL, 0) ||
-        strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0")) {
+        (strcmp(uuid, "1444AADE-E57B-3F55-88A9-866FFA6086A0") &&
+         strcmp(uuid, "936C980F-9428-33A1-B076-CDB09ABDC855"))) {
         puts("WHYRED RENDER: present refused incompatible kernel"); return 1;
     }
     typedef uint32_t IOName;
