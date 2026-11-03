@@ -1,3 +1,26 @@
+## Actual97d queued Mach messages; register sample candidate (2026-11-03 Minsk)
+
+- Ports helper838548e1694f3e53f148eaca4c621e6912c36dbb CI41656099646 /
+  job125986682704 all steps PASS. Artifact13240205870 ZIP72280B
+  SHA1dca11e6566a1ef3d031f6c0a407009bb08e1c7f1ad9fb489aa09f04b5589092;
+  binary73504B SHA95489d3da45535d70dbba405ab3b214cd63b6c31b89016196a73e6cca155e005.
+  Provenance/platform/ISA/signature/rights/upload/readback checked. Actual phone
+  selftest PASS: own queued message preserved, no receive performed.
+- Physical queue snapshots: launchd has514 receive rights,512 queried with0
+  errors,55 nonempty queues/120 messages (LIMITED, not the whole task). lsd94 has
+ 133 receive rights, all queried:36 nonempty/36 messages. usermanagerd85 and
+  notifyd89 receive queues all empty. SpringBoard26 has46 receive rights,2
+  nonempty, including0x2803 limit1/msg1/seq0. Read-only unsuspended snapshots,
+  not proof of which port the blocked caller waits on or a unique kernel defect.
+- Added optional registers PID to existing bounded thread sampler, exposing ARM64
+  x0..x28 only on explicit request; native builds report unsupported GPR format.
+  Purpose: correlate actual mach_msg2 receive port with queued-port name, using
+  local XNU trap ABI. No task suspend/write. Native warning-clean/selftest passes;
+  signed iOS build and physical correlation pending.
+- Private audit/graphics97d-ports-check.json complete; retained SSH shell5106 free.
+  Post-reboot observed stream still no common SIGBUS or eMMC errors at ~18min.
+  User confirmation of visible one-frame boot-logo presentation remains pending.
+
 ## Actual97d capture-to-panel passes; port-queue diagnostic prepared (2026-11-03 Minsk)
 
 - After requested ordinary reboot, root SSH recovered at14:36Z; retained shell

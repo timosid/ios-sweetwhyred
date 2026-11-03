@@ -114,7 +114,7 @@ static int queue_selftest(void) {
     return result;
 }
 
-static int sample(pid_t pid) {
+static int sample(pid_t pid, int registers) {
     task_t task = MACH_PORT_NULL;
     kern_return_t kr;
     if (pid == getpid()) task = mach_task_self();
@@ -161,6 +161,14 @@ static int sample(pid_t pid) {
             if (kr == KERN_SUCCESS) { pc = state.__rip; sp = state.__rsp; fp = state.__rbp; }
 #endif
             printf(" state_kr=%d pc=0x%" PRIx64 " sp=0x%" PRIx64 " fp=0x%" PRIx64 " lr=0x%" PRIx64, kr, pc, sp, fp, lr);
+            if (registers && kr == KERN_SUCCESS) {
+#if defined(__aarch64__)
+                for (unsigned reg = 0; reg < 29; reg++)
+                    printf(" x%u=0x%" PRIx64, reg, (uint64_t)state.__x[reg]);
+#else
+                printf(" registers_unsupported=1");
+#endif
+            }
             if (kr == KERN_SUCCESS) {
                 sampled++;
                 /* Unsuspended frames can change; bounds prevent loops and runaway reads. */
@@ -337,14 +345,14 @@ int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "memory")) return memory_stats();
     if (argc == 2 && !strcmp(argv[1], "selftest")) {
         static const unsigned char probe[] = {0x13,0x37,0x42,0x19,0x88,0x76,0x54,0x32};
-        return queue_selftest() || memory_stats() || sample(getpid()) || task_cache(getpid()) ||
+        return queue_selftest() || memory_stats() || sample(getpid(), 0) || task_cache(getpid()) ||
             region_read(getpid(), (uintptr_t)probe, sizeof(probe));
     }
-    if (argc == 3 && !strcmp(argv[1], "threads")) {
+    if (argc == 3 && (!strcmp(argv[1], "threads") || !strcmp(argv[1], "registers"))) {
         char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
         if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
-        return sample((pid_t)pid);
+        return sample((pid_t)pid, !strcmp(argv[1], "registers"));
     }
     if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | run-mobile /executable [args]\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | registers PID | run-mobile /executable [args]\n"); return 2;
 }
