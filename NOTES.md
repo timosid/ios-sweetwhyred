@@ -1,3 +1,17 @@
+## Resumed after Mac crash; present helper compile fix (2026-11-03 Minsk)
+
+- User reports Mac crash and asks to continue graphics. Source HEAD4f15ca8a and
+  private prior PNG/audits survived. Old retained SSH process and UDP receiver
+  are gone. USB en1 still configured; a single pinned login rejects publickey.
+  Requested ordinary reboot, no UART. Restored passive UDP to a NEW private
+  audit/graphics97d-usb-session.log; old logs preserved. Current stream has
+  repeated xpcproxy SIGBUS, not attributed to a new cause yet.
+- Prior present-once CI41650225641/job125966097273 FAILED during iOS compile:
+  mach_task_self undeclared. Added explicit mach/mach.h rather than depending on
+  transitive desktop SDK includes. Native warning-clean fallback-declaration
+  compile and present-once host refusal pass. Signed iOS/phone test pending.
+- Installed boot97/System95 unchanged; no flash or serial access this turn.
+
 ## Actual server PNG shows Apple boot logo; one-shot CPU presentation prepared (2026-11-03 Minsk)
 
 - User reports console text with occasional clears to backlit black. Existing
