@@ -1,3 +1,42 @@
+## Active97e and late97d storage failure; recovery candidate0175 (2026-11-03 Minsk)
+
+- User confirms backlit BLACK after the actual one-frame97d experiment. Nonempty
+  source/panel measurements are not visible display success. Later stock swaps
+  and display-off/on occurred, so the delayed report alone does not uniquely
+  identify scanout/cache failure. Graphics remains unresolved; no synthetic UI.
+- Full retained97d USB stream later records fatal eMMC recovery, despite CMD17
+  baseline: last good telemetry bytes1302032384, requests32736, cmd17=2543032,
+  cmd18=0, errors0, elapsed_us1826742065. Then two CMD12 errors int00018000,
+  each followed by CMD13 r1=00400900 (ILLEGAL_COMMAND, TRAN, READY), final read
+  rejection, APFS EIO and mass SIGBUS. Prior ~18min clean checkpoint was limited.
+  Private audit/graphics97d-storage-errors.txt and first-sigbus-context preserved.
+- Patch0175 permits one additional CMD13 only after failed STOP, sole
+  ILLEGAL_COMMAND error, TRAN/READY and no inhibit. It NEVER masks the error:
+  final status must have zero R1 errors, safe state, zero pending interrupts/FIFO
+  before a fresh byte-exact reread. Persistent/error/unsafe responses still fail
+  closed. Hypothesis: STOP introduced a consumable status flag; physical effect
+  remains UNTESTED. No clock or storage-write policy change.
+- Exact patch replay against current late-patched source matches reviewed header.
+  4819 actual extracted-function MMIO model checks PASS, also UBSan. Added clean
+  second-status/fresh reread, failed recheck, persistent/distinct card errors,
+  unsafe READY/state/inhibit, stale FIFO and failed reread coverage. Old0172
+  driver fails the new fixture. Local results do not establish hardware recovery;
+  full ARM64 CI pending. Private kernel-v98-recovery/final-local-checks.json.
+  Repository validator Python47/shell7 syntax checks pass; its patch-number
+  check fails on pre-existing sweet/whyred duplicate numbers and0082..0099 gap.
+  This candidate adds0175 after0174 and does not renumber historical patches.
+- User ordinary-rebooted; configd restored static en1 IPv4 without admin prompt.
+  Passive receiver2488 continues graphics97d-usb-session.log; fresh97e notification
+  boundary1572317. Fresh SSH root recovered, retained shell14309 at private
+  audit/graphics97e-device/held, installed exact97 UUID verified. Authenticated
+  GPR helper and FINAL gestalt-path98 helper uploaded and byte-exact read back.
+  Worker stopped BEFORE cache mutation: fixed volatile cache path ENOENT, also
+  absent on later read/list. cache_written=false; no seed/rollback/lsd restart.
+  Fresh SpringBoard26/lsd95 read-only thread samples obtained. Inspect current
+  cache/process dependency before attempting another guarded experiment.
+- Installed boot97/System95 unchanged. No flash or UART this turn. Sole current
+  held shell is97e; never reuse97d shell5106 (unfinished SCP state before reboot).
+
 ## Current stop: phone access stalled, no identity-cache change (2026-11-03 Minsk)
 
 - Final tool source b242eb47248d501fde328370c226dc1858f8a38e CI41660019245 /

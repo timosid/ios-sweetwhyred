@@ -99,6 +99,8 @@ def main():
                       'completion resampled after a scheduling delay at deadline',
                       'baseline CMD17 recovery and batch-then-baseline transient errors',
                       'CMD12 timeout latch reset, CMD13 retry and rejection of unsafe status',
+                      'transient illegal STOP status requires a clean second CMD13 and fresh exact reread',
+                      'persistent card errors, status timeout, inhibit, stale FIFO and failed reread reject I/O',
                       'actual block strategy/residuals and read-only bounds',
                       'log sampling and bounded telemetry'])
     (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')

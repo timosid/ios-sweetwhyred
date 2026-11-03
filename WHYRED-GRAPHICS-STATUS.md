@@ -4,8 +4,10 @@ Updated 2026-11-03 Minsk. Installed baseline: boot v97 / System v95, iOS 20F66.
 The phone returned and was ordinarily rebooted after a Mac crash. Passive USB
 logging and a retained SSH session were recovered. No partition was written.
 Later, new SSH logins stopped answering at banner exchange and a transfer in the
-retained session received no initial acknowledgment for 150 seconds. Another
-ordinary reboot has been requested. The identity cache remains unchanged.
+retained session received no initial acknowledgment for 150 seconds. The user
+ordinarily rebooted again; fresh97e SSH recovered. Both diagnostic helpers were
+uploaded and verified, but the fixed identity-cache path is absent. The guarded
+experiment stopped before any cache write or daemon restart.
 Graphics is still unresolved: the user sees console text and occasional black
 clears with the backlight on.
 
@@ -21,7 +23,7 @@ clears with the backlight on.
 | Entitled named LCD marker | Exactly 1,024 red marker pixels reach capture | Server CPU composition and remote context routing work for this test. |
 | Entitled LCD PNG capture | White Apple boot logo on black, 1125 by 2436 | The server has a real boot scene. This is not a working SpringBoard interface. |
 | Stock framebuffer swaps | Surface 3 contains zero RGB and alpha and is copied to the panel | Captured server scene and stock scanout contents differ. |
-| Explicit real-frame presentation | Surface 5 has 25,430 RGB pixels; all 2,332,800 panel pixels copied; panel becomes nonempty | The guarded capture-to-panel path works in this test. Visible screen confirmation is pending. |
+| Explicit real-frame presentation | Surface 5 has 25,430 RGB pixels; all 2,332,800 panel pixels copied; panel becomes nonempty | The guarded capture-to-panel path works in this test. User reports backlit black; visible output was not established. |
 
 Earlier captures and marker tests lacked the QuartzCore displayable-context and
 global-capture entitlements. Their transparent results were superseded by the
@@ -46,8 +48,9 @@ This is a single-frame test of capture-to-panel delivery, not a continuous
 rendering solution. A successful submission alone does not establish visible
 panel output or a repaired interface. In fresh run 97d the driver measured the
 expected source contents and copied the frame, and the panel measurement became
-nonempty. Console writes raced with that measurement. The user's actual screen
-confirmation remains pending; no repaired SpringBoard interface is claimed.
+nonempty. Console writes raced with that measurement. The user later reported a black screen with backlight. Subsequent stock blank
+swaps and display-off/on were also recorded, so that delayed report does not
+uniquely establish a scanout failure. No repaired SpringBoard interface is claimed.
 
 The initial iOS build failed because `mach_task_self` depended on a transitive
 header available only in the desktop build. An explicit Mach header fixes it.
@@ -57,7 +60,7 @@ Artifact digest, length, ZIP CRC, report source, binary digest, iOS platform,
 ISA, strict signature and the exact two-entitlement set were checked locally.
 The signed binary is 93,760 bytes, SHA256
 `9b0a77d5394de0987aa0313ee3a0d63578b9d1318ebd37e4f00aec4640fb7091`.
-Physical execution passed in run 97d: exit 0, surface 5, swap 5, expected source
+Physical helper execution completed in run 97d: exit 0, surface 5, swap 5, expected source
 RGB count and full-panel copy. This is a one-frame result.
 
 ## SpringBoard startup is a separate remaining blocker
@@ -151,3 +154,12 @@ The signed binary is 90,512 bytes, SHA256
 Provenance, archive integrity, iOS platform, ISA and exact signature rights were
 verified. This candidate has NOT been uploaded or executed. Cache writes and
 lsd restarts have NOT occurred. The next test requires recovered phone access.
+
+## Late storage failure can invalidate graphics observations
+
+After the earlier clean checkpoint,97d failed eMMC recovery on single-block
+CMD17 reads. Both recovery attempts saw failed CMD12 and status00400900. APFS
+then reported EIO and many tasks received SIGBUS. This is a demonstrated storage
+blocker, not proof that all earlier blank frames have the same cause. Candidate
+0175 requires a clean second card status and a fresh reread; only model/UBSan
+checks have passed so far. Installed boot97 remains unchanged.
