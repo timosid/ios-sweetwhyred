@@ -1,3 +1,43 @@
+## Current98b screen retry blocked by storage; ordinary reboot requested (2026-11-03 Minsk)
+
+- Direct panel-on source cf254ab165f0f3750364facd4494db9bc6ecba1f passed ALL CI
+  41691099406/job126109597215 steps. Artifact13257233536 ZIP24542B SHA
+  e9f660b954bfcaeae6103332c94fb107b4ed4336aee3d665ca9b0a17eddb5e6d.
+  Binary69984B SHA17f8f28e6f9205ec0f480270cc9263d9f823b8a13bb7df5ead5176889637ba20.
+  Source/report/archive/platform/ISA/strict signature/exact2HID rights checks PASS.
+  Private graphics-v98/panel-on98. Fresh SCP upload and exact full readback PASS
+  to /private/var/tmp/whyred-panel-on-17f8f28e. This is NOT device execution proof.
+- Attempted direct wake/presentation after user asked. Before direct tool ran,
+  retained shell37904 stalled on read-only exact-kernel diagnostic for85s.
+  Last token WHYRED_SESSION_5cc88b57f38de68ed6a15b8a8a2c25c4_BEGIN with NO END.
+  Parent exited; NO later panel/present command was enqueued on this FIFO.
+  Fresh independent SSH with guarded panel-on && present-window failed255 with
+  connection timeout before output,0 queues. No confirmed direct wake/new frame.
+  Private audit/graphics98b-wake-present.json and requested-*.stdout/.stderr.
+- Fresh UDP reveals FIRST physical98b CMD17/PIO incomplete atLBA12620940,
+  int20/present01f80af6/fifo200. CMD12 failed int18000; DATA reset completed.
+  Recovery attempt1 stop=-1 status0 r1=00000900 prior00400900 recheck1, FIFO0:
+  0175 clean-second-status branch IS NOW EXERCISED and accepted the ready card.
+  Then WHYRED CLOCK restored baseline was logged. Fresh reread/overall recovery
+  completion NOT established; no recovery-failed line or kernel panic observed.
+  Root reads/SSH stalled afterwards. Prior “unexercised/no-read-errors” notes are
+  historical, no longer current. Exact private graphics98b-first-recovery.log.
+- One separate mediaserverd28 SIGSEGV atPC0/lr1deb2c58c occurred before read
+  recovery; matches earlier CoreImage NULL-callback class by canonical address
+  but needs exact current symbolication for attribution. It restarted. Do not
+  call this a kernel panic or attribute it to the later storage failure.
+- Old memory/followup monitors are STOPPED/failed; no active FIFO writer now.
+  USB receiver2488 continues; log alias unchanged. No successful wake/present
+  from this retry, no flash/UART/cache/daemon change, no stale logo injection.
+- Asked user for ordinary reboot with USB, NO Fastboot/UART. Pending reply.
+  Prepared PRIVATE ssh-v90/check_graphics98c.py (syntax checked, NOT started):
+  fresh root SSH/NEW held shell, exact98 UUID, upload/readback diag2a276d3f,
+  window renderer9a1d6053 and NEW panel-on wake17f8f28e. It stops at prepared-
+  shell-retained without automatic display work. After reboot confirmation:
+  create fresh audit/graphics98c-device, new log boundary; start observer and
+  wait. NEVER reuse98b held37904 after reboot. Notify user immediately before
+  actual panel-on + fresh present; no new permission/flash required.
+
 ## Active98b requested screen wake: guarded panel-on candidate (2026-11-03 Minsk)
 
 - Pending prior capture LATER completed END1: accepted1 RGB0/full alpha, no PNG;
