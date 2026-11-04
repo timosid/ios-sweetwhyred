@@ -1,3 +1,30 @@
+## Active100: autostart memory-limit failure; diagnostic candidate (2026-11-04 Minsk)
+
+- System100 full81-slice install/reboot confirmed, boot99 retained. Fresh observer
+  FINISHED; exact99 UUID,3 helpers and installed display readback PASS. Current
+  held SSH7448: PRIVATE audit/graphics100-device-20261104T144954Z/held. Only this
+  shell is current; old99 held97326 died with Mac reboot. Observer is NOT running.
+- Automatic display log contains repeated live-begin records, no first frame.
+  UDP confirms whyred-display SIGKILL, OS_REASON_JETSAM1/code7: exact XNU8796
+  JETSAM_REASON_MEMORY_PERPROCESSLIMIT. USER sees TEXT. Finite manual pilots
+  inherited a different budget; they did not test launchd's own process limit.
+  Global VM snapshot free23945/wired12190/compressor0 pages; not system OOM proof.
+  No storage errors/fallbacks through998920192 bytes this boot.
+- Preparing explicit whyreddiag memlimits PID (read-only) / display-budget PID:
+  fixed finite128MiB experimental floor, root+exact99 UUID+mobile/name/installed
+  path/starttime checks, preservefatal flags and unlimited/larger limits,
+  readback required. Applies only current process, not persistent or a global
+  override. Native strict compile/retainedselftest/11 invalid/physical refusals
+  PASS; signed iOS CI/artifact/device budget readback still PENDING.
+- Actual launchd binary indicates legacy JetsamMemoryLimit is ignored and own
+  JetsamProperties job dictionary maps to a no-op. Do not guess a job key or
+  disable global jetsam. Inspect actual limits, test addressed runtime floor,
+  then choose persistent integration backed by the measured footprint.
+- UDP receiver2635/current-whyred-usb.log stays on graphics100-usb-session.log.
+  NEXT: obtain signed updated diagnostic, readback/inspect actual display budget,
+  apply explicit current-process experiment and verify fresh frames before any
+  further flash. No UART needed; physical touch still absent.
+
 ## Active100: System installed; first automatic boot verification pending (2026-11-04 Minsk)
 
 - After a Hackintosh crash user returned the phone in Fastboot. Revalidated exact
