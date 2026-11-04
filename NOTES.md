@@ -10,11 +10,19 @@
 - Local actual staging with injected upstream failure PASSED via status-im mirror;
   all30 staged files are byte-identical to verified baseline. All-remotes-fail
   negative control rejects after4 attempts, creates no staged target. bash -n PASS.
-  Private touch-whyred/bearssl-{fallback,reject}-check receipts. Full new CI pending.
-- Additional local ARM64 C++ compile with reused BSD compile flags did NOT pass:
-  old header environment lacks libsa types.h after correcting MACH_KERNEL_PRIVATE.
-  This is not a successful compile or proof of a source defect. Full CI supplies
-  the proper C++ build environment; wait for its actual compile/check results.
+  Private touch-whyred/bearssl-{fallback,reject}-check receipts.
+- FIXED full kernel CI41817694238/job126532556668 from source6ebc9fe6ca8228e1649f08159f86f13207b2558c
+  ALL steps SUCCESS, including kernel compile/link and new digitizer checks.
+  Touch2356 host checks, retained eMMC/APFS/RAMFS/USB/framebuffer/AKS/idle checks
+  passed. Authoritative kernel artifact13316395983 ZIP79410894B SHA
+  0cc68ef3a4625a09fb68ebe0cd0c97811e51a5b1fc45b67ab1a5007bf4a75829;
+  buildtree13316162052 ZIP25440738B SHA
+  fa709f740b0eda8d1f869d2ebb6afd0a2e2fb90c54a5c10c3e6c7929be578cdf.
+  Artifacts not downloaded/packaged/flashed yet; installed98/System95 unchanged.
+  PRIVATE touch-whyred/fixed-final-jobs.json retains step receipts.
+- Full CI now supersedes the incomplete local C++ header experiment (its reused
+  BSD flags/header subset did not compile). Do not describe that local attempt
+  as a pass. No physical I2C input producer or touch hardware test yet.
 
 ## Touch requested; offline0177 candidate (2026-11-04 Minsk)
 
@@ -31,7 +39,8 @@
 - Local2356 strict-warning/UBSan geometry/packet checks PASS; exact patch replay
   against authenticated99 source PASS. CI test integrated; full kernel build
   CI41816371836 started from beadd14e9afdc7c45ab311e3470baff6dcc346d0;
-  result still pending. See WHYRED-TOUCH.md. Private references/baseline/candidate/checks
+  failed on upstream HTTP502; source6ebc9fe/fullCI41817694238 now passed above.
+  See WHYRED-TOUCH.md. Private references/baseline/candidate/checks
   are in touch-whyred; original vendor files and source dumps stay out of git.
 - NEXT: identify actual fitted controller and QUP powered handoff when phone is
   available; implement matching board-correct bus transport and Synaptics decoder

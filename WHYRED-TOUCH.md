@@ -52,3 +52,11 @@ Android/recovery input inventory or a bounded, board-correct bus identification
 probe. Then implement the matching transport/decoder and verify tap, drag,
 multitouch, release and coordinate edges on hardware. Do not call touch working
 from HID registration, packet fixtures or synthetic input alone.
+
+## Full kernel build result
+
+CI41817694238/job126532556668 from source6ebc9fe6ca8228e1649f08159f86f13207b2558c
+passed all steps, including kernel compilation and digitizer checks. The earlier
+41816371836 attempts failed before compilation because BearSSL upstream returned
+HTTP502. Dependency staging now retries finitely and accepts a mirror only at
+the same pinned commit. Physical touch transport remains the open task above.
