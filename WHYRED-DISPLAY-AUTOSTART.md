@@ -121,3 +121,19 @@ running; successful new frame progression is still pending. The OS's
 Jetsam ips independently confirms per-process-limit at719 reported16KiB pages;
 it does not state the exact configured threshold. No new signed program is
 required for this candidate: it retains the authenticated live27b executable.
+
+## System101 automatic startup result
+
+On the first101 boot, exact99 UUID, installed live binary and memory-policy file
+readbacks passed. After the display server became ready, one UID501 launchd
+process continued through20/30/40/60 frames in a120s observation with0 errors.
+A temporary ten-second layer then changed the real server scene: the automatic
+job advanced130->160 frames and0->2 hash changes, with0 errors and the same PID.
+The marker context was invalidated. No manual presenter was started. Cold-boot
+capture samples took roughly2..8.4s; the1fps cap is not a measured achieved rate.
+
+This establishes automatic fresh-frame and changing-scene delivery. Physical
+screen confirmation for this101 run is pending; the captured scene is still the
+Apple boot logo. A ready SpringBoard interface and long-run memory stability
+are not established. The temporary runtime-budget diagnostic was not deployed;
+the final source retains the earlier verified diagnostic tool/workflow.

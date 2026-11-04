@@ -15,8 +15,6 @@
 #include <mach-o/dyld_images.h>
 #include <stddef.h>
 #include <errno.h>
-#include <dlfcn.h>
-#include <libproc.h>
 #include <grp.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -26,76 +24,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
-/* XNU8796 sys/kern_memorystatus.h: commands7/8, sixteen-byte v1 ABI.
- * The setter is an explicit, finite experiment for the installed display job.
- * It never changes a system default, another daemon or a fatal-limit flag. */
-typedef struct {
-    int32_t active_mb;
-    uint32_t active_attr;
-    int32_t inactive_mb;
-    uint32_t inactive_attr;
-} whyred_memlimits;
-_Static_assert(sizeof(whyred_memlimits) == 16, "XNU memlimit ABI");
-
-static int memlimits(pid_t pid, int apply_display_floor) {
-    if (apply_display_floor) {
-        char uuid[80] = {0}; size_t size = sizeof(uuid);
-        if (getuid() || geteuid() || sysctlbyname("kern.uuid", uuid, &size, NULL, 0) ||
-            strcmp(uuid, "2ED4E8A4-6D1C-3C3C-980B-8533C25978D1")) {
-            fputs("display-budget requires root and verified whyred99 kernel; unchanged\n", stderr);
-            return 2;
-        }
-    }
-    int (*control)(uint32_t, int32_t, uint32_t, void *, size_t) = dlsym(RTLD_DEFAULT, "memorystatus_control");
-    if (!control) { fputs("memorystatus_control unavailable\n", stderr); return 1; }
-    struct kinfo_proc before = {0}, after = {0};
-    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid}; size_t size = sizeof(before);
-    if (sysctl(mib, 4, &before, &size, NULL, 0) || size != sizeof(before)) {
-        fputs("memlimits process absent\n", stderr); return 1;
-    }
-    char path[PROC_PIDPATHINFO_MAXSIZE] = {0};
-    int path_status = proc_pidpath(pid, path, sizeof(path));
-    whyred_memlimits limits = {0};
-    if (control(8, pid, 0, &limits, sizeof(limits))) { perror("get memlimits"); return 1; }
-    printf("WHYRED MEMLIMIT: pid=%d uid=%u name=%s active_mb=%d active_attr=0x%x inactive_mb=%d inactive_attr=0x%x path=%s read_only=1\n",
-        pid, before.kp_eproc.e_ucred.cr_uid, before.kp_proc.p_comm,
-        limits.active_mb, limits.active_attr, limits.inactive_mb, limits.inactive_attr,
-        path_status > 0 ? path : "(unavailable)");
-    task_t task = MACH_PORT_NULL;
-    kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
-    if (kr == KERN_SUCCESS) {
-        task_vm_info_data_t info = {0}; mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
-        kr = task_info(task, TASK_VM_INFO, (task_info_t)&info, &count);
-        if (kr == KERN_SUCCESS && count >= TASK_VM_INFO_REV1_COUNT)
-            printf("WHYRED MEMLIMIT: pid=%d footprint_bytes=%llu resident_bytes=%llu peak_resident_bytes=%llu\n",
-                pid, (unsigned long long)info.phys_footprint, (unsigned long long)info.resident_size,
-                (unsigned long long)info.resident_size_peak);
-        mach_port_deallocate(mach_task_self(), task);
-    }
-    if (!apply_display_floor) return 0;
-    size = sizeof(after);
-    if (before.kp_eproc.e_ucred.cr_uid != 501 || strcmp(before.kp_proc.p_comm, "whyred-display") ||
-        path_status <= 0 || strcmp(path, "/usr/local/whyred/bin/whyred-display") ||
-        sysctl(mib, 4, &after, &size, NULL, 0) || size != sizeof(after) ||
-        memcmp(&before.kp_proc.p_starttime, &after.kp_proc.p_starttime, sizeof(before.kp_proc.p_starttime)) ||
-        after.kp_eproc.e_ucred.cr_uid != 501 || strcmp(after.kp_proc.p_comm, "whyred-display")) {
-        fputs("display-budget target identity mismatch; unchanged\n", stderr); return 2;
-    }
-    whyred_memlimits next = limits;
-    if (next.active_mb > 0 && next.active_mb < 128) next.active_mb = 128;
-    if (next.inactive_mb > 0 && next.inactive_mb < 128) next.inactive_mb = 128;
-    if (!memcmp(&limits, &next, sizeof(next))) {
-        puts("WHYRED MEMLIMIT: display floor already sufficient; unchanged"); return 0;
-    }
-    if (control(7, pid, 0, &next, sizeof(next))) { perror("set display memlimits"); return 1; }
-    whyred_memlimits got = {0};
-    if (control(8, pid, 0, &got, sizeof(got))) { perror("readback display memlimits"); return 1; }
-    if (memcmp(&got, &next, sizeof(got))) { fputs("display-budget readback differs\n", stderr); return 1; }
-    printf("WHYRED MEMLIMIT: pid=%d display_floor_mb=128 active_mb=%d inactive_mb=%d flags_preserved=1 verified=1 persistent=0\n",
-        pid, got.active_mb, got.inactive_mb);
-    return 0;
-}
 
 static int memory_stats(void) {
     host_t host = mach_host_self();
@@ -399,11 +327,6 @@ static int run_mobile(char **args, unsigned seconds) {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 3 && (!strcmp(argv[1], "memlimits") || !strcmp(argv[1], "display-budget"))) {
-        char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
-        if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
-        return memlimits((pid_t)pid, !strcmp(argv[1], "display-budget"));
-    }
     if ((argc == 3 && (!strcmp(argv[1], "cache") || !strcmp(argv[1], "ports"))) ||
         (argc == 5 && !strcmp(argv[1], "region"))) {
         char *end; errno = 0; long pid = strtol(argv[2], &end, 10);
@@ -435,5 +358,5 @@ int main(int argc, char **argv) {
      * Keep the old general runner at30s; never extend continuous live mode. */
     if (argc == 4 && !strcmp(argv[1], "run-mobile-display") && !strcmp(argv[3], "live-window"))
         return run_mobile(argv + 2, 90);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | memlimits PID | display-budget PID | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | registers PID | run-mobile /executable [args] | run-mobile-display /executable live-window\n"); return 2;
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | registers PID | run-mobile /executable [args] | run-mobile-display /executable live-window\n"); return 2;
 }

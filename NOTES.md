@@ -1,3 +1,38 @@
+## Active101: AUTOMATIC FRAME OUTPUT + SCENE CHANGE PASS (2026-11-04 Minsk)
+
+- Installed boot99/System101, all81 writes+reboot confirmed earlier. Exact99 UUID,
+  installed27b executable and native128MiB D22 table readback PASS. Current held
+  SSH17333: audit/graphics101-device-20261104T153514Z/held. Observer13898,
+  validator14610 and scene exec85413 all FINISHED; held shell now FREE.
+- Actual automatic launchd process119 UID501, no manual presenter started.
+  Four samples across120s: frames20/30/40/60, errors0/0/0/0, samePID. Wired pages
+ 12456/13353/13994/14253, compressor0 while cold boot kept loading; this is NOT
+  a long-run leak proof. Capture samples~2..8.4s during heavy single-block PIO;
+  do not claim1fps achieved. Early attempts exited after3 capture errors before
+  display server readiness; launchd retried and final instance stayed alive.
+- Stronger actual AUTO scene proof: exact previously signed marker a1279cc5
+  uploaded/readback. Created a temporary named-LCD red layer for10s, no manual
+  presentation loop. Marker capture0->1024pixels, normalchildexit0/timeout0,
+  context INVALIDATED. Automatic process119 stayed unchanged, its journal
+  frames130->160/errors0/changes0->2 and logo hashc3d72fb8 restored. Thus current
+  autostart captures real scene changes. Private autostart-scene.json/acceptance.json.
+- USER physical screen question for101 is still UNANSWERED; do not claim a new
+  visible hardware signoff or ready SpringBoard UI. Current captured scene is
+  still Apple boot logo. Prior99 physical logo/red confirmations remain valid
+  historical tests only. No new marker is left running.
+- Current detached UDP listener9727, log audit/current-whyred-usb.log ->
+  graphics100-usb-session.log. Isolate101 with graphics101-boot-boundary.json.
+  No observed fresh storage failure/fallback/panic. No UART required.
+- The optional runtime-budget diagnostic experiment was NEVER deployed/used;
+  its queued CI runs were cancelled before steps. Restored tools/whyreddiag.c
+  and its workflow EXACTLY to previously verified65bb011 baseline. Direct
+  Jetsam ips established the cause; final fix uses native per-job policy only.
+- Technical automatic-output milestone PASS. NEXT: incorporate user's physical
+ 101 screen answer when provided, then diagnose actual SpringBoard startup/UI
+  and finish real touch bus work separately. Do not reflash a working101 or run
+  another live presenter merely to keep output going. Physical input producer
+  remains absent;0177 touch kernel still unflashed.
+
 ## Active101: INSTALLED81/81; automatic boot validation running (2026-11-04 Minsk)
 
 - User freshly confirmed Fastboot. Exact file/sparse reconstruction, rollback95+
