@@ -131,6 +131,7 @@ typedef uint32_t whyred_test_dev_t;
 #define caddr_t char *
 #define u_long unsigned long
 #define minor(d) ((d) & 0xffffffU)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define FREAD 1
 #define FWRITE 2
 #define WHYRED_GPT_MAX_ENTRIES 64
@@ -147,8 +148,8 @@ static struct whyred_gpt_partition whyred_gpt_parts[WHYRED_GPT_MAX_ENTRIES];
 static uint32_t whyred_gpt_part_count;
 static bool whyred_emmc_block_ready;
 ''' + '\n'.join(function(driver, name) for name in (
-        'whyred_emmc_partition', 'whyred_emmc_open', 'whyred_emmc_ioctl')) + r'''
-struct vnode { dev_t v_rdev; };
+        'whyred_emmc_partition', 'whyred_emmc_open', 'whyred_emmc_ioctl', 'whyred_emmc_psize')) + r'''
+struct vnode { dev_t v_rdev; int v_specsize; };
 struct vnop_open_args { void *a_context; };
 static int emulate_missing_setblocksize;
 static int
@@ -165,7 +166,7 @@ root_geometry_open(dev_t dev, int flags)
 {
     int error = whyred_emmc_open(dev, flags, 0, NULL);
     if (error) return error;
-    struct vnode node = { dev };
+    struct vnode node = { .v_rdev = dev };
     struct vnode *vp = &node;
     struct vnop_open_args arguments = { NULL };
     struct vnop_open_args *ap = &arguments;
@@ -218,6 +219,55 @@ int main(void)
     return 0;
 }
 '''
+    # Exercise the exact specfs unit consumer, including its16KiB read guard.
+    start = re.search(r'^spec_read\(', spec, re.M).start()
+    reader = spec[start:block(spec, start)]
+    geometry_start = reader.index('\t\tdevBlockSize = vp->v_specsize;', reader.index('case VBLK:'))
+    geometry_end = reader.index('\n\t\tdo {', geometry_start)
+    read_geometry = reader[geometry_start:geometry_end]
+    unit_code = r"""
+#define DEV_BSIZE 512
+#define PAGE_SIZE 16384
+#define major(d) 0
+static int emulate_psize_count;
+static int test_psize(dev_t dev) {
+    const struct whyred_gpt_partition *p = whyred_emmc_partition(dev);
+    return emulate_psize_count && p ? (int)(p->last - p->first + 1) : whyred_emmc_psize(dev);
+}
+static const struct { int (*d_psize)(dev_t); } bdevsw[] = {{test_psize}};
+static const int nblkdev = 1;
+""" + function(spec, 'set_blocksize') + r"""
+static int spec_read_geometry(dev_t dev, int *unit, size_t *transfer) {
+    struct vnode node = { .v_rdev = dev }, *vp = &node;
+    int devBlockSize;
+    long bscale;
+    size_t bsize;
+    set_blocksize(vp, dev);
+""" + read_geometry + r"""
+    *unit = vp->v_specsize;
+    *transfer = bsize;
+    return 0;
+}
+"""
+    harness = harness.replace('struct vnop_open_args {', unit_code + '\nstruct vnop_open_args {')
+    unit_checks = r"""
+    int unit = 0; size_t transfer = 0;
+    whyred_gpt_parts[0].last = whyred_gpt_parts[0].first + 65536 - 1;
+    emulate_psize_count = 1;
+    CHECK(spec_read_geometry(disk, &unit, &transfer) == EINVAL);
+    emulate_psize_count = 0;
+    const uint64_t capacities[] = {16, 1024, 65536, 61071360};
+    for (unsigned i = 0; i < sizeof(capacities) / sizeof(*capacities); i++) {
+        whyred_gpt_parts[0].last = whyred_gpt_parts[0].first + capacities[i] - 1;
+        CHECK(whyred_emmc_psize(disk) == 512);
+        CHECK(spec_read_geometry(disk, &unit, &transfer) == 0 && unit == 512 && transfer == PAGE_SIZE);
+        value64 = 0;
+        CHECK(whyred_emmc_ioctl(disk, DKIOCGETBLOCKCOUNT, (caddr_t)&value64, 0, NULL) == 0 && value64 == capacities[i]);
+    }
+    CHECK(whyred_emmc_psize(0) == -1);
+    CHECK(whyred_emmc_psize(65) == -1);
+"""
+    harness = harness.replace('    whyred_emmc_block_ready = false;', unit_checks + '\n    whyred_emmc_block_ready = false;')
     var_code, var_paths = var_mount_harness(args.source)
     harness = harness.replace('#define CHECK(expr)', var_code + '\n#define CHECK(expr)')
     harness = harness.replace('    printf("whyred eMMC contract:',

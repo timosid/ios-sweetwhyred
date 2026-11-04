@@ -1,3 +1,60 @@
+## Active103/UI: REAL LOCK SCREEN OBSERVED;103 boot candidate NOT FLASHED (2026-11-04 Minsk)
+
+- User's latest 'делай' asks to continue UI. Current installed STILL boot99/
+  System102. At about39m43s device uptime SpringBoard26 actually built its UI.
+  USER then saw lock screen; three photos show wallpaper, camera, home indicator,
+  red/orange top banner and incomplete large pale upper rectangle. UI appears
+  briefly, then BLACK WITH BACKLIGHT between flashes. Actual photos privately
+  retained graphics-v103/user-photos. This supersedes 'only Apple logo' above.
+  Full/stable UI and touch still NOT established. Do not reflash without readiness.
+- Fresh102 read-only UI sample owner36808 FINISHED; slide4e4b8000, SpringBoard26
+  LS store wait and lsd93 MobileGestalt Wi-Fi matching wait at that EARLIER sample.
+  UI later progressed without MG cache mutation; do not call the old wait permanent.
+- Important new disk bug: d_psize returns sector CAPACITY, while exact XNU8796
+  specfs set_blocksize consumes BLOCK BYTES. Persist32MiB gets65536-byte v_specsize
+  and spec_read rejects above16KiB. Source0178 now returns512; real specfs/driver
+  host harness PASS29 checks+3HFS; unmodified driver NEGATIVE fails512-unit check.
+- Experimental local signed iOS helper f6c879b9 attempted bounded read-only
+ 16KiB persist probe after upload/readback/selftest PASS. VFS explicitly forbids
+  user SETBLOCKSIZE: gotEPERM,0bytes. No media writes/no valid factory dump/MAC.
+  Helper source cleaned to GET/read-only and locally rebuilt/signed, SHA
+  dca4981a92e74c8a65fbc922b8e854b2e5a83af0ca6dd3c2946a7da4995cad6f.
+  Final helper is NOT yet uploaded/tested on corrected kernel. NEVER bypass
+  VFS policy or use fake MAC.
+- Prepared pinned layout-preserving backport builder + source0178. PRIVATE FINAL
+  graphics-v103/boot-v103-candidate image22347776B SHA
+ 69422ec4e548fe51391829559bba76a38024f92a7359f5f8b0c3ad7109fb72c1.
+  Kernel SHA7809054ed5e0965d2950086d7dc317b510958bcb7d5995e881b9b02b54545a52.
+  Changes ONE instruction atfffffe000795ec3c (csinc->movw0,512), Android header
+  ID and append sweetnull=-; all old args/addresses/shim/ADT unchanged. Kernel99
+  layout UUID intentionally PRESERVED for installed102 display ABI; this IS a
+  modified kernel identified by SHA, not an unchanged99/full newCI build.
+  Earlier geometry-only ab6fac candidate moved to DO-NOT-FLASH directory.
+- sweetnull default tees backboardd/SpringBoard /dev/null writes synchronously
+  to UART. Current UI produced a flood of AppleM2ScalerCSCDriver matching errors.
+  New sweetnull=- disables that DEBUG TEE, preserving kernel USB/panic logs.
+  CPU starvation/frame overwrite explanations remain hypotheses, not proven fixes.
+- Held31558 currently NOT FREE: lockscreen snapshot owner40440 exited after
+ 110s timeout reading display log. First ps completed (SpringBoard26,lsd93,
+  backboard55,display114 alive). Held log57BEGIN/56END, pending CAT since17:28:09Z;
+  do not queue commands. Its planned invalid 'hid' mode was NEVER reached, so no
+  HID event sent. Correct mode is power-key; prefer non-toggle wake if state unknown.
+- Separate single wake attempt41268 via new SSH ended255 BANNER TIMEOUT; no
+  request delivery proven. Current receiver9727 still logs. Last observed eMMC
+  errors/fallbacks0; searchd235 SIGABRT seen later; no kernel panic. New GUI
+  screenshot cannot yet be read because SSH is stalled. No manual presenter added.
+- Candidate independent byte/opcode/ID checks,4 packaging refusal tests,
+  GET/read-only helper native tests and files-only guard now PASS;
+  guard rejects flash without readiness. PRIVATE tools/flash_kernel103.py sealed
+  to69422ec4 image. See WHYRED-BOOT103.md for exact scope and limits. Retain
+  full99 rollback and System102. Preserve evidence; user has NOT approved103
+  flash/readiness yet. After concrete reviewable103 ready, request Fastboot for
+  BOOT-ONLY test; then prepared ssh-v90/check_boot103.py --start verifies
+  authoritative103 flash + ABI and exports bounded private factory data via
+  GET/read-only helper (selftest/probe/full32MiB, no SET ioctl), fresh held only.
+  Then parse REAL metadata and check
+  quiet logging/GUI stability. Boot103 alone does not promise complete UI fix.
+
 ## Active102: INSTALLED + LIVE PROFILE/DISPLAY PASS (2026-11-04 Minsk)
 
 - Completed latest startup-optimization request: installed boot99/System102,
