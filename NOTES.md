@@ -1,3 +1,22 @@
+## Active boot99 first physical test (2026-11-04 Minsk)
+
+- User returned phone in Fastboot. Fresh private identity/productwhyred/unlocked/
+  64MiB boot geometry, exact99 image/kernel/flags and verified98 rollback PASS.
+  Boot99 send/write/reboot ALL OKAY; ONLY boot written. System95 unchanged.
+  Installed boot image now99 (expected UUID2ED4E8A4-6D1C-3C3C-980B-8533C25978D1);
+  actual UUID over SSH still pending. No0177 touch kernel or System100 flashed.
+- PRIVATE audit/kernel99-flash.json, graphics99-reboot.json boundary and
+  audit/graphics99-device-20261104T113603Z/status.json. Observer/check_graphics99.py
+  started once (held session not created yet), waiting-for-ssh. Do NOT start a
+  second observer or reuse98 shells. observer exec session96666 is running.
+- USB enumerated, exact Mac en1/MAC02:00:5e:77:ee:01 auto-restored192.168.7.1.
+  Sole logger2488 receives fresh99 output into audit/current-whyred-usb.log.
+  Boot passed launchd/keybag/usermanager tasks; early67MB IO has0 errors/fallbacks,
+  cmd17 only as intended. This is early boot, not a long-run stability result.
+- NEXT: await observer's exact UUID/upload/readback checks and retained new shell;
+  run finite pilot_graphics99.py on its status. Require measured frames/memory,
+  real scene changes and visible proof before enabling System100 display job.
+
 ## Kernel CI network blocker and bounded BearSSL fallback (2026-11-04 Minsk)
 
 - User reported kernel build failure. CI41816371836 attempts1/job126528026791
