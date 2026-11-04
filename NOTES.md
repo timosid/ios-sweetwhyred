@@ -1,3 +1,21 @@
+## Kernel CI network blocker and bounded BearSSL fallback (2026-11-04 Minsk)
+
+- User reported kernel build failure. CI41816371836 attempts1/job126528026791
+  and2/job126530569522 BOTH stopped in0020-stage-bearssl.sh before kernel compile:
+  bearer upstream https://www.bearssl.org/git/BearSSL returned HTTP502 (git128).
+  No touch C++ compiler error was reported by either CI attempt.
+- Updated ONLY dependency fetch: at most2 upstream attempts, then2 GitHub mirror
+  attempts, keeping exact7bea48e5e850ab4cafbe68d3765cdaba13a86d6f FETCH_HEAD/HEAD
+  verification. No branch/version change or skipped staging on failure.
+- Local actual staging with injected upstream failure PASSED via status-im mirror;
+  all30 staged files are byte-identical to verified baseline. All-remotes-fail
+  negative control rejects after4 attempts, creates no staged target. bash -n PASS.
+  Private touch-whyred/bearssl-{fallback,reject}-check receipts. Full new CI pending.
+- Additional local ARM64 C++ compile with reused BSD compile flags did NOT pass:
+  old header environment lacks libsa types.h after correcting MACH_KERNEL_PRIVATE.
+  This is not a successful compile or proof of a source defect. Full CI supplies
+  the proper C++ build environment; wait for its actual compile/check results.
+
 ## Touch requested; offline0177 candidate (2026-11-04 Minsk)
 
 - User asks to implement touchscreen; phone remains disconnected. Installed
