@@ -31,6 +31,7 @@ on:
       - "tools/apfs-*"
       - "tools/test-whyred-apfs.py"
       - "tools/test-whyred-apfs-errors.py"
+      - "tools/test-whyred-touch.py"
       - "tools/test-whyred-framebuffer.py"
       - "tools/test-whyred-framebuffer-content.py"
       - "tools/test-whyred-aks-wrap.py"
@@ -223,6 +224,9 @@ jobs:
       - name: Check whole-frame content diagnostics
         run: |
           python3 tools/test-whyred-framebuffer-content.py dxb/xnu --output out/framebuffer-content-host-check
+
+      - name: Test whyred digitizer geometry and frame decoder
+        run: python3 tools/test-whyred-touch.py dxb/xnu --output out/touch-host-check
 
       - name: Check volatile AKS key wrapping
         run: |

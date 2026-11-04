@@ -1,3 +1,24 @@
+## Touch requested; offline0177 candidate (2026-11-04 Minsk)
+
+- User asks to implement touchscreen; phone remains disconnected. Installed
+  boot98/System95 unchanged; ready boot99/System100 display work retained.
+- Registered HID is not hardware input. sweet_touch.c targets the other board's
+  GENI/GT9896/FTS and is initialized through sweet UFS, not whyred eMMC. Do not
+  enable it on whyred. Xiaomi whyred DTS supports alternative SynapticsDSX0x20
+  and Novatek0x62 on i2c_1/GPIO67 IRQ/GPIO66 Novatek reset. Actual IC unknown.
+-0177 fixes actual whyred HID geometry2400->2160, full-panel normalization to
+  match framebuffer scaling, lower-edge detection and release parent location.
+  Adds bounded65-byte/10-contact Novatek frame-to-HID adapter ONLY; no I2C
+  producer/power/reset/firmware operations. It does NOT make physical taps work.
+- Local2356 strict-warning/UBSan geometry/packet checks PASS; exact patch replay
+  against authenticated99 source PASS. CI test integrated; full kernel build
+  pending commit. See WHYRED-TOUCH.md. Private references/baseline/candidate/checks
+  are in touch-whyred; original vendor files and source dumps stay out of git.
+- NEXT: identify actual fitted controller and QUP powered handoff when phone is
+  available; implement matching board-correct bus transport and Synaptics decoder
+  if needed. Verify real taps/drags/multitouch/releases/edges before claiming
+  touchscreen readiness. Do not replace verified99 boot with unverified0177.
+
 ## Phone disconnected; offline automatic-display integration (2026-11-04 Minsk)
 
 - Final live signed artifact13297982482/run41778268151/job126403582532:
