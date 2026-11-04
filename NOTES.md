@@ -1,3 +1,51 @@
+## Active101: INSTALLED81/81; automatic boot validation running (2026-11-04 Minsk)
+
+- User freshly confirmed Fastboot. Exact file/sparse reconstruction, rollback95+
+ 100/boot99, private device identity/geometry PASS. ALL81 confirmed System writes
+  and reboot OKAY. ONLYSystem written; installed phone nowboot99/System101.
+  SHAac49c87fb422b11cc9fc03f201db2c80eb457f91efad6a04e65a16743f392ff1,
+  5386182656B. PRIVATE audit/display101-flash.json and transfer-review.json.
+  DO NOT rerun installer. Installer13830 finished; oldSSH7448 obsolete.
+- Fresh USB/en1 address restored and new UDP confirmed. Same detached listener
+ 9727 and audit/current-whyred-usb.log -> graphics100-usb-session.log retained;
+  isolate101 via audit/graphics101-boot-boundary.json BEFORE-write offset.
+- SOLE observer13898 now check_graphics101.py --start; fresh timestamped
+  audit/graphics101-device-* status/held. Waiting for SSH, then actual99 UUID,
+  exact installed27b binary and D22 budget-file readbacks. No manual renderer.
+- SOLE validation follower14610 waits until observer releases new held shell,
+  then runs verify_graphics101_autostart.py. It checks singlemobilePID501,
+  counter progress/0errors over40s, memory and only fresh101 storage records.
+  See audit/graphics101-validation.stdout and newdevice/autostart-check.json.
+  Do NOT issue another held command while either observer or validator runs.
+- All offline101 proofs/current failure cause below remain valid. Budget128MiB
+  is INSTALLED but actual automatic frames/visible result/long-run behavior
+  still PENDING. No user panel observation for101 yet. Optional C diagnostic
+  CI41854513477/41855581854 CANCELLED before build; unchanged27b used instead.
+- NEXT: follow new101 status/validation, inspect increasing clean automatic
+  counters, request physical panel observation only after actual frames/power
+  state are known. No UART; no0177 touch kernel/I2C producer; UI still unproved.
+
+## LIVE101 INSTALL IN PROGRESS; DO NOT START ANOTHER FLASHER (2026-11-04 Minsk)
+
+- User freshly answered Already in Fastboot for the concrete System101/System-only
+  test. Detached guarded installer13830 now running, graphics-v101/flash-system101.log;
+  audit/display101-flash-process.json. It first rehashes allfiles, then verifies
+  private device identity/geometry, writes81 packets, reboots only afterALL81.
+  No duplicate invocation, even before audit/display101-flash.json first appears.
+- Current100 heldSSH7448 is OBSOLETE after user's Fastboot transition. Boundary
+  audit/graphics101-boot-boundary.json saved BEFORE install. Listener9727 stays
+  bound/appending graphics100-usb-session.log; current alias unchanged.
+- Sole detached observer wrapper13898 waits for confirmedALL81/reboot and new
+  UDP bytes, then execs check_graphics101.py/new timestamped held shell. See
+  audit/graphics101-observer-process.json/.stdout. Never start a second observer.
+- Optional new diagnostic CI41854513477 and41855581854 were CANCELLED before
+  any steps. No iOS compile/pass claim for that helper. This does not change
+ 101 image proof: it retains the old full-CI/physically-tested27b binary; native
+  builder/policy/comparator/full-image checks above passed independently.
+- NEXT: follow installer record; on full success await new observer and run only
+  prepared read-only automatic progression check. On any error inspect exact
+  attempted/confirmed packet counts; NEVER blindly retry or claim full install.
+
 ## Active101: complete verified candidate; fresh Fastboot answer PENDING (2026-11-04 Minsk)
 
 - Installed phone STILL boot99/System100, iOS running with held SSH7448;101 NOT

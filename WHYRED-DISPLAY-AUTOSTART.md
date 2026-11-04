@@ -115,7 +115,9 @@ The independent reader compared8614013385 old logical bytes, with exactly3
 additions and2 explicit changed-file exceptions; all5 overlay byte/metadata
 checks passed. The D22 policy preserves all530 existing overrides and other
 fields. All81 sparse packets and exact image reconstruction passed preflight.
-It remains unflashed and requires an automatic startup hardware test. The OS's
+It was subsequently installed successfully: all81 System writes and reboot were
+confirmed. Boot99 remains installed. The automatic startup hardware test is
+running; successful new frame progression is still pending. The OS's
 Jetsam ips independently confirms per-process-limit at719 reported16KiB pages;
 it does not state the exact configured threshold. No new signed program is
 required for this candidate: it retains the authenticated live27b executable.
