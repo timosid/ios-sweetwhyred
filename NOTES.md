@@ -1,3 +1,87 @@
+## Active102: INSTALLED + LIVE PROFILE/DISPLAY PASS (2026-11-04 Minsk)
+
+- Completed latest startup-optimization request: installed boot99/System102,
+  all81System writes+reboot independently confirmed. Source implementation
+  dd1013a. No boot/GPT/other partition writes. NEVER rerun completed102 installer.
+  Image5386178560B SHA6e6851e0f9789de382d38bfa3a113030bfb47b05969ce2ce68397295b958a912.
+  Native19-job list, exact offline proofs and scope: WHYRED-BOOT-PROFILE.md.
+- Actual102 device readbacks PASS: exact99 UUID, unchanged display27b binary,
+  unchanged native128MiB display policy, entire expected launchd cache and ALL19
+  native hardware plists. ALL19 selected hardware processes absent in FOUR
+  process snapshots; SpringBoard/backboardd/dropbear/display remain present.
+  Bluetoothd/FairPlay remain disabled from95. No fake services or deleted binaries.
+- Automatic display PID114 UID501 persisted across100/110/120/140 frames,
+  errors0 throughout, hashc3d72fb8 (Apple logo). Captures~3.7..8.3s while cold
+  IO continued; do not claim1fps. USER physically confirmed automatic102 Apple
+  logo on black. No manual presenter/marker. Full SpringBoard UI still UNPROVED;
+  no physical touch producer,0177 kernel remains unflashed. No long-run leak proof.
+- Currentboot through1133740032 I/O bytes: errors0/fallbacks0, no observed panic,
+  CRASH or RAMFS PRESSURE. Ordinary FSERR traces still exist; do NOT claim all
+  filesystem/API problems fixed. Source99 single-block PIO remains~1.3MiB/s.
+- First successful rootSSH observed533.528s (~8m54s) after explicit reboot result
+ 16:44:55.396Z. Prior101 host log/login-file mtime proxy727.314s (~12m07s).
+  About194s faster in this ONE run; polling/host-mtime proxies and differing
+  process-sample boot ages mean no controlled/repeated speedup or RAM-savings proof.
+  Private baseline101-host-timing.json +102 runtime-acceptance.json retain limits.
+- LIVE held31558: audit/graphics102-device-20261104T164514Z/held. Observer29161,
+  validator29546 and installer29160 all FINISHED. Held shell FREE. Never reuse
+  obsolete101 held17333. Passive timing observer29277 stopped after acceptance;
+  invalid launchd_cache_loader substring marker discarded, no fake PID1 timing.
+- UDP listener9727 remains running. audit/current-whyred-usb.log ->
+  graphics100-usb-session.log; isolate102 using graphics102-boot-boundary.json.
+  ExactUSB en1/192.168.7.1 restored automatically, no OS-admin prompt/UART needed.
+  Private flash/transfer/runtime/physical receipts retained; valid101 raw rollback,
+ 95/100/boot backups/keys unchanged. Complete102 raw+81sparse packets retained.
+- Additional render CI41869522922 (dd1013a) finished run=failure, job
+ 126712462849=cancelled with EMPTY steps/runner_name;16:39:22..16:54:24Z.
+  No code/build step ran and no new CI-pass claim; cancellation cause unknown.
+  Installed102 reuses prior CI/physically verified27b binary. Actual local
+  builder/comparator/fixtures and hardware checks above PASSED.
+- NEXT: startup profile work is complete. Continue actual SpringBoard UI beyond
+  the boot logo if requested;101's earlier LS/MobileGestalt Wi-Fi wait is only
+  a historical snapshot, NOT a new102 diagnosis. Preserve the working102 setup
+  and inspect current state via the FREE held shell before changing anything.
+
+## Active102: INSTALLED81/81 + reboot PASS; automatic boot checks running (2026-11-04 Minsk)
+
+- Fresh user Fastboot answer authorized concrete102. Guarded installer29160
+  FINISHED all81System writes/rebootOKAY, independently reviewed ALL81 transfer
+  results. Private audit/display102-flash.json and transfer-review.json. ONLY
+  System written; boot99 retained. Installed now boot99/System102. DO NOT rerun
+  installer. Exact102 SHA6e6851e0f9789de382d38bfa3a113030bfb47b05969ce2ce68397295b958a912.
+- Before-write graphics102-boot-boundary.json retained; isolate newboot log at
+  that offset. UDP listener9727 continues graphics100-usb-session.log via alias
+  current-whyred-usb.log. Old101 held17333 is OBSOLETE after reboot.
+- SOLE observer29161 waits freshUDP then check_graphics102.py --start; new
+  timestamped graphics102-device-* status/held will own new SSH commands.
+  SOLE validation follower29546 waits observer's installed cache/19native job/
+  absence proofs before automatic frame/memory samples. Do NOT queue parallel
+  held commands. Passive log observer29277 records1s host observation times.
+- Reboot confirmed2026-11-04T16:44:55Z. No new102 SSH/service/display or speedup
+  proof yet. Source implementation/offline checks commitdd1013a. No manual
+  renderer; no new kernel. Full SpringBoard UI and physical touch remain unproved.
+- NEXT: confirm USB address/fresh logs; follow observer and validator through
+  actual102 disabled-process/critical-job/automatic-frame checks. No UART.
+
+## Active102: AUTHORIZED INSTALL RUNNING; do not start another flasher (2026-11-04 Minsk)
+
+- User freshly confirmed Fastboot for concrete System102. Exact private baseline
+  device matched. Guarded detached flasher29160 started with --flash --ready-answer;
+  audit/display102-flash-process.json and graphics-v102/flash-system102.log.
+  It rehashes candidate/rollback/packets before writing ONLYSystem,81packets.
+  Boot99 retained. DO NOT start a second installer even before first receipt.
+- BEFORE-write graphics102-boot-boundary.json preserved current USB file offset.
+  Existing bounded UDP listener9727 retained. Old101 heldSSH17333 OBSOLETE.
+  Sole observer29161 waits for confirmed81/reboot/freshUDP before starting
+  check_graphics102.py with fresh held shell. Passive host timing observer29277
+  writes graphics-v102/boot-log-observations.json (1s host observation resolution).
+- Source profile/tests/full-image/sparse/preflight completed in dd1013a; exact
+  imageSHA6e6851e0f9789de382d38bfa3a113030bfb47b05969ce2ce68397295b958a912.
+  No102 device behavior or startup speedup proved yet. No manual presenter.
+- NEXT: confirm ALL81 writes + reboot from receipt, restore exact USB address
+  only if necessary, follow sole102 observer, then automatic display/service
+  checks. Never queue a command into any held shell while its owner runs.
+
 ## Active102: READY hardware-profile candidate; fresh Fastboot answer pending;101 installed (2026-11-04 Minsk)
 
 - Latest user requested startup optimization by disabling unused Wi-Fi/Bluetooth/

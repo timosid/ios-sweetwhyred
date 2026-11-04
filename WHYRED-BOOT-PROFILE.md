@@ -90,9 +90,38 @@ content preservation, not launchd behavior or startup performance on the phone.
 
 All81 sparse packets subsequently passed independent header/range/checksum
 validation and exact payload reconstruction of the same image SHA256. The
-verified101 raw rollback remains retained. System102 has not yet been installed;
-actual service absence, UI dependencies and boot-speed impact remain untested.
+verified101 raw rollback remains retained. System102 was subsequently installed; the initial offline receipt itself
+does not establish actual service behavior. See the device result below.
 
 The guarded installer's final files-only preflight passed with exit0: exact102
 image and81 packets, working101/95 rollback and retained boot99 authenticated.
 Its flash mode rejects missing fresh Fastboot readiness. No phone writes occurred.
+
+## Installed device result
+
+All81 System writes and reboot were confirmed independently; boot99 remains.
+On-device readbacks match the exact99 kernel UUID, retained display binary,
+native128MiB display policy, whole launchd cache and all19 native hardware plists.
+All19 selected process names remained absent in four snapshots while SpringBoard,
+backboardd, SSH and the display job remained present.
+
+One UID501 automatic display process progressed100/110/120/140 frames with0 errors
+and the same PID. The user confirmed the Apple logo on the physical panel.
+There was no manual presenter. Cold capture samples took3.7..8.3s; this is not an
+achieved1fps rate or long-run memory proof. The scene remains the boot logo;
+normal SpringBoard UI readiness is not established.
+
+The first successful SSH response was observed533.528s after the recorded reboot
+result (about8m54s). System101's flash-log/login-file modification-time proxy was
+727.314s (about12m07s). This single run was about194s faster, but differing polling
+and filesystem-timestamp proxies prevent treating it as a controlled, repeated
+speedup. No exact RAM savings are inferred from process samples at different ages.
+Through1133740032 read bytes, observed eMMC errors/fallbacks, panic, crash and
+RAMFS-pressure records were absent. Ordinary filesystem/API traces still exist;
+this profile does not repair those separate issues or implement missing hardware.
+
+Additional CI run41869522922 for the source commit ended with run failure and
+job126712462849 cancelled before any steps (no assigned runner name). Its
+cancellation cause is not established. It provides no new CI build result; the
+installed image uses the earlier verified binary and passed the local/image and
+on-device checks described above.
