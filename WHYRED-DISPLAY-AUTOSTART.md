@@ -1,9 +1,17 @@
 # Automatic CPU display candidate
 
-This is an offline System100 candidate descended from the verified System95
-image. The phone remains on boot98/System95 and is disconnected. A visible
-capture-to-panel Apple logo was confirmed on98c; continuous new-frame output,
-changing scenes and a working SpringBoard interface are not established.
+System100 descends from the verified System95 image and adds a mobile launchd
+job for fresh CPU captures. On boot99/System95, the exact signed candidate passed
+finite capture and changing-scene pilots. The user confirmed both the Apple logo
+and a temporary red marker on the panel. A working SpringBoard interface and
+long-run memory stability remain unverified.
+
+The final scene pilot captured39 frames in40.16s with0 errors and2 pixel-hash
+changes. Three separate40s rounds captured38,39,39 frames with0 errors. Wired
+memory samples after the rounds were15966,16001,16042 pages (16KiB/page). This is
+a short observation, not a long-run leak proof. The permanent live binary remains
+SHA256 `27b343c3e92384be4b7e2c0a50de32d228c1424865a4648e647f5c76eb28e4d1`;
+the separate ten-second marker binary is not installed as the display job.
 
 ## Image contents
 
@@ -33,8 +41,7 @@ added; the wake executable is installed for explicit manual tests only.
 ## Required device pilot
 
 1. Test the already packaged boot99 storage candidate with System95 first.
-   The new bounded FIFO-ready recheck has full CI/host proofs, but no hardware
-   result yet. Confirm the exact99 kernel UUID in a fresh SSH session.
+   The new bounded FIFO-ready recheck has full CI/host proofs, with an initial hardware pilot completed. Confirm the exact99 kernel UUID in a fresh SSH session.
 2. Upload the exact signed live, wake and diagnostic binaries and read them back
    byte-for-byte. Do not reuse an outstanding98 SSH command/session.
 3. Run the finite `live-window` as mobile using the explicit
@@ -76,5 +83,6 @@ Independent comparison passed8614114504 old logical bytes across45744 old files,
 launchd cache contents are excepted; the cache is separately compared in full
 with just the one intended job added. All four overlay byte/metadata checks pass.
 The spool was removed after successful verification. Final code commit65b1e97
-passed all CI41781693532/job126414466903 steps. This remains an unflashed candidate;
-`offline_ready=true` does not mean `deployment_ready=true` or hardware validation.
+passed all CI41781693532/job126414466903 steps. The offline receipt describes build-time checks; it does not establish boot-time
+launchd behavior. See the latest NOTES.md handoff for installation and device
+validation state. Retain the verified System95 image for rollback.

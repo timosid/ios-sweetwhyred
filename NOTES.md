@@ -1,3 +1,33 @@
+## Active100: System installed; first automatic boot verification pending (2026-11-04 Minsk)
+
+- After a Hackintosh crash user returned the phone in Fastboot. Revalidated exact
+  System100/raw/sparse reconstruction, System95 rollback, boot99, private device
+  identity/product/unlocked/System geometry and matched finite display pilot.
+  ALL81 System transfers/writes and reboot are confirmed OKAY; only System was
+  written, boot99 retained. PRIVATE audit/display100-flash.json is authoritative;
+  never repeat the flasher or overwrite this record without reviewing it.
+- Installed System image5386194944B SHA622ca50416c4d296f846cd7d4e754ca2f1d87a8bfe122010fb588ef6eb40e5c8.
+  Added mobile launchd whyred-display live job uses the exact tested27b343c3
+  signed binary. Automatic startup, whole UI and long-run stability still PENDING.
+- Fresh bounded UDP receiver2635 writes audit/graphics100-usb-session.log;
+  audit/current-whyred-usb.log now selects that file. Prior97d log retained.
+  Mac exact en1 address192.168.7.1 restored from persistent configuration.
+  No UART. Boot reached launchd/fsck/mount/data-protection; no storage errors yet.
+- Sole observer5105, exec24895, PRIVATE audit/graphics100-device-20261104T144954Z:
+  waiting-for-ssh; allows30s handshake/30min boot, will create a NEW held shell,
+  require exact99 UUID and installed display readback, then read automatic log.
+  Do NOT reuse old held97326 or start another observer/manual display loop.
+  First automatic job log: /private/var/mobile/Library/Logs/whyred-display.log.
+- Before crash, same live27b binary passed3 finite40s rounds38/39/39 frames,
+  0errors, wired15966/16001/16042 pages. Final scene-window39frames/40.16s,
+  0errors/2changes; USER explicitly confirmed RED SQUARE. Marker signed CI
+  41824794100/job126556665184 passed; temporary marker binarya1279cc5 is separate
+  and is NOT installed as the permanent display job. Private99 acceptance/window
+  and memory receipts retained. Short pilot is not long-run memory/UI signoff.
+- NEXT: wait for this observer, inspect automatic frame progression/process UID,
+  memory/storage and panel state. No manual renderer invocation before checking
+  autostart. Kernel0177 touch candidate remains unflashed; real I2C input absent.
+
 ## Active99: fresh-frame and changing-scene pilots PASS (2026-11-04 Minsk)
 
 - Exact99 UUID verified over new held SSH97326, PRIVATE
