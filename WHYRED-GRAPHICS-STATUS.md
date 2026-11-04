@@ -1,6 +1,7 @@
 # whyred graphics: measured boundary and next experiment
 
-Updated2026-11-03 Minsk. Installed boot98/System95, iOS20F66. In fresh
+Updated2026-11-04 Minsk. Phone DISCONNECTED by user; offline work only.
+Installed boot98/System95, iOS20F66. In fresh
 ordinary-reboot run98b, exact kernel UUID and helper uploads/readbacks passed.
 The user watched the repeated real-frame test and explicitly confirmed a white
 Apple logo on black on the phone. Capture-to-panel delivery therefore has a
@@ -9,14 +10,16 @@ physical visible result. A functioning SpringBoard interface is still pending.
 In later98b, lsd reached its ordinary event loop and SpringBoard advanced from
 store acquisition to an IconServices request for application icon images. This
 is startup progress, not a proved permanent deadlock or a ready interface.
-Current fresh98c has a new retained SSH shell and read-only startup monitoring.
+Fresh98c separately showed the earlier CoreServices wait. Its retained SSH shell
+must not be reused after disconnect/storage fallback; startup monitoring stopped.
 The earlier guarded identity-cache experiment failed its actual answer probe
 and was rolled back byte-for-byte. It was not repeated in98b.
 
-USB logs and read-only startup/VM samples continue privately. The observed98b
-stream has no fatal eMMC recovery, crash or RAMFS pressure so far; unsupported
-attribute and startup missing-file probes still occur. Recovery0175 has not been
-exercised by an actual read failure. This is not a long-run stability result.
+Both98b and98c later hit CMD17 incomplete with a full512-byte FIFO and the clean
+second CMD13 check from0175, then restored the slow baseline clock. SSH stalled.
+This physically exercises0175 but does not prove the late-ready hypothesis or
+constitute a kernel panic. Boot99 adds one bounded final data-ready recheck;
+full CI/4826 host checks/package verification passed, but it is NOT flashed.
 
 Latest98c screen retry: the new explicit `whyred-display-wake panel-on` passed
 exact v98 UUID/display-ID/logical-dimension checks, requested our AppleCLCD
@@ -24,6 +27,15 @@ selector12(1), and produced a new `display on` record. Fresh capture reached the
 panel through84 successful submissions before the30s child deadline. The user
 confirmed the Apple logo on black during this exact retry. This verifies the
 direct panel wake and visible real-frame path; it does not establish stock UI.
+
+Offline automatic-output candidate: `live` captures a fresh real LCD scene into
+new immutable IOSurface storage for each submission, at most once per second.
+Its actual speed, changing-scene delivery and memory lifetime still need a finite
+device pilot. `prepare-whyred-display-image.py` prepares a System95 descendant
+with a supervised mobile launchd job, retaining all531 existing jobs and SSH.
+The process log is bounded to1MiB. No automatic panel power override is added.
+No continuous job has been installed or tested on the phone. Candidate preparation
+is useful offline; flashing that enabled image requires the exact-binary pilot.
 
 ## Actual physical results
 

@@ -38,6 +38,7 @@ extern uint32_t IOSurfaceGetID(IOSurfaceRef);
 #include <objc/runtime.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/resource.h>
 #include <time.h>
 #include <sys/sysctl.h>
 
@@ -394,6 +395,13 @@ static int live_display(BOOL continuous) {
     /* Terminate a stuck individual capture. Default SIGALRM cleanup is handled
      * by process teardown, including its IOKit/IOSurface rights. */
     signal(SIGALRM, SIG_DFL);
+    /* This process can be supervised with stdout/stderr in RAMFS. Bound its
+     * regular log files; reaching the cap must not terminate frame updates. */
+    struct rlimit log_limit;
+    if (getrlimit(RLIMIT_FSIZE, &log_limit)) return 1;
+    if (log_limit.rlim_cur > 1024 * 1024) log_limit.rlim_cur = 1024 * 1024;
+    if (log_limit.rlim_max > 1024 * 1024) log_limit.rlim_max = 1024 * 1024;
+    if (signal(SIGXFSZ, SIG_IGN) == SIG_ERR || setrlimit(RLIMIT_FSIZE, &log_limit)) return 1;
     live_quiet = YES; live_allow_black = YES; live_stop = 0;
     unsigned frames = 0, errors = 0, consecutive_errors = 0;
     uint32_t previous_hash = 0; unsigned changes = 0;

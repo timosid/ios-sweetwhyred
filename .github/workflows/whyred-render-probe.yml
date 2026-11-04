@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/whyred-early-fb]
-    paths: [.github/workflows/whyred-render-probe.yml, tools/whyred-render-probe.m, tools/whyred-surface-ipc.m]
+    paths: [.github/workflows/whyred-render-probe.yml, tools/whyred-render-probe.m, tools/whyred-surface-ipc.m, tools/prepare-whyred-display-image.py]
 permissions:
   contents: read
 jobs:
@@ -17,6 +17,7 @@ jobs:
       - name: Compile native software renderer diagnostic
         run: |
           mkdir -p out/render
+          python3 tools/prepare-whyred-display-image.py --self-test
           clang -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-render-probe.m -framework Foundation -framework CoreImage -framework CoreGraphics -framework QuartzCore -framework ImageIO -framework IOSurface -o out/render/whyred-render-probe-native
           clang -DWHYRED_PROBE_IOSURFACE_DECLS=1 -fobjc-arc -O1 -g -Wall -Wextra -Werror tools/whyred-surface-ipc.m -framework Foundation -framework IOSurface -o out/render/whyred-surface-ipc-native
           python3 - <<'PY'

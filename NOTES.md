@@ -1,3 +1,25 @@
+## Phone disconnected; offline automatic-display integration (2026-11-04 Minsk)
+
+- User explicitly disconnected the phone and asks for offline work. Do not ask
+  Fastboot now or reuse held98c SSH. Installed boot98/System95 unchanged.
+- Both matched99 helpers from sourcea330a8b118d389cda7fae1ab93e516cf78567c4e
+  passed all CI steps: render41698260722/job126134429664, wake41698260835/
+  job126134430599. Artifact digests/CRC/provenance/platform2/signature/rights/
+  ISA/99UUID passed locally. Private graphics-v99/live99 and wake99. No device
+  live pilot; do not claim automatic rendering fixed from these offline checks.
+- Preparing System100 from verified System95: add only live/wake binaries and
+  org.whyred.display job, modify only launchd cache; preserve all531 old jobs,
+  disabled Bluetooth/FairPlay and SSH/keys. Supervise as mobile,30s restart throttle,
+  fresh immutable capture each iteration, max1fps, no permanent power override.
+  Process RLIMIT_FSIZE1MiB bounds regular logs; needs updated signed render CI.
+- New tools/prepare-whyred-display-image.py validates old jobs/base/provenance,
+  executable rights/ISA/platform, embedded bootstrap path and independent APFS
+  file checks. tools/whyred-display-image-compare.c independently compares all
+  old bytes/metadata, permits exactly3 additions and1 cache exception. Native
+  renderer guard/layer/surface checks and negative image comparison in progress.
+  No new System image built/flashed yet. Exact live-binary finite pilot remains
+  required BEFORE deploying the enabled automatic launchd image.
+
 ## Boot99 packaged and matched tools compiling (2026-11-03 Minsk)
 
 - Full package authentication PASSED, including authoritative run/jobs/digests,
