@@ -12,7 +12,8 @@
   producer/power/reset/firmware operations. It does NOT make physical taps work.
 - Local2356 strict-warning/UBSan geometry/packet checks PASS; exact patch replay
   against authenticated99 source PASS. CI test integrated; full kernel build
-  pending commit. See WHYRED-TOUCH.md. Private references/baseline/candidate/checks
+  CI41816371836 started from beadd14e9afdc7c45ab311e3470baff6dcc346d0;
+  result still pending. See WHYRED-TOUCH.md. Private references/baseline/candidate/checks
   are in touch-whyred; original vendor files and source dumps stay out of git.
 - NEXT: identify actual fitted controller and QUP powered handoff when phone is
   available; implement matching board-correct bus transport and Synaptics decoder
