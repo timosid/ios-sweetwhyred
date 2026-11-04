@@ -1,5 +1,30 @@
 ## Phone disconnected; offline automatic-display integration (2026-11-04 Minsk)
 
+- Final live signed artifact13297982482/run41778268151/job126403582532:
+  ZIP122127B/b1d3f181d1eafbd451a5ee405bdc858316ee81845829b102aec0f01bcb033dc6;
+  binary94544B/27b343c3e92384be4b7e2c0a50de32d228c1424865a4648e647f5c76eb28e4d1.
+  Sourcee1dd981edfe172a7bbca703d523b175bb6c5eea7. Final diagnostic source
+  df007761d1f16887ebd9cbfdba4baf006a7819a4 passed ALL CI41778450154/
+  job126404186157. ZIP73337B/aab7397a5fdf1c338701760836096cb6bda206c9d2686118a190734d6af8ec86;
+  binary73632B/23ec1e2eb0cbe918adef1daa466e6a71b6be4c8eb47b5da90826e1b86c378746.
+  All final archive/source/CRC/size/signature/exact-rights/platform2/noLSE proofs
+  passed; PRIVATE graphics-v100/provenance.json and diag-provenance.json.
+- Independent final comparator passes BOTH compressed/plain positive fixtures
+  and5 negative controls (extra/deleted file, old bytes/mode, new mode). It permits
+  only UF_COMPRESSED on new files and strict old BSD flags. Private final results
+  graphics-v100/comparator-final-tests.json. Own C unit warning-clean -Werror.
+- PRIVATE ssh-v90/check_graphics99.py and pilot_graphics99.py prepared/syntax
+  checked. Default observer does LOCAL validation only (PASS); --start requires
+  completed boot99 flash receipt, creates NEW session and verifies exact UUID
+  and upload readbacks. Pilot requires matching receipts; explicit --run only,
+  fixed finite40s capture/mobile90s parent, memory before/after and actual counters.
+  It never marks deployment ready or changing-scene/visible proof automatically.
+- System100 full offline build IN PROGRESS in graphics-v100/system-v100-candidate;
+  log graphics-v100/build.log. Do not deploy incomplete/no-manifest output.
+  Builder space guard uses two bounded System partitions plus1GiB and checks
+  exact layout before write. Initial arbitrary18GiB threshold rejected before
+  creating output; no images/backups were deleted. Full comparison pending.
+
 - User explicitly disconnected the phone and asks for offline work. Do not ask
   Fastboot now or reuse held98c SSH. Installed boot98/System95 unchanged.
 - Both matched99 helpers from sourcea330a8b118d389cda7fae1ab93e516cf78567c4e
@@ -23,7 +48,7 @@
 - Corrected pilot runner mismatch: general run-mobile remains30s; new explicit
   run-mobile-display accepts ONLY finite live-window, fixed90s bound. Native
   argument/continuous-mode/root refusals PASS. No automatic or device invocation;
-  signed diagnostic rebuild pending.
+  signed diagnostic rebuild and artifact verification now PASS (see above).
 
 ## Boot99 packaged and matched tools compiling (2026-11-03 Minsk)
 

@@ -52,7 +52,10 @@ static int new_file(const struct entry *entry, const char *path) {
     unsigned mode = added_mode(path);
     int e = apfs_inode_get(&disks[1].vol, entry->id, &in);
     if (e) return e;
-    if (!mode || entry->type != 8 || in.mode != mode || in.owner || in.group || in.bsd_flags) return EINVAL;
+    /* The writer may store a new regular file compressed (UF_COMPRESSED0x20).
+     * Preserve strict flag equality for old files; no other new BSD flags. */
+    if (!mode || entry->type != 8 || in.mode != mode || in.owner || in.group ||
+        (in.bsd_flags & ~0x20u)) return EINVAL;
     added++;
     return 0; /* Python separately compares all new bytes and metadata. */
 }

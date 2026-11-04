@@ -198,7 +198,11 @@ def main():
                 'Unsupported LSE executable instruction')
         require(Path(target).name not in get(root, str(Path(target).parent)).children, 'Binary collision')
     if args.build:
-        require(shutil.disk_usage(out.parent).free >= 18 * 1024**3, 'Insufficient image/spool space')
+        # Each retained spool stream is placed in the final bounded container.
+        # Budget two complete System partitions plus1GiB, rather than requiring
+        # an unrelated round18GiB threshold. Recheck the exact layout below.
+        require(shutil.disk_usage(out.parent).free >= 2 * PARTITION_BYTES + 1024**3,
+                'Insufficient bounded image/spool space')
     out.mkdir(mode=0o700)
     overlay = out / 'overlay'
     overlay.mkdir()
@@ -236,6 +240,10 @@ def main():
         container = builder.Container([volume], 256, image.name)
         container.layout()
         require(container.block_count * builder.BS < PARTITION_BYTES, 'Image exceeds System partition')
+        spool.flush()
+        require(spoolpath.stat().st_size < PARTITION_BYTES and
+                shutil.disk_usage(out).free >= container.block_count * builder.BS + 1024**3,
+                'Insufficient space for exact image layout')
         container.write(str(image))
     image.chmod(0o600)
     checks = []
