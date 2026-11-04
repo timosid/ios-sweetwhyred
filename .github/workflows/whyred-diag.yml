@@ -25,6 +25,19 @@ jobs:
           out/diag/whyreddiag-native kernel > out/diag/native-kernel.txt
           out/diag/whyreddiag-native xattrs "$RUNNER_TEMP" > out/diag/native-xattrs.txt
           grep -q 'xattrs PASS' out/diag/native-xattrs.txt
+          python3 - <<'PY'
+          import os, subprocess
+          b = 'out/diag/whyreddiag-native'
+          for args in (['run-mobile-display'], ['run-mobile-display', '/usr/bin/true'],
+                       ['run-mobile-display', '/usr/bin/true', 'live'],
+                       ['run-mobile-display', '/usr/bin/true', 'live-window', 'extra']):
+              p = subprocess.run([b, *args], capture_output=True, text=True, timeout=5)
+              assert p.returncode == 2 and 'usage:' in p.stderr, (args, p)
+          if os.getuid() != 0:
+              p = subprocess.run([b, 'run-mobile-display', '/usr/bin/true', 'live-window'],
+                                 capture_output=True, text=True, timeout=5)
+              assert p.returncode == 2 and 'requires root' in p.stderr, p
+          PY
       - name: Build signed iOS helper
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)

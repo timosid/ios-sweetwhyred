@@ -299,7 +299,7 @@ cleanup:
     return result;
 }
 
-static int run_mobile(char **args) {
+static int run_mobile(char **args, unsigned seconds) {
     if (getuid() || args[0][0] != '/') { fprintf(stderr, "run-mobile requires root and an absolute executable\n"); return 2; }
     pid_t child = fork();
     if (child < 0) { perror("fork"); return 1; }
@@ -310,7 +310,7 @@ static int run_mobile(char **args) {
         if (setenv("HOME", "/var/mobile", 1) || setenv("USER", "mobile", 1) || setenv("LOGNAME", "mobile", 1) || chdir("/var/mobile")) { perror("mobile environment"); _exit(126); }
         execv(args[0], args); perror("execv"); _exit(127);
     }
-    double deadline = now() + 30;
+    double deadline = now() + seconds;
     int timed_out = 0, killed = 0, status;
     for (;;) {
         pid_t got = waitpid(child, &status, WNOHANG);
@@ -353,6 +353,10 @@ int main(int argc, char **argv) {
         if (errno || *end || pid <= 0 || pid > 0x7fffffff) return 2;
         return sample((pid_t)pid, !strcmp(argv[1], "registers"));
     }
-    if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2);
-    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | registers PID | run-mobile /executable [args]\n"); return 2;
+    if (argc >= 3 && !strcmp(argv[1], "run-mobile")) return run_mobile(argv + 2, 30);
+    /* The finite40s display pilot may finish its final45s bounded capture.
+     * Keep the old general runner at30s; never extend continuous live mode. */
+    if (argc == 4 && !strcmp(argv[1], "run-mobile-display") && !strcmp(argv[3], "live-window"))
+        return run_mobile(argv + 2, 90);
+    fprintf(stderr, "usage: whyreddiag selftest | memory | kernel | session | cache PID | ports PID | region PID ADDRESS LENGTH(1..4096) | xattrs /temporary-directory | threads PID | registers PID | run-mobile /executable [args] | run-mobile-display /executable live-window\n"); return 2;
 }

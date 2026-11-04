@@ -11,14 +11,19 @@
   org.whyred.display job, modify only launchd cache; preserve all531 old jobs,
   disabled Bluetooth/FairPlay and SSH/keys. Supervise as mobile,30s restart throttle,
   fresh immutable capture each iteration, max1fps, no permanent power override.
-  Process RLIMIT_FSIZE1MiB bounds regular logs; needs updated signed render CI.
+  Process RLIMIT_FSIZE1MiB bounds regular logs. Updated sourcee1dd981 passed
+  all renderCI41778268151/job126403582532 steps; signed archive verifying.
 - New tools/prepare-whyred-display-image.py validates old jobs/base/provenance,
   executable rights/ISA/platform, embedded bootstrap path and independent APFS
   file checks. tools/whyred-display-image-compare.c independently compares all
   old bytes/metadata, permits exactly3 additions and1 cache exception. Native
-  renderer guard/layer/surface checks and negative image comparison in progress.
-  No new System image built/flashed yet. Exact live-binary finite pilot remains
+  renderer guard/layer/surface checks PASS; independent reader rejects an
+  unchanged95 image as the100 overlay. No new System image built/flashed yet. Exact live-binary finite pilot remains
   required BEFORE deploying the enabled automatic launchd image.
+- Corrected pilot runner mismatch: general run-mobile remains30s; new explicit
+  run-mobile-display accepts ONLY finite live-window, fixed90s bound. Native
+  argument/continuous-mode/root refusals PASS. No automatic or device invocation;
+  signed diagnostic rebuild pending.
 
 ## Boot99 packaged and matched tools compiling (2026-11-03 Minsk)
 
