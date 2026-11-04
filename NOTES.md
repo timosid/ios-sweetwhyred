@@ -1,3 +1,27 @@
+## Active99: fresh-frame and changing-scene pilots PASS (2026-11-04 Minsk)
+
+- Exact99 UUID verified over new held SSH97326, PRIVATE
+  audit/graphics99-device-20261104T113603Z/held. Observer FINISHED, all3 signed
+  helper uploads/readbacks PASS. This is the only current held shell; never98.
+- First live-window:11 fresh frames/43.45s,0 errors,0 changes,normal exit0,
+  parent timeout0. Direct panel-on0/new display-on observed. USER explicitly
+  confirms Apple logo on black during this test. Not a ready SpringBoard UI.
+- Scene pilot used same permanent-candidate live binary27b343c3e92384be4b7e2c0a50de32d228c1424865a4648e647f5c76eb28e4d1
+  concurrently with existing temporary named-LCD marker, each under bounded
+  mobile diagnostic runner.22 frames/42.9s,0 errors,2 hash changes; marker
+  baseline0/after1024,context invalidated,both exits0. No storage fallback.
+  USER saw a brief top-left change/blink but did NOT confirm red color.
+  Private scene-pilot.json/visible-observations.json retain actual results.
+- Observed rates0.25/0.51fps during cold boot, NOT1fps achieved. First capture
+  451.8ms, later2.8-6.8s; boot still performs heavy PIO. No speed or leak claim.
+- Stability script now SOLE owner of held97326:3 finite40s rounds with VM samples,
+  status stability.json. Do NOT send held commands until finished; on timeout
+  inspect framing. No continuous daemon installed or System100 flashed.
+- Preparing optional remote-layer-lcd-window marker mode: keep the validated
+  temporary marker10s for clearer user observation; old modes unchanged.
+  Native strict compile/new physical-target refusal PASS; signed CI pending.
+  Permanent System100 candidate and tested live binary remain27b343c3 unchanged.
+
 ## Active boot99 first physical test (2026-11-04 Minsk)
 
 - User returned phone in Fastboot. Fresh private identity/productwhyred/unlocked/

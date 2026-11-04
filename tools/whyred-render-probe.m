@@ -439,8 +439,9 @@ static int live_display(BOOL continuous) {
 #endif
 }
 
-static int remote_layer(BOOL named_display) {
+static int remote_layer(BOOL named_display, unsigned hold_seconds) {
 #if !TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
+    (void)hold_seconds;
     puts("WHYRED RENDER: remote layer requires the physical iOS target");
     return 1;
 #endif
@@ -498,6 +499,10 @@ static int remote_layer(BOOL named_display) {
         printf("WHYRED RENDER: remote marker baseline=%zu after=%zu\n",
                baseline_marker, last_capture_marker_pixels);
         if (last_capture_marker_pixels < baseline_marker + 900) result = 1;
+        if (!result && hold_seconds) {
+            printf("WHYRED RENDER: marker visible observation seconds=%u temporary=1\n", hold_seconds);
+            sleep(hold_seconds);
+        }
     } @finally {
         [context setLayer:nil];
         [context invalidate];
@@ -522,9 +527,10 @@ int main(int argc, char **argv) {
             if (argc == 2 && !strcmp(argv[1], "present-window")) return capture_display(NO, 101);
             if (argc == 2 && !strcmp(argv[1], "live-window")) return live_display(NO);
             if (argc == 2 && !strcmp(argv[1], "live")) return live_display(YES);
-            if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO);
-            if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES);
-            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | present-window | live-window | live | remote-layer | remote-layer-lcd\n", stderr);
+            if (argc == 2 && !strcmp(argv[1], "remote-layer")) return remote_layer(NO, 0);
+            if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd")) return remote_layer(YES, 0);
+            if (argc == 2 && !strcmp(argv[1], "remote-layer-lcd-window")) return remote_layer(YES, 10);
+            fputs("usage: whyred-render-probe software | eagl | layer | surface | methods | capture | capture-png | present-once | present-window | live-window | live | remote-layer | remote-layer-lcd | remote-layer-lcd-window\n", stderr);
             return 2;
         } @catch (NSException *exception) {
             printf("WHYRED RENDER: exception=%.*s reason=%.*s\n", 256,
