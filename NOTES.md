@@ -1,3 +1,44 @@
+## Active101: complete verified candidate; fresh Fastboot answer PENDING (2026-11-04 Minsk)
+
+- Installed phone STILL boot99/System100, iOS running with held SSH7448;101 NOT
+  flashed. User last confirmed TEXT. Actual JetsamEvent ips read over SSH proves
+  whyred-display per-process-limit, rpages719/page16384 (~11.2MiB); configured
+  exact limit is NOT included. PRIVATE100-device/display-jetsam-evidence.json.
+  This direct OS report replaces waiting for the optional new diagnostic merely
+  to establish the failure cause. No runtime memory-budget mutation performed.
+- System101 FULL IMAGE VERIFIED, PRIVATE graphics-v101/system-v101-candidate:
+  5386182656B SHAac49c87fb422b11cc9fc03f201db2c80eb457f91efad6a04e65a16743f392ff1.
+  Exact same signed/live-tested27b binary and launchd job as100; only add own
+  org.whyred.display Active/InactiveHardMemoryLimit128 in native D22 table.
+  All530 old overrides/other policy fields preserved; cache byte-equivalent100.
+  Independent full comparison8614013385 old bytes,63022nodes/45744files/
+  16607dirs/671symlinks;3added/2explicitexceptions;5 exact byte+metadata checks
+  PASS. Finite128MiB budget is a hardware candidate, NOT proved working yet.
+- ALL81 private sparse slices generated and files-only guarded preflight EXIT0:
+  raw/sparse exact reconstruction, rollback95+100, boot99, binary pilot proofs
+  PASS. audit/display101-files-verified.json. tools/flash_display101.py sealed
+  to exact101 SHA/size; refuses any preexisting101 flash record. Do not use100
+  flasher again. Its reproducible slices were reclaimed AFTER full100 success.
+- Disk headroom restored by discarding only agent-generated explicitly
+  DO-NOT-FLASH interrupted92 raw/spool and reproducible100 sparse packets.
+  Retained valid92/95/100 raw images, keys/backups/receipts unchanged. Private
+  audit/display101-reclaimed-* receipts. Current101 raw/slices remain private.
+- No new C helper delivered: diagnostic CI41854513477 Intel and41855581854 ARM
+  remain QUEUED; neither failed nor passed. Builder/native/comparator/full-image
+  tests above are actual local proofs. New helper is not needed for101 image,
+  which keeps previously authenticated27b signed executable unchanged.
+- Prepared101 observer/check_graphics101.py validates new flash81/reboot,
+  exact99 UUID and both installed live binary/native memory-policy readbacks;
+  verify_graphics101_autostart.py checks single UID501 process, increasing
+  automatic frame counter/0errors, VM snapshots and only fresh boot storage log.
+  Neither started. Current listener9727 appends graphics100-usb-session.log;
+  current-whyred-usb.log alias correct. Preserve boundary BEFORE101 flash/reboot.
+- Asked fresh physical readiness for SYSTEM101 after concrete preflight PASS:
+  user must put currently-running phone in Fastboot. Await actual answer; no
+  timeout implies approval. Once ready, guarded101 flasher --flash --ready-answer,
+  confirmALL81/reboot, new held SSH only, check autostart WITHOUT manual renderer.
+  No UART; no real touch producer; full SpringBoard UI still unverified.
+
 ## Active100 memory correction: native policy proof; signed helper queued (2026-11-04 Minsk)
 
 - Actual held SSH7448 remains accessible. Current display log: repeated begin,

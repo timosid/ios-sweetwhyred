@@ -108,3 +108,14 @@ only with `--display-memory-policy`; metadata and all other old file contents
 remain checked. The builder separately compares the full policy dictionary and
 the exact installed replacement bytes. A101 image must still pass full image
 comparison and an automatic startup/device pilot before it is called working.
+
+The completed101 candidate is5386182656B, SHA256
+`ac49c87fb422b11cc9fc03f201db2c80eb457f91efad6a04e65a16743f392ff1`.
+The independent reader compared8614013385 old logical bytes, with exactly3
+additions and2 explicit changed-file exceptions; all5 overlay byte/metadata
+checks passed. The D22 policy preserves all530 existing overrides and other
+fields. All81 sparse packets and exact image reconstruction passed preflight.
+It remains unflashed and requires an automatic startup hardware test. The OS's
+Jetsam ips independently confirms per-process-limit at719 reported16KiB pages;
+it does not state the exact configured threshold. No new signed program is
+required for this candidate: it retains the authenticated live27b executable.
