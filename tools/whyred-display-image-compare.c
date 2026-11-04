@@ -7,7 +7,34 @@ struct entry { char *name; uint64_t id; uint8_t type; };
 struct listing { struct entry *v; size_t n; };
 static struct disk disks[2];
 static unsigned nodes, files, dirs, links, changed, added;
-static int display_memory_policy;
+static int display_memory_policy, minimal_hardware;
+static const char *hardware_paths[] = {
+    "/System/Library/LaunchDaemons/com.apple.wifi.hostapd.plist",
+    "/System/Library/LaunchDaemons/com.apple.wifi.wapic.plist",
+    "/System/Library/LaunchDaemons/com.apple.wifiFirmwareLoader.plist",
+    "/System/Library/LaunchDaemons/com.apple.wifianalyticsd.plist",
+    "/System/Library/LaunchDaemons/com.apple.wifid.plist",
+    "/System/Library/LaunchDaemons/com.apple.wifip2pd.plist",
+    "/System/Library/LaunchDaemons/com.apple.wifivelocityd.plist",
+    "/System/Library/LaunchDaemons/com.apple.bluetoothuiservice.plist",
+    "/System/Library/LaunchDaemons/com.apple.bluetoothuserd.plist",
+    "/System/Library/LaunchDaemons/com.apple.WirelessRadioManager.plist",
+    "/System/Library/LaunchDaemons/com.apple.nfcd.plist",
+    "/System/Library/LaunchDaemons/com.apple.applecamerad.plist",
+    "/System/Library/LaunchDaemons/com.apple.dietapplecamerad.plist",
+    "/System/Library/LaunchDaemons/com.apple.dietappleh13camerad.plist",
+    "/System/Library/LaunchDaemons/com.apple.ptpcamerad.plist",
+    "/System/Library/LaunchDaemons/com.apple.gpsd.plist",
+    "/System/Library/LaunchDaemons/com.apple.awdd.plist",
+    "/System/Library/LaunchDaemons/com.apple.accessibility.motiontrackingd.plist",
+    "/System/Library/LaunchDaemons/com.apple.DumpBasebandCrash.plist",
+};
+static int hardware_exception(const char *path) {
+    if (!minimal_hardware) return 0;
+    for (unsigned i = 0; i < sizeof(hardware_paths) / sizeof(*hardware_paths); i++)
+        if (!strcmp(path, hardware_paths[i])) return 1;
+    return 0;
+}
 static uint64_t bytes;
 static unsigned char buffers[2][1024 * 1024];
 
@@ -108,7 +135,7 @@ static int walk(uint64_t a, uint64_t b, const char *path, unsigned depth) {
         files++; uint64_t size[2] = {0};
         e = apfs_inode_size(&disks[0].vol, &in[0], &size[0]);
         if (!e) e = apfs_inode_size(&disks[1].vol, &in[1], &size[1]);
-        if (!e && (!strcmp(path, "/System/Library/xpc/launchd.plist") ||
+        if (!e && (hardware_exception(path) || !strcmp(path, "/System/Library/xpc/launchd.plist") ||
             (display_memory_policy && !strcmp(path,
              "/System/Library/LaunchDaemons/com.apple.jetsamproperties.D22.plist")))) {
             changed++; return 0; /* Builder separately compares bytes and the full policy dictionary. */
@@ -130,11 +157,13 @@ static int walk(uint64_t a, uint64_t b, const char *path, unsigned depth) {
     return e;
 }
 int main(int argc, char **argv) {
-    if (argc != 3 && argc != 4) return 2;
-    if (argc == 4) {
-        if (strcmp(argv[3], "--display-memory-policy")) return 2;
-        display_memory_policy = 1;
+    if (argc < 3 || argc > 5) return 2;
+    for (int i = 3; i < argc; i++) {
+        if (!strcmp(argv[i], "--display-memory-policy") && !display_memory_policy) display_memory_policy = 1;
+        else if (!strcmp(argv[i], "--minimal-hardware") && !minimal_hardware) minimal_hardware = 1;
+        else return 2;
     }
+    if (minimal_hardware && !display_memory_policy) return 2;
     for (unsigned i = 0; i < 2; i++) {
         struct disk *d = &disks[i];
         d->f = fopen(argv[i + 1], "rb");
@@ -148,7 +177,8 @@ int main(int argc, char **argv) {
         if (e) return 3;
     }
     int e = walk(APFS_ROOT_DIR_INO_NUM, APFS_ROOT_DIR_INO_NUM, "/", 0);
-    if (!e && (changed != 1u + (unsigned)display_memory_policy || added != 3)) e = EINVAL;
+    if (!e && (changed != 1u + (unsigned)display_memory_policy +
+            (minimal_hardware ? sizeof(hardware_paths) / sizeof(*hardware_paths) : 0u) || added != 3)) e = EINVAL;
     printf("{\"passed\":%s,\"nodes\":%u,\"files\":%u,\"directories\":%u,\"symlinks\":%u,"
            "\"exact_bytes_compared\":%llu,\"explicit_file_exceptions\":%u,\"added_files\":%u}\n",
            e ? "false" : "true", nodes, files, dirs, links, (unsigned long long)bytes, changed, added);

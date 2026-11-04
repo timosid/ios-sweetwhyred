@@ -17,6 +17,7 @@ import re
 import shutil
 import stat
 import subprocess
+import whyred_boot_profile as hardware
 
 BASE70 = 'd2e155be8cc3457b8d5784cf676933ab17e6052d75b596091fff0e52819983e3'
 SYSTEM91 = 'fa356fa4a02ae74fff9dbc674336f52f9754560767ee3c88ca3579629905ebe0'
@@ -143,7 +144,11 @@ def main():
     parser.add_argument('--build', action='store_true')
     parser.add_argument('--display-memory-mb', type=int, choices=[128],
                         help='Build101 with only the display job budget added to the D22 memory table')
+    parser.add_argument('--hardware-profile', choices=['minimal-hardware'],
+                        help='System102: disable exactly19 unsupported hardware jobs; retains101 display policy')
     args = parser.parse_args()
+    require(not args.hardware_profile or args.display_memory_mb == 128,
+            'Hardware profile requires the working101 display budget')
     if args.self_test:
         self_test()
         return
@@ -205,7 +210,13 @@ def main():
     directory('System/Library/WhyredSSH').mode = stat.S_IFDIR | 0o700
     cache = plistlib.loads(Path(get(root, CACHE).source).read_bytes())
     updated, job = merge_job(cache)
-    version = 101 if args.display_memory_mb else 100
+    version = 102 if args.hardware_profile else (101 if args.display_memory_mb else 100)
+    native_hardware = {}
+    if args.hardware_profile:
+        native_hardware = {hardware.DAEMONS + filename:
+            plistlib.loads(Path(get(root, (hardware.DAEMONS + filename).lstrip('/')).source).read_bytes())
+            for _, filename, _ in hardware.HARDWARE_JOBS}
+        updated, native_hardware = hardware.merge(updated, native_hardware)
     budget_properties = (merge_display_budget(plistlib.loads(Path(get(root, JETSAM).source).read_bytes()),
                          args.display_memory_mb) if args.display_memory_mb else None)
     spec = importlib.util.spec_from_file_location('verified_ssh_image', Path(__file__).with_name('prepare-whyred-ssh-image.py'))
@@ -268,10 +279,19 @@ def main():
         node.source = str(budgetfile)
         changes.append(dict(path=JETSAM, source=str(budgetfile), sha256=sha(budgetfile),
                             mode=oct(node.mode), uid=node.uid, gid=node.gid))
+    for path, properties in native_hardware.items():
+        local = overlay / Path(path).name
+        local.write_bytes(plistlib.dumps(properties, fmt=plistlib.FMT_BINARY))
+        node = get(root, path.lstrip('/'))
+        node.source = str(local)
+        changes.append(dict(path=path.lstrip('/'), source=str(local), sha256=sha(local),
+                            mode=oct(node.mode), uid=node.uid, gid=node.gid))
     plan = dict(version=version, base_system_version=95, base_system_sha256=SYSTEM95,
                 live_binary_provenance=provenance, changes=changes, job=job,
-                old_jobs_unchanged=True, old_job_count=531, job_count=532,
-                bootstrap_paths=bootstrap_paths, added_files=3, modified_files=1 + bool(budget_properties),
+                old_jobs_unchanged=not bool(native_hardware), old_job_count=531, job_count=532,
+                hardware_profile=args.hardware_profile,
+                hardware_disabled_labels=[x[0] for x in hardware.HARDWARE_JOBS] if native_hardware else [],
+                bootstrap_paths=bootstrap_paths, added_files=3, modified_files=1 + bool(budget_properties) + len(native_hardware),
                 display_memory_mb=args.display_memory_mb,
                 recommended_kernel_uuid=KERNEL99, device_writes=False,
                 live_pilot_required_before_flash=True, hardware_verified=False,
@@ -305,11 +325,13 @@ def main():
     comparison_args = [str(args.comparator.resolve()), prior95['system_apfs_path'], str(image)]
     if budget_properties is not None:
         comparison_args.append('--display-memory-policy')
+    if native_hardware:
+        comparison_args.append('--minimal-hardware')
     result = subprocess.run(comparison_args,
                             capture_output=True, text=True, check=True)
     comparison = json.loads(result.stdout)
     require(comparison.get('passed') is True and comparison.get('added_files') == 3 and
-            comparison.get('explicit_file_exceptions') == 1 + bool(budget_properties) and
+            comparison.get('explicit_file_exceptions') == 1 + bool(budget_properties) + len(native_hardware) and
             comparison.get('exact_bytes_compared', 0) > 4 * 1024**3, 'Whole-image comparison failed')
     manifest = dict(plan, system_apfs_path=str(image), system_apfs_size=image.stat().st_size,
                     system_apfs_sha256=sha(image), system_partition_bytes=PARTITION_BYTES,

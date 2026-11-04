@@ -1,9 +1,58 @@
+## Active102: READY hardware-profile candidate; fresh Fastboot answer pending;101 installed (2026-11-04 Minsk)
+
+- Latest user requested startup optimization by disabling unused Wi-Fi/Bluetooth/
+  camera/NFC services. Implemented explicit19-job minimal-hardware profile in
+  tools/whyred_boot_profile.py, integrated opt-in System102 builder/comparator.
+  Changes ONLY Disabled=true in BOTH native plist and embedded cache; preserves
+  all532 jobs, other fields, working101 display client/native128MiB budget,
+  SSH/USB/UI/API/security/logging providers. No fake processes/IPC. Default100/
+ 101 behavior unchanged. Exact list and acceptance: WHYRED-BOOT-PROFILE.md.
+- Actual101 snapshot found active radio coexistence, bluetoothuserd,nfcd,
+  wifianalyticsd,awdd; camera and several Wi-Fi jobs were dormant. CPU profiler
+  FAILED BEFORE first CPU result (threads40 command timeout). Do not claim CPU
+  savings or measured startup gain. Single-block boot99 PIO~1.3MiB/s remains a
+  separate bottleneck. Physical Apple logo confirmation for101 now recorded.
+- IMPORTANT: held17333 still has outstanding framed BEGIN67d2c2309faca3ddf2b3541bb85b6979
+  and NO END. Do NOT queue more commands. profiler23067 EXITED; private status
+  boot-service-profile.json=failed-review-required. No phone configuration changed.
+  Last read-only UI snapshots: SpringBoard waits LaunchServices store, lsd worker
+  waits inside MobileGestalt's Wi-Fi lookup. Not proof of permanent deadlock.
+  chosen lacks mac-address-wifi0. Factory persist cat attempt returnedEINVAL/
+  zero bytes, no writes; empty dump is INVALID. No fake identity/cache seed added.
+- Local4 profile tests PASS incl7 refusal cases and exactC/Python path parity;
+  strict C compilation PASS;6 hardware comparator positive/negative cases +9
+  retained display/budget fixtures PASS. Actual full-source overlay previewPASS.
+- FULL102 IMAGE PASS: graphics-v102/system-v102-candidate,5386178560B,
+  SHA6e6851e0f9789de382d38bfa3a113030bfb47b05969ce2ce68397295b958a912.
+  Independent95 comparison63022nodes/45744files/16607dirs/671symlinks,
+ 8613999393 unchanged old bytes;3additions/21explicit exceptions. All24 overlay
+  byte/metadata checksPASS. Actual101->102 cache comparison:19Disabled fields,
+ 513otherjobs equal. ALL81 sparse packets and exact payload
+  reconstruction PASS. build-status.json=offline-ready. See finish.log and
+  system-v102-candidate/offline-readiness.json. Private flash_display102.py is
+  sealed to exact102 SHA/size, rejects --flash without fresh readiness; file-only
+  preflight28531 FINISHED exit0 (files-preflight-status.json/log), no device
+  writes. Fastboot scan0devices. Concrete102 installation readiness PENDING.
+  Initial foreground build disappeared without manifest; incomplete spool was
+  discarded, plan/log retained under interrupted-do-not-flash. Detached build
+ 26521 now owns the successful complete pipeline. No duplicate build started.
+  Installed phone remains boot99/System101. NO102 flash/physical test/readiness.
+  Reclaimed ONLY81 reproducible101 sparse transport packets after rehashing
+  raw101+allpackets and validating confirmed81/reboot receipt. Valid raw101,
+ 95/100/boot backups/keys retained. Private audit/display102-space-reclaimed.json.
+- NEXT: obtain fresh Fastboot readiness for the concrete102 System-only test. Prepared ssh-v90/check_graphics102.py authenticates
+  actual99 UUID/binary/budget/cache/19native files and absence of19processes;
+  checks essential UI/SSH/display presence. No manual renderer; no kernel build.
+  Isolate new boot log with a fresh graphics102-boot-boundary.json BEFORE flash;
+  use fresh held shell only. Preserve101 rollback; never rerun101 flasher.
+
 ## Active101: AUTOMATIC FRAME OUTPUT + SCENE CHANGE PASS (2026-11-04 Minsk)
 
 - Installed boot99/System101, all81 writes+reboot confirmed earlier. Exact99 UUID,
   installed27b executable and native128MiB D22 table readback PASS. Current held
   SSH17333: audit/graphics101-device-20261104T153514Z/held. Observer13898,
-  validator14610 and scene exec85413 all FINISHED; held shell now FREE.
+  validator14610 and scene exec85413 all FINISHED. Later CPU profiler timed
+  out after framed BEGIN of diag threads40: held shell is NOT FREE; see top.
 - Actual automatic launchd process119 UID501, no manual presenter started.
   Four samples across120s: frames20/30/40/60, errors0/0/0/0, samePID. Wired pages
  12456/13353/13994/14253, compressor0 while cold boot kept loading; this is NOT
@@ -16,10 +65,10 @@
   context INVALIDATED. Automatic process119 stayed unchanged, its journal
   frames130->160/errors0/changes0->2 and logo hashc3d72fb8 restored. Thus current
   autostart captures real scene changes. Private autostart-scene.json/acceptance.json.
-- USER physical screen question for101 is still UNANSWERED; do not claim a new
-  visible hardware signoff or ready SpringBoard UI. Current captured scene is
-  still Apple boot logo. Prior99 physical logo/red confirmations remain valid
-  historical tests only. No new marker is left running.
+- USER physically confirmed automatic101 Apple logo on black background.
+  Private acceptance.json and physical-observation.json record this. This
+  confirms panel output; ready SpringBoard UI remains UNPROVED. No marker
+  remains running. Later warm samples through650 frames retained0errors.
 - Current detached UDP listener9727, log audit/current-whyred-usb.log ->
   graphics100-usb-session.log. Isolate101 with graphics101-boot-boundary.json.
   No observed fresh storage failure/fallback/panic. No UART required.
