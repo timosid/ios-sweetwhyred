@@ -19,11 +19,25 @@
   and upload readbacks. Pilot requires matching receipts; explicit --run only,
   fixed finite40s capture/mobile90s parent, memory before/after and actual counters.
   It never marks deployment ready or changing-scene/visible proof automatically.
-- System100 full offline build IN PROGRESS in graphics-v100/system-v100-candidate;
-  log graphics-v100/build.log. Do not deploy incomplete/no-manifest output.
-  Builder space guard uses two bounded System partitions plus1GiB and checks
-  exact layout before write. Initial arbitrary18GiB threshold rejected before
-  creating output; no images/backups were deleted. Full comparison pending.
+- System100 FULL IMAGE VERIFIED, PRIVATE graphics-v100/system-v100-candidate:
+  whyred-system-ios165-v100-live-display.apfs,5386194944B, SHA256
+  622ca50416c4d296f846cd7d4e754ca2f1d87a8bfe122010fb588ef6eb40e5c8.
+  Independent reader compared8614114504 old logical bytes,63022 old nodes,
+  45744 old files/16607 directories/671 symlinks; exactly3 additions and1 cache
+  content exception. All4 changed/new file byte+mode/UID/GID checks PASS.
+  Separate complete-cache comparison preserves every prior field and all531 jobs.
+  SSH/keys and disabled Bluetooth/FairPlay are in the unchanged byte-checked set.
+  Writer/comparator sources match committed65b1e97fbd6389fbeecf6d675649b8477c9b5555;
+  final CI41781693532/job126414466903 ALL steps PASS. Spool removed after success.
+  manifest.json/offline-readiness.json: offline_ready=true, deployment_ready=false,
+  hardware_verified=false, pilot_required_before_flash=true. Image fits the
+  existing System partition. No device access or flash occurred during this work.
+- NEXT when user reconnects: ask actual Fastboot readiness only then, flash ONLY
+  verified boot99 against existing System95 using private flash_kernel99.py;
+  fresh check_graphics99.py --start and exact-binary finite pilot_graphics99.py
+  after reviewing the fresh session receipt. Do NOT flash the enabled System100
+  until real finite capture, changing-scene/visible delivery and memory checks
+  pass. See WHYRED-DISPLAY-AUTOSTART.md. No continuous daemon installed yet.
 
 - User explicitly disconnected the phone and asks for offline work. Do not ask
   Fastboot now or reuse held98c SSH. Installed boot98/System95 unchanged.
@@ -37,13 +51,14 @@
   disabled Bluetooth/FairPlay and SSH/keys. Supervise as mobile,30s restart throttle,
   fresh immutable capture each iteration, max1fps, no permanent power override.
   Process RLIMIT_FSIZE1MiB bounds regular logs. Updated sourcee1dd981 passed
-  all renderCI41778268151/job126403582532 steps; signed archive verifying.
+  all renderCI41778268151/job126403582532 steps; signed archive fully verified.
 - New tools/prepare-whyred-display-image.py validates old jobs/base/provenance,
   executable rights/ISA/platform, embedded bootstrap path and independent APFS
   file checks. tools/whyred-display-image-compare.c independently compares all
   old bytes/metadata, permits exactly3 additions and1 cache exception. Native
   renderer guard/layer/surface checks PASS; independent reader rejects an
-  unchanged95 image as the100 overlay. No new System image built/flashed yet. Exact live-binary finite pilot remains
+  unchanged95 image as the100 overlay. System100 is now fully verified above;
+  installed boot98/System95 remains unchanged. Exact live-binary finite pilot remains
   required BEFORE deploying the enabled automatic launchd image.
 - Corrected pilot runner mismatch: general run-mobile remains30s; new explicit
   run-mobile-display accepts ONLY finite live-window, fixed90s bound. Native

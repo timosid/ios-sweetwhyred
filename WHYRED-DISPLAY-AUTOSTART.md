@@ -66,3 +66,15 @@ The image must fit the existing System partition; no partition layout changes.
 Offline checks cannot establish capture timing, bounded surface lifetime on the
 device, competition with stock swaps, or boot-time launchd behavior. The enabled
 image remains a candidate until those measurements pass.
+
+## Verified offline artifact,2026-11-04
+
+Private `graphics-v100/system-v100-candidate` contains the completed5386194944B
+image, SHA256 `622ca50416c4d296f846cd7d4e754ca2f1d87a8bfe122010fb588ef6eb40e5c8`.
+Independent comparison passed8614114504 old logical bytes across45744 old files,
+16607 directories and671 symlinks. Exactly3 files are added and only the existing
+launchd cache contents are excepted; the cache is separately compared in full
+with just the one intended job added. All four overlay byte/metadata checks pass.
+The spool was removed after successful verification. Final code commit65b1e97
+passed all CI41781693532/job126414466903 steps. This remains an unflashed candidate;
+`offline_ready=true` does not mean `deployment_ready=true` or hardware validation.

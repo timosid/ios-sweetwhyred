@@ -33,7 +33,10 @@ new immutable IOSurface storage for each submission, at most once per second.
 Its actual speed, changing-scene delivery and memory lifetime still need a finite
 device pilot. `prepare-whyred-display-image.py` prepares a System95 descendant
 with a supervised mobile launchd job, retaining all531 existing jobs and SSH.
-The process log is bounded to1MiB. No automatic panel power override is added.
+The completed System100 image passed independent comparison of8614114504 old
+logical bytes, with exactly3 additions and1 separately checked cache change.
+Private manifest/offline-readiness receipts retain the image SHA. The process
+log is bounded to1MiB. No automatic panel power override is added.
 No continuous job has been installed or tested on the phone. Candidate preparation
 is useful offline; flashing that enabled image requires the exact-binary pilot.
 
