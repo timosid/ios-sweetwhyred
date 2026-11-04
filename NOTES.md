@@ -1,3 +1,29 @@
+## Active100 memory correction: native policy proof; signed helper queued (2026-11-04 Minsk)
+
+- Actual held SSH7448 remains accessible. Current display log: repeated begin,
+  no first frame, SIGKILL reason1/7 per-process memory limit; not a working job.
+- Old foreground receiver2635 ended between turns without final status. Confirmed
+  no listener, started detached bounded append receiver9727; same graphics100
+  log/alias preserved. Gap approximately15:02:52..15:08:34 UTC, so no claim of
+  uninterrupted coverage. New datagrams verified; no UART. Current storage has
+  no failures/fallbacks in observed records through>1.5GB.
+- Diagnostic source a3dd836 CI41854513477/job126659373169 remains QUEUED in Intel
+  pool. Native strict compile/retainedselftest/11 refusals PASS. Retrying through
+  generic ARM64-host macos15 runner; target remains genericARM64/iOS16.4, same
+  actual source logic and signed rights. No budget mutation yet.
+- Verified exact launchd binary selects com.apple.jetsamproperties.D22.plist;
+  Daemon/Override holds530 entries. Added opt-in101 builder --display-memory-mb
+  128: add only own label with Active/InactiveHardMemoryLimit128. All existing
+  dictionary fields deeply preserved, job/live binary/rights unchanged.
+  Native full D22 merge/collision/invalid checks PASS. Independent comparator
+  strictcompile and4 budget opt-in/path/other-bytes/mode cases +6 retained
+  positive/negative fixtures PASS. Private graphics-v101 receipts/preview.
+- System101 NOT built/flashed. Need signed diagnostic actual limits/footprint
+  and current-process128MiB experiment first; then build101 and full metadata/
+  old-bytes comparison. Available disk ~7GiB: do not start full image before
+  reclaiming only proven disposable intermediates; keep95/100 raw rollback,
+  keys/backups/flash receipts. No physical touch producer yet.
+
 ## Active100: autostart memory-limit failure; diagnostic candidate (2026-11-04 Minsk)
 
 - System100 full81-slice install/reboot confirmed, boot99 retained. Fresh observer

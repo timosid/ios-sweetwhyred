@@ -29,6 +29,7 @@ LIVE = 'usr/local/whyred/bin/whyred-display'
 WAKE = 'usr/local/whyred/bin/whyred-display-wake'
 KERNEL99 = '2ED4E8A4-6D1C-3C3C-980B-8533C25978D1'
 PARTITION_BYTES = 13085938 * 512
+JETSAM = 'System/Library/LaunchDaemons/com.apple.jetsamproperties.D22.plist'
 
 
 def require(value, message):
@@ -70,6 +71,25 @@ def merge_job(cache):
     return result, job
 
 
+def merge_display_budget(properties, memory_mb):
+    require(memory_mb == 128, 'Only the finite128MiB display experiment is supported')
+    require(isinstance(properties, dict) and isinstance(properties.get('Version4'), dict),
+            'Missing Version4 budget table')
+    daemon = properties['Version4'].get('Daemon')
+    require(isinstance(daemon, dict) and isinstance(daemon.get('Override'), dict),
+            'Missing daemon overrides')
+    require(LABEL not in daemon['Override'] and
+            all(not isinstance(value, dict) or LABEL not in value for value in daemon.values()),
+            'Display budget already present')
+    result = copy.deepcopy(properties)
+    result['Version4']['Daemon']['Override'][LABEL] = {
+        'ActiveHardMemoryLimit': memory_mb, 'InactiveHardMemoryLimit': memory_mb}
+    restored = copy.deepcopy(result)
+    del restored['Version4']['Daemon']['Override'][LABEL]
+    require(restored == properties, 'Existing memory policy altered')
+    return result
+
+
 def self_test():
     jobs = {'/base/%d.plist' % n: {'Label': 'base.%d' % n} for n in range(529)}
     for name in ('com.apple.bluetoothd', 'com.apple.fairplayd.H2'):
@@ -97,7 +117,22 @@ def self_test():
         pass
     else:
         raise ValueError('Accepted reenabled Bluetooth job')
+    baseline = {'Version4': {'Daemon': {'Default': {'old': {'EnablePressuredExit': False}},
+                'Override': {'old': {'ActiveHardMemoryLimit': 6, 'InactiveHardMemoryLimit': -1}}},
+                'App': {'preserved': [1, 2]}}}
+    budget = merge_display_budget(baseline, 128)
+    require(budget['Version4']['Daemon']['Override'][LABEL] == {
+        'ActiveHardMemoryLimit': 128, 'InactiveHardMemoryLimit': 128}, 'Wrong display budget')
+    for invalid, amount in [(baseline, 0), (baseline, -1), (baseline, 512), (budget, 128), ({}, 128),
+                            ({'Version4': {'Daemon': {'Override': []}}}, 128)]:
+        try:
+            merge_display_budget(invalid, amount)
+        except ValueError:
+            pass
+        else:
+            raise ValueError('Accepted invalid/colliding memory policy')
     print('PASS: preserve all531 jobs/cache fields; reject collisions and changed baseline policy')
+    print('PASS: retain full memory table; only own128MiB hard limits; reject invalid/colliding policy')
 
 
 def main():
@@ -106,6 +141,8 @@ def main():
     for key in ('baseline-out', 'system91', 'system95', 'live-dir', 'wake-dir', 'provenance', 'reader', 'comparator', 'output'):
         parser.add_argument('--' + key, type=Path)
     parser.add_argument('--build', action='store_true')
+    parser.add_argument('--display-memory-mb', type=int, choices=[128],
+                        help='Build101 with only the display job budget added to the D22 memory table')
     args = parser.parse_args()
     if args.self_test:
         self_test()
@@ -168,6 +205,9 @@ def main():
     directory('System/Library/WhyredSSH').mode = stat.S_IFDIR | 0o700
     cache = plistlib.loads(Path(get(root, CACHE).source).read_bytes())
     updated, job = merge_job(cache)
+    version = 101 if args.display_memory_mb else 100
+    budget_properties = (merge_display_budget(plistlib.loads(Path(get(root, JETSAM).source).read_bytes()),
+                         args.display_memory_mb) if args.display_memory_mb else None)
     spec = importlib.util.spec_from_file_location('verified_ssh_image', Path(__file__).with_name('prepare-whyred-ssh-image.py'))
     ssh_image = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(ssh_image)
@@ -221,10 +261,18 @@ def main():
     get(root, CACHE).source = str(cachefile)
     changes.append(dict(path=CACHE, source=str(cachefile), sha256=sha(cachefile),
                         mode=oct(get(root, CACHE).mode), uid=get(root, CACHE).uid, gid=get(root, CACHE).gid))
-    plan = dict(version=100, base_system_version=95, base_system_sha256=SYSTEM95,
+    if budget_properties is not None:
+        budgetfile = overlay / Path(JETSAM).name
+        budgetfile.write_bytes(plistlib.dumps(budget_properties, fmt=plistlib.FMT_BINARY))
+        node = get(root, JETSAM)
+        node.source = str(budgetfile)
+        changes.append(dict(path=JETSAM, source=str(budgetfile), sha256=sha(budgetfile),
+                            mode=oct(node.mode), uid=node.uid, gid=node.gid))
+    plan = dict(version=version, base_system_version=95, base_system_sha256=SYSTEM95,
                 live_binary_provenance=provenance, changes=changes, job=job,
                 old_jobs_unchanged=True, old_job_count=531, job_count=532,
-                bootstrap_paths=bootstrap_paths, added_files=3, modified_files=1,
+                bootstrap_paths=bootstrap_paths, added_files=3, modified_files=1 + bool(budget_properties),
+                display_memory_mb=args.display_memory_mb,
                 recommended_kernel_uuid=KERNEL99, device_writes=False,
                 live_pilot_required_before_flash=True, hardware_verified=False,
                 tool_sha256=sha(__file__), builder_sha256=BUILDER)
@@ -232,7 +280,7 @@ def main():
     if not args.build:
         print('Validated display overlay/launchd cache plan; image not built')
         return
-    image = out / 'whyred-system-ios165-v100-live-display.apfs'
+    image = out / ('whyred-system-ios165-v%d-live-display.apfs' % version)
     spoolpath = Path(str(image) + '.spool')
     with spoolpath.open('w+b') as spool:
         volume = builder.Volume(0, 'System', root, True, 1683900000 * 1000000000, spool,
@@ -254,11 +302,14 @@ def main():
         subprocess.run([str(metadata), str(image), '/' + item['path'], item['mode'][2:],
                         str(item['uid']), str(item['gid'])], check=True, capture_output=True)
         checks.append(item['path'])
-    result = subprocess.run([str(args.comparator.resolve()), prior95['system_apfs_path'], str(image)],
+    comparison_args = [str(args.comparator.resolve()), prior95['system_apfs_path'], str(image)]
+    if budget_properties is not None:
+        comparison_args.append('--display-memory-policy')
+    result = subprocess.run(comparison_args,
                             capture_output=True, text=True, check=True)
     comparison = json.loads(result.stdout)
     require(comparison.get('passed') is True and comparison.get('added_files') == 3 and
-            comparison.get('explicit_file_exceptions') == 1 and
+            comparison.get('explicit_file_exceptions') == 1 + bool(budget_properties) and
             comparison.get('exact_bytes_compared', 0) > 4 * 1024**3, 'Whole-image comparison failed')
     manifest = dict(plan, system_apfs_path=str(image), system_apfs_size=image.stat().st_size,
                     system_apfs_sha256=sha(image), system_partition_bytes=PARTITION_BYTES,

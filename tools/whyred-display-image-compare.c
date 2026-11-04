@@ -7,6 +7,7 @@ struct entry { char *name; uint64_t id; uint8_t type; };
 struct listing { struct entry *v; size_t n; };
 static struct disk disks[2];
 static unsigned nodes, files, dirs, links, changed, added;
+static int display_memory_policy;
 static uint64_t bytes;
 static unsigned char buffers[2][1024 * 1024];
 
@@ -107,7 +108,11 @@ static int walk(uint64_t a, uint64_t b, const char *path, unsigned depth) {
         files++; uint64_t size[2] = {0};
         e = apfs_inode_size(&disks[0].vol, &in[0], &size[0]);
         if (!e) e = apfs_inode_size(&disks[1].vol, &in[1], &size[1]);
-        if (!e && !strcmp(path, "/System/Library/xpc/launchd.plist")) { changed++; return 0; }
+        if (!e && (!strcmp(path, "/System/Library/xpc/launchd.plist") ||
+            (display_memory_policy && !strcmp(path,
+             "/System/Library/LaunchDaemons/com.apple.jetsamproperties.D22.plist")))) {
+            changed++; return 0; /* Builder separately compares bytes and the full policy dictionary. */
+        }
         if (!e && size[0] != size[1]) e = EINVAL;
         struct apfs_cfile cf[2] = {{0}};
         for (uint64_t off = 0; !e && off < size[0]; off += sizeof(buffers[0])) {
@@ -125,7 +130,11 @@ static int walk(uint64_t a, uint64_t b, const char *path, unsigned depth) {
     return e;
 }
 int main(int argc, char **argv) {
-    if (argc != 3) return 2;
+    if (argc != 3 && argc != 4) return 2;
+    if (argc == 4) {
+        if (strcmp(argv[3], "--display-memory-policy")) return 2;
+        display_memory_policy = 1;
+    }
     for (unsigned i = 0; i < 2; i++) {
         struct disk *d = &disks[i];
         d->f = fopen(argv[i + 1], "rb");
@@ -139,7 +148,7 @@ int main(int argc, char **argv) {
         if (e) return 3;
     }
     int e = walk(APFS_ROOT_DIR_INO_NUM, APFS_ROOT_DIR_INO_NUM, "/", 0);
-    if (!e && (changed != 1 || added != 3)) e = EINVAL;
+    if (!e && (changed != 1u + (unsigned)display_memory_policy || added != 3)) e = EINVAL;
     printf("{\"passed\":%s,\"nodes\":%u,\"files\":%u,\"directories\":%u,\"symlinks\":%u,"
            "\"exact_bytes_compared\":%llu,\"explicit_file_exceptions\":%u,\"added_files\":%u}\n",
            e ? "false" : "true", nodes, files, dirs, links, (unsigned long long)bytes, changed, added);

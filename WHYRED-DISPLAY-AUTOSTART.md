@@ -86,3 +86,25 @@ The spool was removed after successful verification. Final code commit65b1e97
 passed all CI41781693532/job126414466903 steps. The offline receipt describes build-time checks; it does not establish boot-time
 launchd behavior. See the latest NOTES.md handoff for installation and device
 validation state. Retain the verified System95 image for rollback.
+
+## First automatic startup and memory-policy correction
+
+System100 was installed successfully (all81 writes and reboot confirmed) with
+boot99 retained. The first launchd job repeatedly reached live-begin but was
+terminated before its first frame: SIGKILL, OS_REASON_JETSAM1,
+JETSAM_REASON_MEMORY_PERPROCESSLIMIT7. The user still sees console text. Thus
+successful finite manual captures did not validate the service's launchd budget.
+
+The opt-in101 builder adds only `org.whyred.display` under
+`Version4/Daemon/Override` in the existing D22 jetsam-properties file, with finite
+128MiB active/inactive hard limits. All old530 daemon overrides, defaults, other
+process classes and existing launchd jobs must remain equal. This is an
+experimental budget pending on-device limits/footprint measurements; it is not
+an allocation, a global jetsam change or a disabled fatal limit. The live binary
+and its entitlements remain unchanged. Without `--display-memory-mb 128`, the builder retains100 behavior.
+
+The read-only image comparator accepts the extra D22 file-content exception
+only with `--display-memory-policy`; metadata and all other old file contents
+remain checked. The builder separately compares the full policy dictionary and
+the exact installed replacement bytes. A101 image must still pass full image
+comparison and an automatic startup/device pilot before it is called working.
